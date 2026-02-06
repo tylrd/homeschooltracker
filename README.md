@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# HomeschoolTracker
 
-First, run the development server:
+### The world's most advanced, enterprise-grade, AI-adjacent homeschool management platform.
+
+[![Build](https://github.com/tylrd/homeschooltracker/actions/workflows/publish.yml/badge.svg)](https://github.com/tylrd/homeschooltracker/actions/workflows/publish.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+
+*Revolutionizing the kitchen-table educational experience since 2025.*
+
+---
+
+**17 stars** &middot; **1 contributor** &middot; **0 issues** (we don't have bugs, only undocumented features)
+
+</div>
+
+---
+
+## Why HomeschoolTracker?
+
+Because your child's education deserves the same caliber of tooling that Fortune 500 companies use to track quarterly OKRs.
+
+Other families use spreadsheets. Some use paper planners. A brave few use *nothing at all*. But you? You demand **type-safe lesson plans**, **relationally-modeled student data**, and **server-side rendered daily notes** &mdash; delivered at the speed of React 19 streaming.
+
+HomeschoolTracker isn't just an app. It's a **paradigm shift** in domestic pedagogy infrastructure.
+
+## Features
+
+- **Student Management** &mdash; Full CRUD for your most important stakeholders (your children).
+- **Subject Tracking** &mdash; Because "math" and "reading" deserve their own database rows.
+- **Lesson Plans** &mdash; Plan lessons with the rigor of a NASA mission timeline. Calendar view included.
+- **Resource Library** &mdash; Catalog every workbook, video, and questionable YouTube playlist.
+- **Daily Notes** &mdash; Capture the nuance of each school day. "Refused to do long division" has never been so well-indexed.
+- **Dark Mode** &mdash; For those 5 AM planning sessions before the kids wake up.
+
+## Tech Stack
+
+This is not a toy. This is a **production-grade, vertically-integrated, full-stack TypeScript monolith**:
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16.1 (App Router, React Server Components) |
+| Language | TypeScript 5 (strict mode, obviously) |
+| UI | React 19, Tailwind CSS 4, shadcn/ui, Radix UI |
+| Database | PostgreSQL 16, Drizzle ORM |
+| Runtime | Node.js 20 |
+| Deployment | Docker, GitHub Actions, GHCR |
+
+## Quick Start (Production)
+
+Deploy the entire platform in under 60 seconds. Investors love velocity.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repository
+git clone https://github.com/tylrd/homeschooltracker.git
+cd homeschooltracker/deploy
+
+# Configure your environment
+cp .env.example .env
+# Edit .env with your preferred credentials
+
+# Launch
+docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app will be available at [http://localhost:3000](http://localhost:3000). That's it. You just deployed a world-class homeschool management system.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+For contributors and those who like to live on the edge:
 
-## Learn More
+```bash
+# Install dependencies
+pnpm install
 
-To learn more about Next.js, take a look at the following resources:
+# Start the database
+pnpm docker:up
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Push the schema
+pnpm db:push
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# (Optional) Seed with sample data
+pnpm db:seed
 
-## Deploy on Vercel
+# Start the dev server
+pnpm dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open [http://localhost:3000](http://localhost:3000) and begin your journey.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Useful Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start dev server (Turbopack) |
+| `pnpm build` | Production build |
+| `pnpm lint` | ESLint |
+| `pnpm db:studio` | Open Drizzle Studio (database GUI) |
+| `pnpm docker:up` | Start PostgreSQL container |
+| `pnpm docker:down` | Stop PostgreSQL container |
+
+## Contributing
+
+We take contributions to HomeschoolTracker with the utmost seriousness. This project is the backbone of at least one family's educational infrastructure, and we will not compromise on quality.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/quantum-gradebook`)
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+All PRs are automatically built and published to GHCR. We don't have a test suite yet, but we do have *confidence*.
+
+## License
+
+MIT
