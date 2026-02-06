@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   lessons,
@@ -78,6 +78,23 @@ export async function getAbsencesForDate(date: string) {
     .from(absences)
     .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
     .where(eq(absences.date, date));
+
+  return rows;
+}
+
+export async function getStudentResourceMap() {
+  const db = getDb();
+  const rows = await db
+    .select({
+      studentId: students.id,
+      subjectName: subjects.name,
+      resourceId: resources.id,
+      resourceName: resources.name,
+    })
+    .from(resources)
+    .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+    .innerJoin(students, eq(subjects.studentId, students.id))
+    .orderBy(asc(students.name), asc(subjects.name), asc(resources.name));
 
   return rows;
 }

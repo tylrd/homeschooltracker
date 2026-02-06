@@ -3,7 +3,7 @@
 import { eq, and, gte, gt, asc, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { lessons, resources, subjects } from "@/db/schema";
+import { lessons, resources, subjects, students } from "@/db/schema";
 import {
   generateLessonDates,
   nextSchoolDayStr,
@@ -295,7 +295,11 @@ export async function updateLessonContent(
   revalidatePath("/shelf");
 }
 
-export async function scheduleMakeupLesson(resourceId: string, date: string) {
+export async function scheduleMakeupLesson(
+  resourceId: string,
+  date: string,
+  options?: { title?: string; notes?: string },
+) {
   const db = getDb();
 
   // Find the next planned lesson after this date
@@ -310,9 +314,13 @@ export async function scheduleMakeupLesson(resourceId: string, date: string) {
 
   if (nextLesson) {
     // Pull the next planned lesson forward to today
+    const updates: Record<string, string> = { scheduledDate: date };
+    if (options?.title?.trim()) updates.title = options.title.trim();
+    if (options?.notes !== undefined)
+      updates.notes = options.notes.trim() || null!;
     await db
       .update(lessons)
-      .set({ scheduledDate: date })
+      .set(updates)
       .where(eq(lessons.id, nextLesson.id));
   } else {
     // No future planned lesson — create a new one
@@ -325,9 +333,10 @@ export async function scheduleMakeupLesson(resourceId: string, date: string) {
     await db.insert(lessons).values({
       resourceId,
       lessonNumber: nextNum,
-      title: `Lesson ${nextNum}`,
+      title: options?.title?.trim() || `Lesson ${nextNum}`,
       scheduledDate: date,
       status: "planned",
+      notes: options?.notes?.trim() || null,
     });
   }
 
@@ -348,4 +357,34 @@ export async function deleteLesson(lessonId: string) {
   if (lesson) {
     revalidatePath(`/shelf/${lesson.resourceId}`);
   }
+}
+
+export async function getUpcomingPlannedLessons(
+  studentId: string,
+  date: string,
+) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      lessonId: lessons.id,
+      lessonNumber: lessons.lessonNumber,
+      lessonTitle: lessons.title,
+      scheduledDate: lessons.scheduledDate,
+      resourceName: resources.name,
+      subjectName: subjects.name,
+    })
+    .from(lessons)
+    .innerJoin(resources, eq(lessons.resourceId, resources.id))
+    .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+    .where(
+      and(
+        eq(subjects.studentId, studentId),
+        eq(lessons.status, "planned"),
+        gt(lessons.scheduledDate, date),
+      ),
+    )
+    .orderBy(asc(lessons.scheduledDate), asc(subjects.name), asc(lessons.lessonNumber))
+    .limit(30);
+
+  return rows;
 }

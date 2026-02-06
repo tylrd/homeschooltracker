@@ -13,7 +13,7 @@ import { StudentColorDot } from "@/components/student-color-dot";
 import { LessonCard } from "@/components/dashboard/lesson-card";
 import { NoteDialog } from "@/components/dashboard/note-dialog";
 import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
-import { MakeupDialog } from "@/components/dashboard/makeup-dialog";
+import { AddLessonDialog } from "@/components/dashboard/add-lesson-dialog";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +47,12 @@ type AbsenceInfo = {
   reasonColor: string;
 };
 
+type StudentResource = {
+  resourceId: string;
+  resourceName: string;
+  subjectName: string;
+};
+
 export function LessonList({
   lessons,
   notes,
@@ -56,6 +62,7 @@ export function LessonList({
   defaultShowCompleted,
   grouping = "student",
   showNoteButtons = true,
+  studentResourceMap = {},
 }: {
   lessons: DashboardLesson[];
   notes: Note[];
@@ -65,6 +72,7 @@ export function LessonList({
   defaultShowCompleted: boolean;
   grouping?: "student" | "subject";
   showNoteButtons?: boolean;
+  studentResourceMap?: Record<string, StudentResource[]>;
 }) {
   // Per-student overrides: true/false means explicitly toggled, absent means use global
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -74,13 +82,9 @@ export function LessonList({
     studentId: string | null;
     studentName: string | null;
   } | null>(null);
-  const [makeupTarget, setMakeupTarget] = useState<{
+  const [addLessonTarget, setAddLessonTarget] = useState<{
+    studentId: string;
     studentName: string;
-    resources: {
-      resourceId: string;
-      resourceName: string;
-      subjectName: string;
-    }[];
   } | null>(null);
 
   // Group by student
@@ -252,29 +256,17 @@ export function LessonList({
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-muted-foreground"
-                              onClick={() => {
-                                const seen = new Set<string>();
-                                const resources = group.lessons
-                                  .filter((l) => {
-                                    if (seen.has(l.resourceId)) return false;
-                                    seen.add(l.resourceId);
-                                    return true;
-                                  })
-                                  .map((l) => ({
-                                    resourceId: l.resourceId,
-                                    resourceName: l.resourceName,
-                                    subjectName: l.subjectName,
-                                  }));
-                                setMakeupTarget({
+                              onClick={() =>
+                                setAddLessonTarget({
+                                  studentId,
                                   studentName: group.name,
-                                  resources,
-                                });
-                              }}
+                                })
+                              }
                             >
                               <Plus className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Makeup</TooltipContent>
+                          <TooltipContent>Add Lesson</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -373,14 +365,22 @@ export function LessonList({
         }
       />
 
-      <MakeupDialog
-        open={makeupTarget !== null}
+      <AddLessonDialog
+        open={addLessonTarget !== null}
         onOpenChange={(open) => {
-          if (!open) setMakeupTarget(null);
+          if (!open) setAddLessonTarget(null);
         }}
-        studentName={makeupTarget?.studentName ?? ""}
+        studentId={addLessonTarget?.studentId ?? ""}
+        studentName={addLessonTarget?.studentName ?? ""}
         date={date}
-        resources={makeupTarget?.resources ?? []}
+        resources={
+          addLessonTarget
+            ? (studentResourceMap[addLessonTarget.studentId] ?? [])
+            : []
+        }
+        todayResourceIds={
+          new Set(lessons.map((l) => l.resourceId))
+        }
       />
     </>
   );

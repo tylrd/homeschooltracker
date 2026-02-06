@@ -13,6 +13,7 @@ import {
   getTodayNotes,
   getStudentsForFilter,
   getAbsencesForDate,
+  getStudentResourceMap,
 } from "@/lib/queries/dashboard";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
@@ -38,6 +39,7 @@ export default async function DashboardPage({
     showCompleted,
     dashboardGrouping,
     showNoteButtons,
+    resourceRows,
   ] = await Promise.all([
     getTodayLessons(date, studentId),
     getTodayNotes(date),
@@ -47,11 +49,36 @@ export default async function DashboardPage({
     getShowCompletedLessons(),
     getDashboardGrouping(),
     getShowNoteButtons(),
+    getStudentResourceMap(),
   ]);
 
   const plannedCount = lessons.filter(
     (l) => l.lessonStatus === "planned",
   ).length;
+
+  // Build student resource map: studentId -> resources[]
+  const studentResourceMap: Record<
+    string,
+    { resourceId: string; resourceName: string; subjectName: string }[]
+  > = {};
+  for (const row of resourceRows) {
+    const existing = studentResourceMap[row.studentId];
+    if (existing) {
+      existing.push({
+        resourceId: row.resourceId,
+        resourceName: row.resourceName,
+        subjectName: row.subjectName,
+      });
+    } else {
+      studentResourceMap[row.studentId] = [
+        {
+          resourceId: row.resourceId,
+          resourceName: row.resourceName,
+          subjectName: row.subjectName,
+        },
+      ];
+    }
+  }
 
   // Build absence map: studentId -> absence info
   const absenceMap = new Map<
@@ -115,6 +142,7 @@ export default async function DashboardPage({
           defaultShowCompleted={showCompleted}
           grouping={dashboardGrouping}
           showNoteButtons={showNoteButtons}
+          studentResourceMap={studentResourceMap}
         />
       )}
     </div>

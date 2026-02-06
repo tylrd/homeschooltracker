@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, MessageSquare, Plus, RotateCcw } from "lucide-react";
+import { ArrowRight, MessageSquare, RotateCcw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { StudentColorDot } from "@/components/student-color-dot";
@@ -12,7 +12,6 @@ import {
   completeLesson,
   uncompleteLesson,
   bumpLesson,
-  scheduleMakeupLesson,
 } from "@/lib/actions/lessons";
 
 type LessonCardProps = {
@@ -76,12 +75,6 @@ export function LessonCard({
     }, 300);
   }
 
-  function handleMakeup() {
-    startTransition(async () => {
-      await scheduleMakeupLesson(resourceId, date);
-    });
-  }
-
   return (
     <div
       className={cn(
@@ -132,28 +125,16 @@ export function LessonCard({
         </p>
       </Link>
       {!isCompleted && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={handleMakeup}
-            disabled={isPending || bumping}
-            title="Add makeup lesson"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={handleBump}
-            disabled={isPending || bumping}
-            title="Bump to next day"
-          >
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={handleBump}
+          disabled={isPending || bumping}
+          title="Bump to next day"
+        >
+          <ArrowRight className="h-4 w-4" />
+        </Button>
       )}
       {showNoteButton && (
         <Button
