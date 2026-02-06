@@ -1,5 +1,10 @@
+"use client";
+
+import { useTransition } from "react";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -9,15 +14,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/dates";
+import { deleteLesson } from "@/lib/actions/lessons";
 import type { Lesson } from "@/db/schema";
 
 export function LessonTable({ lessons }: { lessons: Lesson[] }) {
+  const [isPending, startTransition] = useTransition();
+
   if (lessons.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
         No lessons yet. Generate lessons to get started.
       </p>
     );
+  }
+
+  function handleDelete(lessonId: string) {
+    if (!confirm("Delete this lesson?")) return;
+    startTransition(async () => {
+      await deleteLesson(lessonId);
+    });
   }
 
   return (
@@ -29,6 +44,7 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
             <TableHead>Title</TableHead>
             <TableHead>Date</TableHead>
             <TableHead className="w-24">Status</TableHead>
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -56,6 +72,17 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
                 >
                   {lesson.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDelete(lesson.id)}
+                  disabled={isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}

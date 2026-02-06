@@ -15,7 +15,11 @@ import {
   getAbsencesForDate,
 } from "@/lib/queries/dashboard";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
-import { getShowCompletedLessons } from "@/lib/queries/settings";
+import {
+  getShowCompletedLessons,
+  getDashboardGrouping,
+  getShowNoteButtons,
+} from "@/lib/queries/settings";
 import { getTodayDate } from "@/lib/dates";
 
 export default async function DashboardPage({
@@ -25,15 +29,25 @@ export default async function DashboardPage({
 }) {
   const { student: studentId, date: dateParam } = await searchParams;
   const date = dateParam ?? getTodayDate();
-  const [lessons, notes, students, absences, reasons, showCompleted] =
-    await Promise.all([
-      getTodayLessons(date, studentId),
-      getTodayNotes(date),
-      getStudentsForFilter(),
-      getAbsencesForDate(date),
-      getOrCreateDefaultReasons(),
-      getShowCompletedLessons(),
-    ]);
+  const [
+    lessons,
+    notes,
+    students,
+    absences,
+    reasons,
+    showCompleted,
+    dashboardGrouping,
+    showNoteButtons,
+  ] = await Promise.all([
+    getTodayLessons(date, studentId),
+    getTodayNotes(date),
+    getStudentsForFilter(),
+    getAbsencesForDate(date),
+    getOrCreateDefaultReasons(),
+    getShowCompletedLessons(),
+    getDashboardGrouping(),
+    getShowNoteButtons(),
+  ]);
 
   const plannedCount = lessons.filter(
     (l) => l.lessonStatus === "planned",
@@ -99,6 +113,8 @@ export default async function DashboardPage({
           }))}
           absenceMap={Object.fromEntries(absenceMap)}
           defaultShowCompleted={showCompleted}
+          grouping={dashboardGrouping}
+          showNoteButtons={showNoteButtons}
         />
       )}
     </div>

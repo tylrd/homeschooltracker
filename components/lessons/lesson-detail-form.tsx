@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -12,6 +14,7 @@ import {
   uncompleteLesson,
   updateLessonContent,
   updateLessonScheduledDate,
+  deleteLesson,
 } from "@/lib/actions/lessons";
 
 type LessonDetailFormProps = {
@@ -29,6 +32,7 @@ export function LessonDetailForm({
   notes,
   scheduledDate,
 }: LessonDetailFormProps) {
+  const router = useRouter();
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
   const [isPending, startTransition] = useTransition();
@@ -117,6 +121,22 @@ export function LessonDetailForm({
         disabled={!hasChanges || isPending}
       >
         {isPending ? "Saving..." : "Save"}
+      </Button>
+
+      <Button
+        variant="outline"
+        className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground"
+        disabled={isPending}
+        onClick={() => {
+          if (!confirm("Delete this lesson? This cannot be undone.")) return;
+          startTransition(async () => {
+            await deleteLesson(lessonId);
+            router.back();
+          });
+        }}
+      >
+        <Trash2 className="mr-1 h-4 w-4" />
+        Delete Lesson
       </Button>
     </div>
   );

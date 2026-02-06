@@ -1,11 +1,16 @@
 /**
- * Returns the next school day (Mon-Fri) after the given date.
+ * Returns the next school day after the given date.
+ * schoolDays is an array of day-of-week numbers (0=Sun … 6=Sat).
  */
-export function nextSchoolDay(date: Date): Date {
+export function nextSchoolDay(
+  date: Date,
+  schoolDays: number[] = [1, 2, 3, 4, 5],
+): Date {
+  const days = schoolDays.length > 0 ? schoolDays : [1, 2, 3, 4, 5];
   const next = new Date(date);
   do {
     next.setDate(next.getDate() + 1);
-  } while (next.getDay() === 0 || next.getDay() === 6);
+  } while (!days.includes(next.getDay()));
   return next;
 }
 
@@ -86,6 +91,34 @@ export function parseDate(dateStr: string): Date {
 /**
  * Get the next school day after the given date string, returning a date string.
  */
-export function nextSchoolDayStr(dateStr: string): string {
-  return toDateString(nextSchoolDay(parseDate(dateStr)));
+export function nextSchoolDayStr(
+  dateStr: string,
+  schoolDays: number[] = [1, 2, 3, 4, 5],
+): string {
+  return toDateString(nextSchoolDay(parseDate(dateStr), schoolDays));
+}
+
+/**
+ * Get the same day of the week, one week later.
+ */
+export function sameDayNextWeek(dateStr: string): string {
+  const date = parseDate(dateStr);
+  date.setDate(date.getDate() + 7);
+  return toDateString(date);
+}
+
+/**
+ * Get the next bump date based on behavior setting.
+ * For "same_day_next_week", the *first* bumped lesson goes to the same weekday
+ * next week. For "next_school_day", it goes to the next school day.
+ */
+export function getNextBumpDate(
+  dateStr: string,
+  behavior: "next_school_day" | "same_day_next_week",
+  schoolDays: number[] = [1, 2, 3, 4, 5],
+): string {
+  if (behavior === "same_day_next_week") {
+    return sameDayNextWeek(dateStr);
+  }
+  return nextSchoolDayStr(dateStr, schoolDays);
 }

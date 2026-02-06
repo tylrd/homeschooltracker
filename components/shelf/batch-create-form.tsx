@@ -17,26 +17,36 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { batchCreateLessons } from "@/lib/actions/lessons";
 import { generateLessonDates, toDateString } from "@/lib/dates";
 
-const WEEKDAYS = [
+const ALL_DAYS = [
+  { value: "0", label: "Sun" },
   { value: "1", label: "Mon" },
   { value: "2", label: "Tue" },
   { value: "3", label: "Wed" },
   { value: "4", label: "Thu" },
   { value: "5", label: "Fri" },
+  { value: "6", label: "Sat" },
 ];
 
 export function BatchCreateForm({
   resourceId,
   existingCount,
+  defaultSchoolDays = [1, 2, 3, 4, 5],
+  defaultLessonCount = 20,
 }: {
   resourceId: string;
   existingCount: number;
+  defaultSchoolDays?: number[];
+  defaultLessonCount?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [startLesson, setStartLesson] = useState(existingCount + 1);
-  const [endLesson, setEndLesson] = useState(existingCount + 20);
+  const [endLesson, setEndLesson] = useState(
+    existingCount + defaultLessonCount,
+  );
   const [startDate, setStartDate] = useState(toDateString(new Date()));
-  const [selectedDays, setSelectedDays] = useState(["1", "2", "3", "4", "5"]);
+  const [selectedDays, setSelectedDays] = useState(
+    defaultSchoolDays.map(String),
+  );
 
   const count = Math.max(0, endLesson - startLesson + 1);
   const schoolDays = selectedDays.map(Number);
@@ -115,7 +125,7 @@ export function BatchCreateForm({
               }}
               className="justify-start"
             >
-              {WEEKDAYS.map((day) => (
+              {ALL_DAYS.map((day) => (
                 <ToggleGroupItem key={day.value} value={day.value} size="sm">
                   {day.label}
                 </ToggleGroupItem>

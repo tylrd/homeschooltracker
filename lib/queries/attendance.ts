@@ -1,4 +1,4 @@
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, asc } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   lessons,
@@ -96,6 +96,72 @@ export async function getAttendanceForMonth(year: number, month: number) {
   }
 
   return { attendanceMap, absenceMap, studentInfo, year, month, lastDay };
+}
+
+export type CompletionLogEntry = {
+  completionDate: string;
+  studentId: string;
+  studentName: string;
+  studentColor: string;
+  subjectName: string;
+  resourceName: string;
+  lessonTitle: string | null;
+  lessonNumber: number;
+  lessonId: string;
+};
+
+export async function getCompletionLogForMonth(year: number, month: number) {
+  const db = getDb();
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const rows = await db
+    .select({
+      completionDate: lessons.completionDate,
+      studentId: students.id,
+      studentName: students.name,
+      studentColor: students.color,
+      subjectName: subjects.name,
+      resourceName: resources.name,
+      lessonTitle: lessons.title,
+      lessonNumber: lessons.lessonNumber,
+      lessonId: lessons.id,
+    })
+    .from(lessons)
+    .innerJoin(resources, eq(lessons.resourceId, resources.id))
+    .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+    .innerJoin(students, eq(subjects.studentId, students.id))
+    .where(
+      and(
+        eq(lessons.status, "completed"),
+        gte(lessons.completionDate, startDate),
+        lte(lessons.completionDate, endDate),
+      ),
+    )
+    .orderBy(
+      asc(lessons.completionDate),
+      asc(students.name),
+      asc(subjects.name),
+      asc(lessons.lessonNumber),
+    );
+
+  // Get absences for the month
+  const absenceRows = await db
+    .select({
+      studentId: absences.studentId,
+      date: absences.date,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(absences)
+    .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
+    .innerJoin(students, eq(absences.studentId, students.id))
+    .where(and(gte(absences.date, startDate), lte(absences.date, endDate)));
+
+  return { completions: rows as CompletionLogEntry[], absences: absenceRows };
 }
 
 export async function getAllStudents() {

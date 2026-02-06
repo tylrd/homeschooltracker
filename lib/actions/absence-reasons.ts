@@ -30,3 +30,18 @@ export async function deleteAbsenceReason(reasonId: string) {
   revalidatePath("/");
   revalidatePath("/attendance");
 }
+
+export async function reorderAbsenceReasons(orderedIds: string[]) {
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx
+        .update(absenceReasons)
+        .set({ sortOrder: i })
+        .where(eq(absenceReasons.id, orderedIds[i]));
+    }
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+}

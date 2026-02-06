@@ -54,6 +54,8 @@ export function LessonList({
   reasons,
   absenceMap,
   defaultShowCompleted,
+  grouping = "student",
+  showNoteButtons = true,
 }: {
   lessons: DashboardLesson[];
   notes: Note[];
@@ -61,6 +63,8 @@ export function LessonList({
   reasons: AbsenceReason[];
   absenceMap: Record<string, AbsenceInfo>;
   defaultShowCompleted: boolean;
+  grouping?: "student" | "subject";
+  showNoteButtons?: boolean;
 }) {
   // Per-student overrides: true/false means explicitly toggled, absent means use global
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -97,149 +101,53 @@ export function LessonList({
     }
   }
 
+  // Group by subject
+  const bySubject = new Map<
+    string,
+    { name: string; lessons: DashboardLesson[] }
+  >();
+  if (grouping === "subject") {
+    for (const lesson of lessons) {
+      const existing = bySubject.get(lesson.subjectName);
+      if (existing) {
+        existing.lessons.push(lesson);
+      } else {
+        bySubject.set(lesson.subjectName, {
+          name: lesson.subjectName,
+          lessons: [lesson],
+        });
+      }
+    }
+  }
+
   const noteForStudent = (studentId: string) =>
     notes.find((n) => n.studentId === studentId)?.content ?? "";
 
   return (
     <>
       <div className="space-y-4">
-        {Array.from(byStudent.entries()).map(([studentId, group]) => {
-          const absence = absenceMap[studentId];
-          return (
-            <div key={studentId} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <StudentColorDot color={group.color} className="h-3 w-3" />
-                <h2 className="text-sm font-semibold">{group.name}</h2>
-                <span className="text-xs text-muted-foreground">
-                  {
-                    group.lessons.filter((l) => l.lessonStatus === "completed")
-                      .length
-                  }
-                  /{group.lessons.length}
-                </span>
-                {absence && (
-                  <span
-                    className={cn(
-                      "text-xs px-1.5 py-0.5 rounded-full",
-                      getAbsenceColorClasses(absence.reasonColor).bg,
-                      getAbsenceColorClasses(absence.reasonColor).text,
-                    )}
-                  >
-                    {absence.reasonName}
+        {grouping === "subject"
+          ? Array.from(bySubject.entries()).map(([subjectName, group]) => (
+              <div key={subjectName} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold">{subjectName}</h2>
+                  <span className="text-xs text-muted-foreground">
+                    {
+                      group.lessons.filter(
+                        (l) => l.lessonStatus === "completed",
+                      ).length
+                    }
+                    /{group.lessons.length}
                   </span>
-                )}
-                <div className="flex-1" />
-                <TooltipProvider>
-                  <div className="flex items-center">
-                    {(() => {
-                      const studentShow = overrides[studentId] ?? defaultShowCompleted;
-                      return (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground"
-                              onClick={() => {
-                                if (studentShow) {
-                                  setHidingStudents((s) => new Set(s).add(studentId));
-                                  setTimeout(() => {
-                                    setOverrides((prev) => ({ ...prev, [studentId]: false }));
-                                    setHidingStudents((s) => {
-                                      const next = new Set(s);
-                                      next.delete(studentId);
-                                      return next;
-                                    });
-                                  }, 300);
-                                } else {
-                                  setOverrides((prev) => ({ ...prev, [studentId]: true }));
-                                }
-                              }}
-                            >
-                              {studentShow ? (
-                                <EyeOff className="h-3.5 w-3.5" />
-                              ) : (
-                                <Eye className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {studentShow ? "Hide completed" : "Show completed"}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })()}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground"
-                          onClick={() => {
-                            const seen = new Set<string>();
-                            const resources = group.lessons
-                              .filter((l) => {
-                                if (seen.has(l.resourceId)) return false;
-                                seen.add(l.resourceId);
-                                return true;
-                              })
-                              .map((l) => ({
-                                resourceId: l.resourceId,
-                                resourceName: l.resourceName,
-                                subjectName: l.subjectName,
-                              }));
-                            setMakeupTarget({
-                              studentName: group.name,
-                              resources,
-                            });
-                          }}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Makeup</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground"
-                          onClick={() =>
-                            setAbsenceTarget({
-                              studentId,
-                              studentName: group.name,
-                            })
-                          }
-                        >
-                          <UserX className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Absent</TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
-              </div>
-              <div className="space-y-2">
-                {(() => {
-                  const studentShow = overrides[studentId] ?? defaultShowCompleted;
-                  const visible = studentShow
-                    ? group.lessons
-                    : group.lessons.filter((l) => l.lessonStatus !== "completed");
-                  const resourceCount = new Map<string, number>();
-                  for (const l of visible) {
-                    resourceCount.set(
-                      l.resourceId,
-                      (resourceCount.get(l.resourceId) ?? 0) + 1,
-                    );
-                  }
-                  const resourceSeen = new Set<string>();
-                  return visible.map((lesson) => {
-                    const isDuplicate = resourceSeen.has(lesson.resourceId);
-                    resourceSeen.add(lesson.resourceId);
-                    const hasDuplicates =
-                      (resourceCount.get(lesson.resourceId) ?? 0) > 1;
-                    return (
+                </div>
+                <div className="space-y-2">
+                  {group.lessons
+                    .filter(
+                      (l) =>
+                        defaultShowCompleted ||
+                        l.lessonStatus !== "completed",
+                    )
+                    .map((lesson) => (
                       <LessonCard
                         key={lesson.lessonId}
                         lessonId={lesson.lessonId}
@@ -249,20 +157,203 @@ export function LessonList({
                         resourceId={lesson.resourceId}
                         resourceName={lesson.resourceName}
                         subjectName={lesson.subjectName}
+                        studentName={lesson.studentName}
                         studentColor={lesson.studentColor}
                         studentId={lesson.studentId}
                         date={date}
-                        isMakeup={hasDuplicates && isDuplicate}
-                        exiting={hidingStudents.has(studentId) && lesson.lessonStatus === "completed"}
+                        showNoteButton={showNoteButtons}
+                        showStudentName
                         onNoteClick={setNoteStudentId}
                       />
-                    );
-                  });
-                })()}
+                    ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            ))
+          : Array.from(byStudent.entries()).map(([studentId, group]) => {
+              const absence = absenceMap[studentId];
+              return (
+                <div key={studentId} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <StudentColorDot
+                      color={group.color}
+                      className="h-3 w-3"
+                    />
+                    <h2 className="text-sm font-semibold">{group.name}</h2>
+                    <span className="text-xs text-muted-foreground">
+                      {
+                        group.lessons.filter(
+                          (l) => l.lessonStatus === "completed",
+                        ).length
+                      }
+                      /{group.lessons.length}
+                    </span>
+                    {absence && (
+                      <span
+                        className={cn(
+                          "text-xs px-1.5 py-0.5 rounded-full",
+                          getAbsenceColorClasses(absence.reasonColor).bg,
+                          getAbsenceColorClasses(absence.reasonColor).text,
+                        )}
+                      >
+                        {absence.reasonName}
+                      </span>
+                    )}
+                    <div className="flex-1" />
+                    <TooltipProvider>
+                      <div className="flex items-center">
+                        {(() => {
+                          const studentShow =
+                            overrides[studentId] ?? defaultShowCompleted;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground"
+                                  onClick={() => {
+                                    if (studentShow) {
+                                      setHidingStudents((s) =>
+                                        new Set(s).add(studentId),
+                                      );
+                                      setTimeout(() => {
+                                        setOverrides((prev) => ({
+                                          ...prev,
+                                          [studentId]: false,
+                                        }));
+                                        setHidingStudents((s) => {
+                                          const next = new Set(s);
+                                          next.delete(studentId);
+                                          return next;
+                                        });
+                                      }, 300);
+                                    } else {
+                                      setOverrides((prev) => ({
+                                        ...prev,
+                                        [studentId]: true,
+                                      }));
+                                    }
+                                  }}
+                                >
+                                  {studentShow ? (
+                                    <EyeOff className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Eye className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {studentShow
+                                  ? "Hide completed"
+                                  : "Show completed"}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              onClick={() => {
+                                const seen = new Set<string>();
+                                const resources = group.lessons
+                                  .filter((l) => {
+                                    if (seen.has(l.resourceId)) return false;
+                                    seen.add(l.resourceId);
+                                    return true;
+                                  })
+                                  .map((l) => ({
+                                    resourceId: l.resourceId,
+                                    resourceName: l.resourceName,
+                                    subjectName: l.subjectName,
+                                  }));
+                                setMakeupTarget({
+                                  studentName: group.name,
+                                  resources,
+                                });
+                              }}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Makeup</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              onClick={() =>
+                                setAbsenceTarget({
+                                  studentId,
+                                  studentName: group.name,
+                                })
+                              }
+                            >
+                              <UserX className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Absent</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
+                  </div>
+                  <div className="space-y-2">
+                    {(() => {
+                      const studentShow =
+                        overrides[studentId] ?? defaultShowCompleted;
+                      const visible = studentShow
+                        ? group.lessons
+                        : group.lessons.filter(
+                            (l) => l.lessonStatus !== "completed",
+                          );
+                      const resourceCount = new Map<string, number>();
+                      for (const l of visible) {
+                        resourceCount.set(
+                          l.resourceId,
+                          (resourceCount.get(l.resourceId) ?? 0) + 1,
+                        );
+                      }
+                      const resourceSeen = new Set<string>();
+                      return visible.map((lesson) => {
+                        const isDuplicate = resourceSeen.has(
+                          lesson.resourceId,
+                        );
+                        resourceSeen.add(lesson.resourceId);
+                        const hasDuplicates =
+                          (resourceCount.get(lesson.resourceId) ?? 0) > 1;
+                        return (
+                          <LessonCard
+                            key={lesson.lessonId}
+                            lessonId={lesson.lessonId}
+                            lessonNumber={lesson.lessonNumber}
+                            lessonTitle={lesson.lessonTitle}
+                            status={lesson.lessonStatus}
+                            resourceId={lesson.resourceId}
+                            resourceName={lesson.resourceName}
+                            subjectName={lesson.subjectName}
+                            studentName={lesson.studentName}
+                            studentColor={lesson.studentColor}
+                            studentId={lesson.studentId}
+                            date={date}
+                            isMakeup={hasDuplicates && isDuplicate}
+                            exiting={
+                              hidingStudents.has(studentId) &&
+                              lesson.lessonStatus === "completed"
+                            }
+                            showNoteButton={showNoteButtons}
+                            onNoteClick={setNoteStudentId}
+                          />
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              );
+            })}
       </div>
 
       <NoteDialog

@@ -7,8 +7,10 @@ import { lessons, resources, subjects } from "@/db/schema";
 import {
   generateLessonDates,
   nextSchoolDayStr,
+  getNextBumpDate,
   toDateString,
 } from "@/lib/dates";
+import { getSchoolDays, getBumpBehavior } from "@/lib/queries/settings";
 
 export async function batchCreateLessons(
   resourceId: string,
@@ -86,9 +88,11 @@ export async function uncompleteLesson(lessonId: string) {
 
 export async function bumpLesson(lessonId: string) {
   const db = getDb();
-  const lesson = await db.query.lessons.findFirst({
-    where: eq(lessons.id, lessonId),
-  });
+  const [lesson, schoolDays, bumpBehavior] = await Promise.all([
+    db.query.lessons.findFirst({ where: eq(lessons.id, lessonId) }),
+    getSchoolDays(),
+    getBumpBehavior(),
+  ]);
 
   if (!lesson || !lesson.scheduledDate) return;
 
@@ -107,16 +111,20 @@ export async function bumpLesson(lessonId: string) {
 
   if (futureLessons.length === 0) return;
 
-  // Reassign dates: first one gets nextSchoolDay(bumpedDate), rest cascade
-  let currentDate = nextSchoolDayStr(lesson.scheduledDate);
+  // First lesson uses bump behavior, rest cascade with nextSchoolDayStr
+  let currentDate = getNextBumpDate(
+    lesson.scheduledDate,
+    bumpBehavior,
+    schoolDays,
+  );
 
   await db.transaction(async (tx) => {
-    for (const fl of futureLessons) {
+    for (let i = 0; i < futureLessons.length; i++) {
       await tx
         .update(lessons)
         .set({ scheduledDate: currentDate })
-        .where(eq(lessons.id, fl.id));
-      currentDate = nextSchoolDayStr(currentDate);
+        .where(eq(lessons.id, futureLessons[i].id));
+      currentDate = nextSchoolDayStr(currentDate, schoolDays);
     }
   });
 
@@ -127,6 +135,11 @@ export async function bumpLesson(lessonId: string) {
 
 export async function bumpAllToday(date: string) {
   const db = getDb();
+  const [schoolDays, bumpBehavior] = await Promise.all([
+    getSchoolDays(),
+    getBumpBehavior(),
+  ]);
+
   // Find all planned lessons scheduled for this date
   const todayLessons = await db
     .select()
@@ -158,13 +171,13 @@ export async function bumpAllToday(date: string) {
         )
         .orderBy(asc(lessons.scheduledDate), asc(lessons.lessonNumber));
 
-      let currentDate = nextSchoolDayStr(date);
-      for (const fl of futureLessons) {
+      let currentDate = getNextBumpDate(date, bumpBehavior, schoolDays);
+      for (let i = 0; i < futureLessons.length; i++) {
         await tx
           .update(lessons)
           .set({ scheduledDate: currentDate })
-          .where(eq(lessons.id, fl.id));
-        currentDate = nextSchoolDayStr(currentDate);
+          .where(eq(lessons.id, futureLessons[i].id));
+        currentDate = nextSchoolDayStr(currentDate, schoolDays);
       }
     }
   });
@@ -210,6 +223,10 @@ export async function updateLessonScheduledDate(
 
 export async function bumpStudentLessons(studentId: string, date: string) {
   const db = getDb();
+  const [schoolDays, bumpBehavior] = await Promise.all([
+    getSchoolDays(),
+    getBumpBehavior(),
+  ]);
 
   // Find planned lessons for this date that belong to this student
   const todayLessons = await db
@@ -244,13 +261,13 @@ export async function bumpStudentLessons(studentId: string, date: string) {
         )
         .orderBy(asc(lessons.scheduledDate), asc(lessons.lessonNumber));
 
-      let currentDate = nextSchoolDayStr(date);
-      for (const fl of futureLessons) {
+      let currentDate = getNextBumpDate(date, bumpBehavior, schoolDays);
+      for (let i = 0; i < futureLessons.length; i++) {
         await tx
           .update(lessons)
           .set({ scheduledDate: currentDate })
-          .where(eq(lessons.id, fl.id));
-        currentDate = nextSchoolDayStr(currentDate);
+          .where(eq(lessons.id, futureLessons[i].id));
+        currentDate = nextSchoolDayStr(currentDate, schoolDays);
       }
     }
   });
@@ -316,4 +333,19 @@ export async function scheduleMakeupLesson(resourceId: string, date: string) {
 
   revalidatePath("/");
   revalidatePath("/shelf");
+}
+
+export async function deleteLesson(lessonId: string) {
+  const db = getDb();
+  const lesson = await db.query.lessons.findFirst({
+    where: eq(lessons.id, lessonId),
+  });
+
+  await db.delete(lessons).where(eq(lessons.id, lessonId));
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  if (lesson) {
+    revalidatePath(`/shelf/${lesson.resourceId}`);
+  }
 }

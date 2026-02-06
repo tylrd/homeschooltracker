@@ -5,9 +5,12 @@ import { FileText } from "lucide-react";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AttendanceTable } from "@/components/attendance/attendance-table";
+import { AttendanceView } from "@/components/attendance/attendance-view";
 import { MonthNav } from "@/components/attendance/month-nav";
-import { getAttendanceForMonth } from "@/lib/queries/attendance";
+import {
+  getAttendanceForMonth,
+  getCompletionLogForMonth,
+} from "@/lib/queries/attendance";
 
 export default async function AttendancePage({
   searchParams,
@@ -19,7 +22,10 @@ export default async function AttendancePage({
   const year = params.year ? Number(params.year) : now.getFullYear();
   const month = params.month ? Number(params.month) : now.getMonth() + 1;
 
-  const data = await getAttendanceForMonth(year, month);
+  const [gridData, logData] = await Promise.all([
+    getAttendanceForMonth(year, month),
+    getCompletionLogForMonth(year, month),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -37,7 +43,7 @@ export default async function AttendancePage({
         <MonthNav year={year} month={month} />
       </Suspense>
 
-      <AttendanceTable data={data} />
+      <AttendanceView gridData={gridData} logData={logData} />
     </div>
   );
 }

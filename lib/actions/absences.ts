@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { absences, lessons, resources, subjects, students } from "@/db/schema";
 import { bumpStudentLessons } from "@/lib/actions/lessons";
+import { getAbsenceAutoBump } from "@/lib/queries/settings";
 
 export async function logAbsence(
   studentId: string,
@@ -29,8 +30,11 @@ export async function logAbsence(
     await db.insert(absences).values({ studentId, date, reasonId });
   }
 
-  // Bump this student's planned lessons for the day
-  await bumpStudentLessons(studentId, date);
+  // Bump this student's planned lessons for the day (if auto-bump is enabled)
+  const autoBump = await getAbsenceAutoBump();
+  if (autoBump) {
+    await bumpStudentLessons(studentId, date);
+  }
 
   revalidatePath("/");
   revalidatePath("/attendance");
@@ -49,6 +53,7 @@ export async function logAbsenceForAll(date: string, reasonId: string) {
     .where(and(eq(lessons.scheduledDate, date), eq(lessons.status, "planned")));
 
   const studentIds = [...new Set(rows.map((r) => r.studentId))];
+  const autoBump = await getAbsenceAutoBump();
 
   for (const studentId of studentIds) {
     // Check if absence already exists
@@ -61,7 +66,9 @@ export async function logAbsenceForAll(date: string, reasonId: string) {
       await db.insert(absences).values({ studentId, date, reasonId });
     }
 
-    await bumpStudentLessons(studentId, date);
+    if (autoBump) {
+      await bumpStudentLessons(studentId, date);
+    }
   }
 
   revalidatePath("/");

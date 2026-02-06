@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, MessageSquare, Plus, RotateCcw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { StudentColorDot } from "@/components/student-color-dot";
 import { getColorClasses } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import {
@@ -22,11 +23,14 @@ type LessonCardProps = {
   resourceId: string;
   resourceName: string;
   subjectName: string;
+  studentName: string;
   studentColor: string;
   studentId: string;
   date: string;
   isMakeup?: boolean;
   exiting?: boolean;
+  showNoteButton?: boolean;
+  showStudentName?: boolean;
   onNoteClick: (studentId: string) => void;
 };
 
@@ -38,11 +42,14 @@ export function LessonCard({
   resourceId,
   resourceName,
   subjectName,
+  studentName,
   studentColor,
   studentId,
   date,
   isMakeup,
   exiting,
+  showNoteButton = true,
+  showStudentName = false,
   onNoteClick,
 }: LessonCardProps) {
   const [isPending, startTransition] = useTransition();
@@ -107,7 +114,14 @@ export function LessonCard({
           )}
         </div>
         <p className="truncate text-xs text-muted-foreground">
-          {subjectName} &middot; {resourceName}
+          {showStudentName ? (
+            <span className="inline-flex items-center gap-1">
+              <StudentColorDot color={studentColor} className="h-2 w-2" />
+              {studentName} &middot; {resourceName}
+            </span>
+          ) : (
+            <>{subjectName} &middot; {resourceName}</>
+          )}
         </p>
       </Link>
       {!isCompleted && (
@@ -134,15 +148,17 @@ export function LessonCard({
           </Button>
         </>
       )}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0"
-        onClick={() => onNoteClick(studentId)}
-        title="Add note"
-      >
-        <MessageSquare className="h-4 w-4" />
-      </Button>
+      {showNoteButton && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => onNoteClick(studentId)}
+          title="Add note"
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

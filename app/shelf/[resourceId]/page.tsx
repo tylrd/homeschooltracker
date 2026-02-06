@@ -10,6 +10,10 @@ import { LessonTable } from "@/components/shelf/lesson-table";
 import { BatchCreateForm } from "@/components/shelf/batch-create-form";
 import { AddLessonForm } from "@/components/shelf/add-lesson-form";
 import { getResourceWithLessons } from "@/lib/queries/shelf";
+import {
+  getSchoolDays,
+  getDefaultLessonCount,
+} from "@/lib/queries/settings";
 import { nextSchoolDayStr, toDateString } from "@/lib/dates";
 
 export default async function ResourceDetailPage({
@@ -18,7 +22,11 @@ export default async function ResourceDetailPage({
   params: Promise<{ resourceId: string }>;
 }) {
   const { resourceId } = await params;
-  const resource = await getResourceWithLessons(resourceId);
+  const [resource, schoolDays, defaultLessonCount] = await Promise.all([
+    getResourceWithLessons(resourceId),
+    getSchoolDays(),
+    getDefaultLessonCount(),
+  ]);
 
   if (!resource) {
     notFound();
@@ -62,11 +70,17 @@ export default async function ResourceDetailPage({
             resource.lessons[resource.lessons.length - 1].scheduledDate
               ? nextSchoolDayStr(
                   resource.lessons[resource.lessons.length - 1].scheduledDate!,
+                  schoolDays,
                 )
               : toDateString(new Date())
           }
         />
-        <BatchCreateForm resourceId={resource.id} existingCount={total} />
+        <BatchCreateForm
+          resourceId={resource.id}
+          existingCount={total}
+          defaultSchoolDays={schoolDays}
+          defaultLessonCount={defaultLessonCount}
+        />
       </div>
 
       <LessonTable lessons={resource.lessons} />
