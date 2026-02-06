@@ -36,7 +36,7 @@ RUN \
   fi
 
 # Bundle migrate.ts into a single file for the production image
-RUN npx esbuild db/migrate.ts --bundle --platform=node --outfile=migrate.js
+RUN npx esbuild db/migrate.ts --bundle --platform=node --format=esm --outfile=migrate.mjs
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -57,7 +57,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Migration support
-COPY --from=builder --chown=nextjs:nodejs /app/migrate.js ./migrate.js
+COPY --from=builder --chown=nextjs:nodejs /app/migrate.mjs ./migrate.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --chown=nextjs:nodejs deploy/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
