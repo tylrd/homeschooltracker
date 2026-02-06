@@ -1,11 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { BackButton } from "@/components/back-button";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { LessonDetailForm } from "@/components/lessons/lesson-detail-form";
 import { getLessonWithContext } from "@/lib/queries/lessons";
@@ -30,11 +28,7 @@ export default async function LessonDetailPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Link href="/">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <BackButton />
         <StudentColorDot color={student.color} className="h-4 w-4" />
         <div className="flex-1">
           <h1 className="text-xl font-bold">

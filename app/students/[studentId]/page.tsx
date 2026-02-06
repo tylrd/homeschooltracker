@@ -2,8 +2,9 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, Pencil } from "lucide-react";
+import { BookOpen, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -31,11 +32,7 @@ export default async function StudentDetailPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Link href="/students">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <BackButton />
         <StudentColorDot color={student.color} className="h-4 w-4" />
         <h1 className="flex-1 text-2xl font-bold">{student.name}</h1>
         <StudentForm
