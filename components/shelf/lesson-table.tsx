@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -36,7 +37,11 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
               <TableCell className="font-mono text-sm">
                 {lesson.lessonNumber}
               </TableCell>
-              <TableCell>{lesson.title ?? `Lesson ${lesson.lessonNumber}`}</TableCell>
+              <TableCell>
+                <Link href={`/lessons/${lesson.id}`} className="hover:underline">
+                  {lesson.title ?? `Lesson ${lesson.lessonNumber}`}
+                </Link>
+              </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {lesson.scheduledDate
                   ? formatDate(lesson.scheduledDate)

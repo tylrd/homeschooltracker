@@ -41,20 +41,20 @@ export default async function ShelfPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h1 className="text-2xl font-bold">Curriculum Shelf</h1>
       {Array.from(byStudent.entries()).map(([studentId, group]) => (
-        <div key={studentId} className="space-y-2">
-          <div className="flex items-center gap-2">
+        <section key={studentId} className="mb-8">
+          <div className="mb-3 flex items-center gap-2">
             <StudentColorDot color={group.color} className="h-3 w-3" />
             <h2 className="font-semibold">{group.name}</h2>
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-3">
             {group.resources.map((resource) => (
               <ResourceCard key={resource.resourceId} resource={resource} />
             ))}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { ArrowRight, MessageSquare } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ export function LessonCard({
   return (
     <div
       className={cn(
-        "flex min-h-14 items-center gap-3 rounded-lg border-l-4 bg-card px-3 py-2 transition-opacity",
+        "flex min-h-14 items-center gap-3 rounded-lg border border-l-4 bg-card px-3 py-2.5 shadow-sm transition-opacity",
         colors.border,
         isPending && "opacity-50",
         isCompleted && "opacity-60",
@@ -66,14 +67,14 @@ export function LessonCard({
         className="h-7 w-7 rounded-md"
         disabled={isPending}
       />
-      <div className="flex-1 min-w-0">
+      <Link href={`/lessons/${lessonId}`} className="flex-1 min-w-0">
         <p className={cn("text-sm font-medium", isCompleted && "line-through")}>
           {lessonTitle ?? `Lesson ${lessonNumber}`}
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {subjectName} &middot; {resourceName}
         </p>
-      </div>
+      </Link>
       {!isCompleted && (
         <Button
           variant="ghost"

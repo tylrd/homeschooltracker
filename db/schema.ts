@@ -84,6 +84,8 @@ export const lessons = pgTable(
     status: lessonStatusEnum().notNull().default('planned'),
     scheduledDate: date('scheduled_date'),
     completionDate: date('completion_date'),
+    plan: text(),
+    notes: text(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

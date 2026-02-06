@@ -7,7 +7,7 @@ import type { Student } from "@/db/schema";
 export function StudentCard({ student }: { student: Student }) {
   return (
     <Link href={`/students/${student.id}`}>
-      <Card className="transition-colors hover:bg-accent">
+      <Card className="gap-0 py-0 transition-colors hover:bg-accent">
         <CardContent className="flex items-center gap-3 p-4">
           <StudentColorDot color={student.color} className="h-4 w-4" />
           <div className="flex-1">

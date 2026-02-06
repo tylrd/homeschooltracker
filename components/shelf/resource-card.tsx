@@ -23,7 +23,7 @@ export function ResourceCard({
 
   return (
     <Link href={`/shelf/${resource.resourceId}`}>
-      <Card className="transition-colors hover:bg-accent">
+      <Card className="gap-0 py-0 transition-colors hover:bg-accent">
         <CardContent className="space-y-2 p-4">
           <div className="flex items-center gap-2">
             <StudentColorDot color={resource.studentColor} />

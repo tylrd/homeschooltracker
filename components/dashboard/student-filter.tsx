@@ -13,9 +13,11 @@ type FilterStudent = {
 export function StudentFilter({
   students,
   activeStudentId,
+  basePath = "/",
 }: {
   students: FilterStudent[];
   activeStudentId?: string;
+  basePath?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,7 +29,8 @@ export function StudentFilter({
     } else {
       params.delete("student");
     }
-    router.push(`/?${params.toString()}`);
+    const qs = params.toString();
+    router.push(qs ? `${basePath}?${qs}` : basePath);
   }
 
   return (

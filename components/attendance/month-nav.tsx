@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -9,8 +9,17 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-export function MonthNav({ year, month }: { year: number; month: number }) {
+export function MonthNav({
+  year,
+  month,
+  basePath = "/attendance",
+}: {
+  year: number;
+  month: number;
+  basePath?: string;
+}) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   function navigate(newYear: number, newMonth: number) {
     if (newMonth < 1) {
@@ -20,7 +29,14 @@ export function MonthNav({ year, month }: { year: number; month: number }) {
       newYear++;
       newMonth = 1;
     }
-    router.push(`/attendance?year=${newYear}&month=${newMonth}`);
+    const params = new URLSearchParams();
+    params.set("year", String(newYear));
+    params.set("month", String(newMonth));
+    const student = searchParams.get("student");
+    if (student) {
+      params.set("student", student);
+    }
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   return (

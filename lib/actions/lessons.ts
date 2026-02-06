@@ -62,6 +62,7 @@ export async function completeLesson(lessonId: string) {
   revalidatePath("/");
   revalidatePath("/shelf");
   revalidatePath("/attendance");
+  revalidatePath(`/lessons/${lessonId}`);
 }
 
 export async function uncompleteLesson(lessonId: string) {
@@ -73,6 +74,7 @@ export async function uncompleteLesson(lessonId: string) {
   revalidatePath("/");
   revalidatePath("/shelf");
   revalidatePath("/attendance");
+  revalidatePath(`/lessons/${lessonId}`);
 }
 
 export async function bumpLesson(lessonId: string) {
@@ -112,6 +114,7 @@ export async function bumpLesson(lessonId: string) {
 
   revalidatePath("/");
   revalidatePath("/shelf");
+  revalidatePath(`/lessons/${lessonId}`);
 }
 
 export async function bumpAllToday(date: string) {
@@ -159,6 +162,43 @@ export async function bumpAllToday(date: string) {
     }
   });
 
+  revalidatePath("/");
+  revalidatePath("/shelf");
+}
+
+export async function createLesson(
+  resourceId: string,
+  lessonNumber: number,
+  title: string,
+  scheduledDate: string,
+) {
+  await db.insert(lessons).values({
+    resourceId,
+    lessonNumber,
+    title: title.trim() || `Lesson ${lessonNumber}`,
+    scheduledDate: scheduledDate || null,
+    status: "planned",
+  });
+
+  revalidatePath("/shelf");
+  revalidatePath(`/shelf/${resourceId}`);
+  revalidatePath("/");
+}
+
+export async function updateLessonContent(
+  lessonId: string,
+  plan: string,
+  notes: string,
+) {
+  await db
+    .update(lessons)
+    .set({
+      plan: plan.trim() || null,
+      notes: notes.trim() || null,
+    })
+    .where(eq(lessons.id, lessonId));
+
+  revalidatePath(`/lessons/${lessonId}`);
   revalidatePath("/");
   revalidatePath("/shelf");
 }

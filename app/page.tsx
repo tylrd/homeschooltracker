@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { CalendarCheck } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { StudentFilter } from "@/components/dashboard/student-filter";
+import { DayNav } from "@/components/dashboard/day-nav";
 import { LessonList } from "@/components/dashboard/lesson-list";
 import { SickDayButton } from "@/components/dashboard/sick-day-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,13 +18,14 @@ import { getTodayDate, formatDate } from "@/lib/dates";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ student?: string }>;
+  searchParams: Promise<{ student?: string; date?: string }>;
 }) {
-  const { student: studentId } = await searchParams;
-  const today = getTodayDate();
+  const { student: studentId, date: dateParam } = await searchParams;
+  const date = dateParam ?? getTodayDate();
+  const isToday = date === getTodayDate();
   const [lessons, notes, students] = await Promise.all([
-    getTodayLessons(today, studentId),
-    getTodayNotes(today),
+    getTodayLessons(date, studentId),
+    getTodayNotes(date),
     getStudentsForFilter(),
   ]);
 
@@ -33,10 +35,12 @@ export default async function DashboardPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Today</h1>
-          <p className="text-sm text-muted-foreground">{formatDate(today)}</p>
+          <DayNav date={date} />
+          {!isToday && (
+            <p className="text-sm text-muted-foreground">{formatDate(date)}</p>
+          )}
         </div>
-        {plannedCount > 0 && <SickDayButton date={today} />}
+        {plannedCount > 0 && <SickDayButton date={date} />}
       </div>
 
       {students.length > 0 && (
@@ -62,7 +66,7 @@ export default async function DashboardPage({
             studentId: n.studentId,
             content: n.content,
           }))}
-          date={today}
+          date={date}
         />
       )}
     </div>

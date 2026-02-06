@@ -9,7 +9,9 @@ import { Progress } from "@/components/ui/progress";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { LessonTable } from "@/components/shelf/lesson-table";
 import { BatchCreateForm } from "@/components/shelf/batch-create-form";
+import { AddLessonForm } from "@/components/shelf/add-lesson-form";
 import { getResourceWithLessons } from "@/lib/queries/shelf";
+import { nextSchoolDayStr, toDateString } from "@/lib/dates";
 
 export default async function ResourceDetailPage({
   params,
@@ -54,7 +56,19 @@ export default async function ResourceDetailPage({
         </Badge>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <AddLessonForm
+          resourceId={resource.id}
+          nextLessonNumber={total + 1}
+          defaultDate={
+            resource.lessons.length > 0 &&
+            resource.lessons[resource.lessons.length - 1].scheduledDate
+              ? nextSchoolDayStr(
+                  resource.lessons[resource.lessons.length - 1].scheduledDate!,
+                )
+              : toDateString(new Date())
+          }
+        />
         <BatchCreateForm
           resourceId={resource.id}
           existingCount={total}

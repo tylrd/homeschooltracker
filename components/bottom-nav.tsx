@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, BookOpen, Users, Menu } from "lucide-react";
+import { CalendarCheck, BookOpen, Users, Calendar, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/", label: "Today", icon: CalendarCheck },
   { href: "/shelf", label: "Shelf", icon: BookOpen },
+  { href: "/calendar", label: "Calendar", icon: Calendar },
+  { href: "/attendance", label: "Attendance", icon: ClipboardList },
   { href: "/students", label: "Students", icon: Users },
-  { href: "/attendance", label: "More", icon: Menu },
 ] as const;
 
 export function BottomNav() {

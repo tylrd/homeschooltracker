@@ -67,7 +67,7 @@ export function LessonList({
                 /{group.lessons.length}
               </span>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {group.lessons.map((lesson) => (
                 <LessonCard
                   key={lesson.lessonId}
