@@ -2,10 +2,11 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { students } from "@/db/schema";
 
 export async function createStudent(formData: FormData) {
+  const db = getDb();
   const name = formData.get("name") as string;
   const color = formData.get("color") as string;
   const gradeLevel = (formData.get("gradeLevel") as string) || null;
@@ -19,6 +20,7 @@ export async function createStudent(formData: FormData) {
 }
 
 export async function updateStudent(id: string, formData: FormData) {
+  const db = getDb();
   const name = formData.get("name") as string;
   const color = formData.get("color") as string;
   const gradeLevel = (formData.get("gradeLevel") as string) || null;
@@ -33,6 +35,7 @@ export async function updateStudent(id: string, formData: FormData) {
 }
 
 export async function deleteStudent(id: string) {
+  const db = getDb();
   await db.delete(students).where(eq(students.id, id));
   revalidatePath("/students");
 }

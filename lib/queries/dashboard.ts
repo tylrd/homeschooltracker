@@ -1,8 +1,9 @@
 import { eq, and } from "drizzle-orm";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { lessons, resources, subjects, students, dailyNotes } from "@/db/schema";
 
 export async function getTodayLessons(date: string, studentId?: string) {
+  const db = getDb();
   const conditions = [eq(lessons.scheduledDate, date)];
 
   if (studentId) {
@@ -34,6 +35,7 @@ export async function getTodayLessons(date: string, studentId?: string) {
 }
 
 export async function getTodayNotes(date: string) {
+  const db = getDb();
   return db
     .select({
       noteId: dailyNotes.id,
@@ -49,6 +51,7 @@ export async function getTodayNotes(date: string) {
 }
 
 export async function getStudentsForFilter() {
+  const db = getDb();
   return db.query.students.findMany({
     orderBy: (students, { asc }) => [asc(students.name)],
   });

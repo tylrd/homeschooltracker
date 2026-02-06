@@ -1,8 +1,9 @@
 import { eq, and, gte, lte } from "drizzle-orm";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { lessons, resources, subjects, students } from "@/db/schema";
 
 export async function getAttendanceForMonth(year: number, month: number) {
+  const db = getDb();
   // month is 1-indexed (1 = January)
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
@@ -55,6 +56,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
 }
 
 export async function getAllStudents() {
+  const db = getDb();
   return db.query.students.findMany({
     orderBy: (students, { asc }) => [asc(students.name)],
   });

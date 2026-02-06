@@ -1,5 +1,5 @@
 import { eq, and, gte, lte } from "drizzle-orm";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { lessons, resources, subjects, students } from "@/db/schema";
 
 export type CalendarDay = {
@@ -12,6 +12,7 @@ export async function getCalendarData(
   month: number,
   studentId?: string,
 ) {
+  const db = getDb();
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;

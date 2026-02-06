@@ -1,4 +1,4 @@
-import { db, sql } from '@/db';
+import { getDb, getSql } from '@/db';
 import {
   students,
   subjects,
@@ -61,6 +61,8 @@ const MON_FRI = [1, 2, 3, 4, 5];
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function seed() {
+  const db = getDb();
+  const sql = getSql();
   console.log('Seeding database...\n');
 
   // Clear existing data (reverse dependency order)

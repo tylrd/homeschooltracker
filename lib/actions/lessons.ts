@@ -2,7 +2,7 @@
 
 import { eq, and, gte, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { lessons } from "@/db/schema";
 import { generateLessonDates, nextSchoolDayStr, toDateString } from "@/lib/dates";
 
@@ -13,6 +13,7 @@ export async function batchCreateLessons(
   startDate: string,
   schoolDays: number[],
 ) {
+  const db = getDb();
   const count = endLesson - startLesson + 1;
   if (count <= 0) throw new Error("Invalid lesson range");
 
@@ -53,6 +54,7 @@ export async function batchCreateLessons(
 }
 
 export async function completeLesson(lessonId: string) {
+  const db = getDb();
   const today = toDateString(new Date());
   await db
     .update(lessons)
@@ -66,6 +68,7 @@ export async function completeLesson(lessonId: string) {
 }
 
 export async function uncompleteLesson(lessonId: string) {
+  const db = getDb();
   await db
     .update(lessons)
     .set({ status: "planned", completionDate: null })
@@ -78,6 +81,7 @@ export async function uncompleteLesson(lessonId: string) {
 }
 
 export async function bumpLesson(lessonId: string) {
+  const db = getDb();
   const lesson = await db.query.lessons.findFirst({
     where: eq(lessons.id, lessonId),
   });
@@ -118,6 +122,7 @@ export async function bumpLesson(lessonId: string) {
 }
 
 export async function bumpAllToday(date: string) {
+  const db = getDb();
   // Find all planned lessons scheduled for this date
   const todayLessons = await db
     .select()
@@ -172,6 +177,7 @@ export async function createLesson(
   title: string,
   scheduledDate: string,
 ) {
+  const db = getDb();
   await db.insert(lessons).values({
     resourceId,
     lessonNumber,
@@ -190,6 +196,7 @@ export async function updateLessonContent(
   plan: string,
   notes: string,
 ) {
+  const db = getDb();
   await db
     .update(lessons)
     .set({

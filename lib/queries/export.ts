@@ -1,5 +1,5 @@
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { lessons, resources, subjects, students, dailyNotes } from "@/db/schema";
 
 export async function getExportData(
@@ -7,6 +7,7 @@ export async function getExportData(
   startDate: string,
   endDate: string,
 ) {
+  const db = getDb();
   const conditions = [
     gte(lessons.completionDate, startDate),
     lte(lessons.completionDate, endDate),

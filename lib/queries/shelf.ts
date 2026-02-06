@@ -1,8 +1,9 @@
 import { eq, sql, count } from "drizzle-orm";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { resources, lessons, subjects, students } from "@/db/schema";
 
 export async function getAllResourcesWithProgress() {
+  const db = getDb();
   const rows = await db
     .select({
       resourceId: resources.id,
@@ -32,6 +33,7 @@ export async function getAllResourcesWithProgress() {
 }
 
 export async function getResourceWithLessons(resourceId: string) {
+  const db = getDb();
   const resource = await db.query.resources.findFirst({
     where: eq(resources.id, resourceId),
     with: {

@@ -2,10 +2,11 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { resources } from "@/db/schema";
 
 export async function createResource(formData: FormData) {
+  const db = getDb();
   const name = formData.get("name") as string;
   const subjectId = formData.get("subjectId") as string;
   const studentId = formData.get("studentId") as string;
@@ -23,6 +24,7 @@ export async function deleteResource(
   id: string,
   studentId: string,
 ) {
+  const db = getDb();
   await db.delete(resources).where(eq(resources.id, id));
   revalidatePath(`/students/${studentId}`);
   revalidatePath("/shelf");

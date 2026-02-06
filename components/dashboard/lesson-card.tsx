@@ -55,7 +55,7 @@ export function LessonCard({
   return (
     <div
       className={cn(
-        "flex min-h-14 items-center gap-3 rounded-lg border border-l-4 bg-card px-3 py-2.5 shadow-sm transition-opacity",
+        "flex min-h-14 items-center gap-3 rounded-lg bg-card px-3 py-2.5 shadow-sm transition-opacity",
         colors.border,
         isPending && "opacity-50",
         isCompleted && "opacity-60",

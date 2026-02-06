@@ -2,7 +2,7 @@
 
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { dailyNotes } from "@/db/schema";
 
 export async function upsertNote(
@@ -10,6 +10,7 @@ export async function upsertNote(
   date: string,
   content: string,
 ) {
+  const db = getDb();
   // Check for existing note
   const existing = await db.query.dailyNotes.findFirst({
     where: and(
