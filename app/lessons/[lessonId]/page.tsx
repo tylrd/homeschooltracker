@@ -71,6 +71,7 @@ export default async function LessonDetailPage({
         status={lesson.status}
         plan={lesson.plan}
         notes={lesson.notes}
+        scheduledDate={lesson.scheduledDate}
       />
     </div>
   );

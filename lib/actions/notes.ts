@@ -13,10 +13,7 @@ export async function upsertNote(
   const db = getDb();
   // Check for existing note
   const existing = await db.query.dailyNotes.findFirst({
-    where: and(
-      eq(dailyNotes.studentId, studentId),
-      eq(dailyNotes.date, date),
-    ),
+    where: and(eq(dailyNotes.studentId, studentId), eq(dailyNotes.date, date)),
   });
 
   if (existing) {

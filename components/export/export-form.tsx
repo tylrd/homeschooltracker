@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { toDateString } from "@/lib/dates";
@@ -43,19 +43,11 @@ export function ExportForm({ students }: { students: StudentOption[] }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Start Date</Label>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <DatePicker value={startDate} onChange={setStartDate} />
         </div>
         <div className="space-y-2">
           <Label>End Date</Label>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <DatePicker value={endDate} onChange={setEndDate} />
         </div>
       </div>
 

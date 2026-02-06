@@ -56,13 +56,14 @@ export function CalendarGrid({
   // Next month padding to fill grid
   const totalCells = paddingBefore.length + currentDays.length;
   const remainder = totalCells % 7;
-  const paddingAfter = remainder === 0
-    ? []
-    : Array.from({ length: 7 - remainder }, (_, i) => ({
-        day: i + 1,
-        isPadding: true as const,
-        dateStr: "",
-      }));
+  const paddingAfter =
+    remainder === 0
+      ? []
+      : Array.from({ length: 7 - remainder }, (_, i) => ({
+          day: i + 1,
+          isPadding: true as const,
+          dateStr: "",
+        }));
 
   const allDays = [...paddingBefore, ...currentDays, ...paddingAfter];
 
@@ -90,7 +91,7 @@ export function CalendarGrid({
         </div>
       ))}
       {allDays.map((cell, idx) => {
-        const data = cell.isPadding ? null : dayMap[cell.dateStr] ?? null;
+        const data = cell.isPadding ? null : (dayMap[cell.dateStr] ?? null);
         const isToday = !cell.isPadding && cell.dateStr === today;
         const hasLessons = data !== null && data.total > 0;
         const allComplete = hasLessons && data.completed === data.total;

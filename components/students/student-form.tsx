@@ -45,11 +45,13 @@ export function StudentForm({
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>
-            {student ? "Edit Student" : "Add Student"}
-          </DrawerTitle>
+          <DrawerTitle>{student ? "Edit Student" : "Add Student"}</DrawerTitle>
         </DrawerHeader>
-        <form ref={formRef} action={handleSubmit} className="space-y-4 px-4 pb-8">
+        <form
+          ref={formRef}
+          action={handleSubmit}
+          className="space-y-4 px-4 pb-8"
+        >
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input

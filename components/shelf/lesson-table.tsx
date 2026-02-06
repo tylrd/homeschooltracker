@@ -38,14 +38,15 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
                 {lesson.lessonNumber}
               </TableCell>
               <TableCell>
-                <Link href={`/lessons/${lesson.id}`} className="hover:underline">
+                <Link
+                  href={`/lessons/${lesson.id}`}
+                  className="hover:underline"
+                >
                   {lesson.title ?? `Lesson ${lesson.lessonNumber}`}
                 </Link>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {lesson.scheduledDate
-                  ? formatDate(lesson.scheduledDate)
-                  : "—"}
+                {lesson.scheduledDate ? formatDate(lesson.scheduledDate) : "—"}
               </TableCell>
               <TableCell>
                 <Badge

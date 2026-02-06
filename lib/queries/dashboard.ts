@@ -1,6 +1,14 @@
 import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db";
-import { lessons, resources, subjects, students, dailyNotes } from "@/db/schema";
+import {
+  lessons,
+  resources,
+  subjects,
+  students,
+  dailyNotes,
+  absences,
+  absenceReasons,
+} from "@/db/schema";
 
 export async function getTodayLessons(date: string, studentId?: string) {
   const db = getDb();
@@ -55,4 +63,21 @@ export async function getStudentsForFilter() {
   return db.query.students.findMany({
     orderBy: (students, { asc }) => [asc(students.name)],
   });
+}
+
+export async function getAbsencesForDate(date: string) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      absenceId: absences.id,
+      studentId: absences.studentId,
+      reasonId: absenceReasons.id,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+    })
+    .from(absences)
+    .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
+    .where(eq(absences.date, date));
+
+  return rows;
 }

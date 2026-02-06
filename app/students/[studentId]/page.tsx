@@ -100,10 +100,7 @@ export default async function StudentDetailPage({
                     />
                   </div>
                 ))}
-                <ResourceForm
-                  subjectId={subject.id}
-                  studentId={student.id}
-                />
+                <ResourceForm subjectId={subject.id} studentId={student.id} />
               </CardContent>
             </Card>
           ))}

@@ -19,11 +19,7 @@ export function SubjectForm({ studentId }: { studentId: string }) {
 
   if (!isAdding) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsAdding(true)}
-      >
+      <Button variant="outline" size="sm" onClick={() => setIsAdding(true)}>
         <Plus className="mr-1 h-4 w-4" />
         Add Subject
       </Button>

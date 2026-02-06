@@ -20,10 +20,7 @@ export async function createResource(formData: FormData) {
   revalidatePath("/shelf");
 }
 
-export async function deleteResource(
-  id: string,
-  studentId: string,
-) {
+export async function deleteResource(id: string, studentId: string) {
   const db = getDb();
   await db.delete(resources).where(eq(resources.id, id));
   revalidatePath(`/students/${studentId}`);

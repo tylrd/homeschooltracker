@@ -1,6 +1,6 @@
-import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema';
+import { drizzle, PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema";
 
 const globalForDb = globalThis as unknown as {
   db: PostgresJsDatabase<typeof schema> | undefined;
@@ -10,7 +10,7 @@ const globalForDb = globalThis as unknown as {
 export function getSql() {
   if (!globalForDb.sql) {
     if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL environment variable is required');
+      throw new Error("DATABASE_URL environment variable is required");
     }
     globalForDb.sql = postgres(process.env.DATABASE_URL, {
       max: 10,

@@ -7,7 +7,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { getColorClasses } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { completeLesson, uncompleteLesson, bumpLesson } from "@/lib/actions/lessons";
+import {
+  completeLesson,
+  uncompleteLesson,
+  bumpLesson,
+} from "@/lib/actions/lessons";
 
 type LessonCardProps = {
   lessonId: string;

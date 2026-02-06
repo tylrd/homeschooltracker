@@ -97,10 +97,16 @@ export default async function PrintPage({
           <table className="mb-6 w-full text-sm">
             <thead>
               <tr className="border-b text-left">
-                <th className="pb-1 pr-3 font-medium whitespace-nowrap">Date</th>
-                <th className="pb-1 pr-3 font-medium whitespace-nowrap">Subject</th>
+                <th className="pb-1 pr-3 font-medium whitespace-nowrap">
+                  Date
+                </th>
+                <th className="pb-1 pr-3 font-medium whitespace-nowrap">
+                  Subject
+                </th>
                 <th className="pb-1 pr-3 font-medium w-full">Resource</th>
-                <th className="pb-1 font-medium whitespace-nowrap text-right">Lesson</th>
+                <th className="pb-1 font-medium whitespace-nowrap text-right">
+                  Lesson
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -111,7 +117,9 @@ export default async function PrintPage({
                       ? formatDate(lesson.completionDate)
                       : "—"}
                   </td>
-                  <td className="py-1 pr-3 whitespace-nowrap">{lesson.subjectName}</td>
+                  <td className="py-1 pr-3 whitespace-nowrap">
+                    {lesson.subjectName}
+                  </td>
                   <td className="py-1 pr-3">{lesson.resourceName}</td>
                   <td className="py-1 whitespace-nowrap text-right">
                     {lesson.lessonTitle ?? `Lesson ${lesson.lessonNumber}`}
@@ -126,9 +134,7 @@ export default async function PrintPage({
               <h3 className="mb-2 font-medium">Daily Notes</h3>
               {notesByStudent.get(studentId)!.map((note, i) => (
                 <div key={i} className="mb-1 text-sm">
-                  <span className="font-medium">
-                    {formatDate(note.date)}:
-                  </span>{" "}
+                  <span className="font-medium">{formatDate(note.date)}:</span>{" "}
                   {note.content}
                 </div>
               ))}

@@ -29,7 +29,10 @@ export async function updateStudent(id: string, formData: FormData) {
     throw new Error("Name and color are required");
   }
 
-  await db.update(students).set({ name, color, gradeLevel }).where(eq(students.id, id));
+  await db
+    .update(students)
+    .set({ name, color, gradeLevel })
+    .where(eq(students.id, id));
   revalidatePath("/students");
   revalidatePath(`/students/${id}`);
 }

@@ -1,19 +1,19 @@
-import { getDb, getSql } from '@/db';
+import { getDb, getSql } from "@/db";
 import {
   students,
   subjects,
   resources,
   lessons,
   dailyNotes,
-} from '@/db/schema';
-import { generateLessonDates, toDateString } from '@/lib/dates';
+} from "@/db/schema";
+import { generateLessonDates, toDateString } from "@/lib/dates";
 
 // ── Seed Data ───────────────────────────────────────────────────────────────
 
 const STUDENTS = [
-  { name: 'Emma', color: 'rose', gradeLevel: '5th Grade' },
-  { name: 'Liam', color: 'sky', gradeLevel: '3rd Grade' },
-  { name: 'Sophie', color: 'emerald', gradeLevel: '1st Grade' },
+  { name: "Emma", color: "rose", gradeLevel: "5th Grade" },
+  { name: "Liam", color: "sky", gradeLevel: "3rd Grade" },
+  { name: "Sophie", color: "emerald", gradeLevel: "1st Grade" },
 ] as const;
 
 const CURRICULUM: Record<
@@ -22,38 +22,50 @@ const CURRICULUM: Record<
 > = {
   Emma: {
     subjects: [
-      { name: 'Math', resources: ['Saxon Math 5/4'] },
-      { name: 'Reading', resources: ['Literature Pockets: Greek & Roman Myths'] },
-      { name: 'Science', resources: ['Real Science Odyssey Biology'] },
-      { name: 'History', resources: ['Story of the World Vol. 2'] },
-      { name: 'Writing', resources: ['Institute for Excellence in Writing Level B'] },
+      { name: "Math", resources: ["Saxon Math 5/4"] },
+      {
+        name: "Reading",
+        resources: ["Literature Pockets: Greek & Roman Myths"],
+      },
+      { name: "Science", resources: ["Real Science Odyssey Biology"] },
+      { name: "History", resources: ["Story of the World Vol. 2"] },
+      {
+        name: "Writing",
+        resources: ["Institute for Excellence in Writing Level B"],
+      },
     ],
   },
   Liam: {
     subjects: [
-      { name: 'Math', resources: ['Singapore Math 3A'] },
-      { name: 'Reading', resources: ['All About Reading Level 3'] },
-      { name: 'Science', resources: ['Building Foundations of Scientific Understanding'] },
-      { name: 'History', resources: ['Story of the World Vol. 1'] },
+      { name: "Math", resources: ["Singapore Math 3A"] },
+      { name: "Reading", resources: ["All About Reading Level 3"] },
+      {
+        name: "Science",
+        resources: ["Building Foundations of Scientific Understanding"],
+      },
+      { name: "History", resources: ["Story of the World Vol. 1"] },
     ],
   },
   Sophie: {
     subjects: [
-      { name: 'Math', resources: ['RightStart Math Level B'] },
-      { name: 'Reading', resources: ['Teach Your Child to Read in 100 Easy Lessons'] },
-      { name: 'Phonics', resources: ['Explode the Code Book 1'] },
-      { name: 'Science', resources: ['Nature Study Journal'] },
+      { name: "Math", resources: ["RightStart Math Level B"] },
+      {
+        name: "Reading",
+        resources: ["Teach Your Child to Read in 100 Easy Lessons"],
+      },
+      { name: "Phonics", resources: ["Explode the Code Book 1"] },
+      { name: "Science", resources: ["Nature Study Journal"] },
     ],
   },
 };
 
 const DAILY_NOTES_TEMPLATES = [
-  'Great focus today! Finished all assignments ahead of schedule.',
-  'Struggled a bit with the math lesson but worked through it.',
-  'Field trip to the science museum — counted as science and history.',
-  'Read independently for 45 minutes after finishing schoolwork.',
-  'Sick day — will catch up tomorrow.',
-  'Co-op day: art class and group science experiment.',
+  "Great focus today! Finished all assignments ahead of schedule.",
+  "Struggled a bit with the math lesson but worked through it.",
+  "Field trip to the science museum — counted as science and history.",
+  "Read independently for 45 minutes after finishing schoolwork.",
+  "Sick day — will catch up tomorrow.",
+  "Co-op day: art class and group science experiment.",
 ];
 
 const MON_FRI = [1, 2, 3, 4, 5];
@@ -63,7 +75,7 @@ const MON_FRI = [1, 2, 3, 4, 5];
 async function seed() {
   const db = getDb();
   const sql = getSql();
-  console.log('Seeding database...\n');
+  console.log("Seeding database...\n");
 
   // Clear existing data (reverse dependency order)
   await db.delete(dailyNotes);
@@ -71,7 +83,7 @@ async function seed() {
   await db.delete(resources);
   await db.delete(subjects);
   await db.delete(students);
-  console.log('Cleared existing data.');
+  console.log("Cleared existing data.");
 
   const today = new Date();
   const todayStr = toDateString(today);
@@ -138,7 +150,7 @@ async function seed() {
             resourceId: resource.id,
             lessonNumber: i + 1,
             title: `Lesson ${i + 1}`,
-            status: isCompleted ? ('completed' as const) : ('planned' as const),
+            status: isCompleted ? ("completed" as const) : ("planned" as const),
             scheduledDate: dateStr,
             completionDate: isCompleted ? dateStr : null,
           };
@@ -166,7 +178,7 @@ async function seed() {
     }
   }
 
-  console.log('\nSeed complete:');
+  console.log("\nSeed complete:");
   console.log(`  Students:    ${studentCount}`);
   console.log(`  Subjects:    ${subjectCount}`);
   console.log(`  Resources:   ${resourceCount}`);
@@ -177,6 +189,6 @@ async function seed() {
 }
 
 seed().catch((err) => {
-  console.error('Seed failed:', err);
+  console.error("Seed failed:", err);
   process.exit(1);
 });

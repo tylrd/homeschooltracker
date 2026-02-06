@@ -12,7 +12,9 @@ import {
   getTodayLessons,
   getTodayNotes,
   getStudentsForFilter,
+  getAbsencesForDate,
 } from "@/lib/queries/dashboard";
+import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import { getTodayDate, formatDate } from "@/lib/dates";
 
 export default async function DashboardPage({
@@ -23,13 +25,30 @@ export default async function DashboardPage({
   const { student: studentId, date: dateParam } = await searchParams;
   const date = dateParam ?? getTodayDate();
   const isToday = date === getTodayDate();
-  const [lessons, notes, students] = await Promise.all([
+  const [lessons, notes, students, absences, reasons] = await Promise.all([
     getTodayLessons(date, studentId),
     getTodayNotes(date),
     getStudentsForFilter(),
+    getAbsencesForDate(date),
+    getOrCreateDefaultReasons(),
   ]);
 
-  const plannedCount = lessons.filter((l) => l.lessonStatus === "planned").length;
+  const plannedCount = lessons.filter(
+    (l) => l.lessonStatus === "planned",
+  ).length;
+
+  // Build absence map: studentId -> absence info
+  const absenceMap = new Map<
+    string,
+    { absenceId: string; reasonName: string; reasonColor: string }
+  >();
+  for (const a of absences) {
+    absenceMap.set(a.studentId, {
+      absenceId: a.absenceId,
+      reasonName: a.reasonName,
+      reasonColor: a.reasonColor,
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -40,7 +59,16 @@ export default async function DashboardPage({
             <p className="text-sm text-muted-foreground">{formatDate(date)}</p>
           )}
         </div>
-        {plannedCount > 0 && <SickDayButton date={date} />}
+        {plannedCount > 0 && (
+          <SickDayButton
+            date={date}
+            reasons={reasons.map((r) => ({
+              id: r.id,
+              name: r.name,
+              color: r.color,
+            }))}
+          />
+        )}
       </div>
 
       {students.length > 0 && (
@@ -67,6 +95,12 @@ export default async function DashboardPage({
             content: n.content,
           }))}
           date={date}
+          reasons={reasons.map((r) => ({
+            id: r.id,
+            name: r.name,
+            color: r.color,
+          }))}
+          absenceMap={Object.fromEntries(absenceMap)}
         />
       )}
     </div>

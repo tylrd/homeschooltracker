@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { createLesson } from "@/lib/actions/lessons";
 
 export function AddLessonForm({
@@ -70,11 +71,7 @@ export function AddLessonForm({
             </div>
             <div className="space-y-2">
               <Label>Scheduled Date</Label>
-              <Input
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-              />
+              <DatePicker value={scheduledDate} onChange={setScheduledDate} />
             </div>
           </div>
 

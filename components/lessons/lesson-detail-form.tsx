@@ -5,11 +5,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 import {
   completeLesson,
   uncompleteLesson,
   updateLessonContent,
+  updateLessonScheduledDate,
 } from "@/lib/actions/lessons";
 
 type LessonDetailFormProps = {
@@ -17,6 +19,7 @@ type LessonDetailFormProps = {
   status: string;
   plan: string | null;
   notes: string | null;
+  scheduledDate: string | null;
 };
 
 export function LessonDetailForm({
@@ -24,6 +27,7 @@ export function LessonDetailForm({
   status,
   plan,
   notes,
+  scheduledDate,
 }: LessonDetailFormProps) {
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
@@ -41,6 +45,13 @@ export function LessonDetailForm({
       } else {
         await completeLesson(lessonId);
       }
+    });
+  }
+
+  function handleDateChange(newDate: string) {
+    startTransition(async () => {
+      await updateLessonScheduledDate(lessonId, newDate);
+      toast.success("Date updated");
     });
   }
 
@@ -64,6 +75,16 @@ export function LessonDetailForm({
         <Label htmlFor="completed" className="text-sm font-medium">
           Mark as completed
         </Label>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Scheduled Date</Label>
+        <DatePicker
+          value={scheduledDate ?? ""}
+          onChange={handleDateChange}
+          placeholder="No date scheduled"
+          disabled={isPending}
+        />
       </div>
 
       <div className="space-y-2">

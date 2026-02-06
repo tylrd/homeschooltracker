@@ -1,6 +1,12 @@
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
-import { lessons, resources, subjects, students, dailyNotes } from "@/db/schema";
+import {
+  lessons,
+  resources,
+  subjects,
+  students,
+  dailyNotes,
+} from "@/db/schema";
 
 export async function getExportData(
   studentIds: string[],

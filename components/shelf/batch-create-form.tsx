@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { batchCreateLessons } from "@/lib/actions/lessons";
 import { generateLessonDates, toDateString } from "@/lib/dates";
@@ -101,11 +102,7 @@ export function BatchCreateForm({
 
           <div className="space-y-2">
             <Label>Start Date</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+            <DatePicker value={startDate} onChange={setStartDate} />
           </div>
 
           <div className="space-y-2">
@@ -119,11 +116,7 @@ export function BatchCreateForm({
               className="justify-start"
             >
               {WEEKDAYS.map((day) => (
-                <ToggleGroupItem
-                  key={day.value}
-                  value={day.value}
-                  size="sm"
-                >
+                <ToggleGroupItem key={day.value} value={day.value} size="sm">
                   {day.label}
                 </ToggleGroupItem>
               ))}
@@ -136,7 +129,11 @@ export function BatchCreateForm({
             </p>
           )}
 
-          <Button onClick={handleSubmit} className="w-full" disabled={count <= 0 || schoolDays.length === 0}>
+          <Button
+            onClick={handleSubmit}
+            className="w-full"
+            disabled={count <= 0 || schoolDays.length === 0}
+          >
             Generate {count} Lessons
           </Button>
         </div>

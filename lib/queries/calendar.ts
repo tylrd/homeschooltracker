@@ -41,7 +41,10 @@ export async function getCalendarData(
 
   for (const row of rows) {
     if (!row.scheduledDate) continue;
-    const existing = dayMap.get(row.scheduledDate) ?? { total: 0, completed: 0 };
+    const existing = dayMap.get(row.scheduledDate) ?? {
+      total: 0,
+      completed: 0,
+    };
     existing.total++;
     if (row.status === "completed") {
       existing.completed++;

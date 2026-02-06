@@ -1,6 +1,13 @@
 import { eq, and, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { lessons, resources, subjects, students } from "@/db/schema";
+import {
+  lessons,
+  resources,
+  subjects,
+  students,
+  absences,
+  absenceReasons,
+} from "@/db/schema";
 
 export async function getAttendanceForMonth(year: number, month: number) {
   const db = getDb();
@@ -31,10 +38,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
 
   // Build set of unique (studentId, date) pairs
   const attendanceMap = new Map<string, Set<string>>();
-  const studentInfo = new Map<
-    string,
-    { name: string; color: string }
-  >();
+  const studentInfo = new Map<string, { name: string; color: string }>();
 
   for (const row of rows) {
     if (!row.completionDate) continue;
@@ -52,7 +56,46 @@ export async function getAttendanceForMonth(year: number, month: number) {
     }
   }
 
-  return { attendanceMap, studentInfo, year, month, lastDay };
+  // Get absences for the month
+  const absenceRows = await db
+    .select({
+      studentId: absences.studentId,
+      date: absences.date,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(absences)
+    .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
+    .innerJoin(students, eq(absences.studentId, students.id))
+    .where(and(gte(absences.date, startDate), lte(absences.date, endDate)));
+
+  // Build absence map: studentId -> date -> { reasonName, reasonColor }
+  const absenceMap = new Map<
+    string,
+    Map<string, { reasonName: string; reasonColor: string }>
+  >();
+
+  for (const row of absenceRows) {
+    if (!absenceMap.has(row.studentId)) {
+      absenceMap.set(row.studentId, new Map());
+    }
+    absenceMap.get(row.studentId)!.set(row.date, {
+      reasonName: row.reasonName,
+      reasonColor: row.reasonColor,
+    });
+
+    // Ensure students with absences but no completions still appear
+    if (!studentInfo.has(row.studentId)) {
+      studentInfo.set(row.studentId, {
+        name: row.studentName,
+        color: row.studentColor,
+      });
+    }
+  }
+
+  return { attendanceMap, absenceMap, studentInfo, year, month, lastDay };
 }
 
 export async function getAllStudents() {

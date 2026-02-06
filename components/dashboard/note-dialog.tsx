@@ -41,11 +41,7 @@ function NoteForm({
         rows={4}
         autoFocus
       />
-      <Button
-        onClick={handleSave}
-        className="w-full"
-        disabled={isPending}
-      >
+      <Button onClick={handleSave} className="w-full" disabled={isPending}>
         Save Note
       </Button>
     </div>

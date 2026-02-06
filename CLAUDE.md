@@ -57,3 +57,4 @@ pnpm db:studio    # Open Drizzle Studio (DB GUI)
 - shadcn/ui config (`components.json`): RSC enabled, TSX, cssVariables on, aliases at `@/components`, `@/components/ui`, `@/lib`, `@/hooks`.
 - Prefer Server Components. Only use `"use client"` for interactivity (event handlers, hooks, browser APIs).
 - No `src/` directory — code lives at the project root (`app/`, `lib/`, `components/`, `hooks/`).
+

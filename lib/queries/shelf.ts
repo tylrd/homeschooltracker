@@ -13,7 +13,10 @@ export async function getAllResourcesWithProgress() {
       studentName: students.name,
       studentColor: students.color,
       totalLessons: count(lessons.id),
-      completedLessons: sql<number>`count(case when ${lessons.status} = 'completed' then 1 end)`.mapWith(Number),
+      completedLessons:
+        sql<number>`count(case when ${lessons.status} = 'completed' then 1 end)`.mapWith(
+          Number,
+        ),
     })
     .from(resources)
     .innerJoin(subjects, eq(resources.subjectId, subjects.id))

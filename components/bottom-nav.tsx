@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, BookOpen, Users, Calendar, ClipboardList } from "lucide-react";
+import {
+  CalendarCheck,
+  BookOpen,
+  Users,
+  Calendar,
+  ClipboardList,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -21,9 +27,7 @@ export function BottomNav() {
       <div className="mx-auto flex max-w-lg">
         {tabs.map((tab) => {
           const isActive =
-            tab.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(tab.href);
+            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
           return (
             <Link
               key={tab.href}

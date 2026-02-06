@@ -3,8 +3,12 @@
 import { eq, and, gte, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { lessons } from "@/db/schema";
-import { generateLessonDates, nextSchoolDayStr, toDateString } from "@/lib/dates";
+import { lessons, resources, subjects } from "@/db/schema";
+import {
+  generateLessonDates,
+  nextSchoolDayStr,
+  toDateString,
+} from "@/lib/dates";
 
 export async function batchCreateLessons(
   resourceId: string,
@@ -127,9 +131,7 @@ export async function bumpAllToday(date: string) {
   const todayLessons = await db
     .select()
     .from(lessons)
-    .where(
-      and(eq(lessons.scheduledDate, date), eq(lessons.status, "planned")),
-    );
+    .where(and(eq(lessons.scheduledDate, date), eq(lessons.status, "planned")));
 
   if (todayLessons.length === 0) return;
 
@@ -189,6 +191,72 @@ export async function createLesson(
   revalidatePath("/shelf");
   revalidatePath(`/shelf/${resourceId}`);
   revalidatePath("/");
+}
+
+export async function updateLessonScheduledDate(
+  lessonId: string,
+  newDate: string,
+) {
+  const db = getDb();
+  await db
+    .update(lessons)
+    .set({ scheduledDate: newDate || null })
+    .where(eq(lessons.id, lessonId));
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath(`/lessons/${lessonId}`);
+}
+
+export async function bumpStudentLessons(studentId: string, date: string) {
+  const db = getDb();
+
+  // Find planned lessons for this date that belong to this student
+  const todayLessons = await db
+    .select({ lessonId: lessons.id, resourceId: lessons.resourceId })
+    .from(lessons)
+    .innerJoin(resources, eq(lessons.resourceId, resources.id))
+    .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+    .where(
+      and(
+        eq(lessons.scheduledDate, date),
+        eq(lessons.status, "planned"),
+        eq(subjects.studentId, studentId),
+      ),
+    );
+
+  if (todayLessons.length === 0) return;
+
+  // Group by resourceId
+  const resourceIds = new Set(todayLessons.map((l) => l.resourceId));
+
+  await db.transaction(async (tx) => {
+    for (const resourceId of resourceIds) {
+      const futureLessons = await tx
+        .select()
+        .from(lessons)
+        .where(
+          and(
+            eq(lessons.resourceId, resourceId),
+            eq(lessons.status, "planned"),
+            gte(lessons.scheduledDate, date),
+          ),
+        )
+        .orderBy(asc(lessons.scheduledDate), asc(lessons.lessonNumber));
+
+      let currentDate = nextSchoolDayStr(date);
+      for (const fl of futureLessons) {
+        await tx
+          .update(lessons)
+          .set({ scheduledDate: currentDate })
+          .where(eq(lessons.id, fl.id));
+        currentDate = nextSchoolDayStr(currentDate);
+      }
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
 }
 
 export async function updateLessonContent(
