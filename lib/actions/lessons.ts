@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, and, gte, asc } from "drizzle-orm";
+import { eq, and, gte, gt, asc, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { lessons, resources, subjects } from "@/db/schema";
@@ -274,6 +274,46 @@ export async function updateLessonContent(
     .where(eq(lessons.id, lessonId));
 
   revalidatePath(`/lessons/${lessonId}`);
+  revalidatePath("/");
+  revalidatePath("/shelf");
+}
+
+export async function scheduleMakeupLesson(resourceId: string, date: string) {
+  const db = getDb();
+
+  // Find the next planned lesson after this date
+  const nextLesson = await db.query.lessons.findFirst({
+    where: and(
+      eq(lessons.resourceId, resourceId),
+      eq(lessons.status, "planned"),
+      gt(lessons.scheduledDate, date),
+    ),
+    orderBy: [asc(lessons.scheduledDate), asc(lessons.lessonNumber)],
+  });
+
+  if (nextLesson) {
+    // Pull the next planned lesson forward to today
+    await db
+      .update(lessons)
+      .set({ scheduledDate: date })
+      .where(eq(lessons.id, nextLesson.id));
+  } else {
+    // No future planned lesson — create a new one
+    const result = await db
+      .select({ maxNum: max(lessons.lessonNumber) })
+      .from(lessons)
+      .where(eq(lessons.resourceId, resourceId));
+    const nextNum = (result[0]?.maxNum ?? 0) + 1;
+
+    await db.insert(lessons).values({
+      resourceId,
+      lessonNumber: nextNum,
+      title: `Lesson ${nextNum}`,
+      scheduledDate: date,
+      status: "planned",
+    });
+  }
+
   revalidatePath("/");
   revalidatePath("/shelf");
 }

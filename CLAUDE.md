@@ -6,6 +6,7 @@
 pnpm dev          # Start dev server (Next.js turbopack)
 pnpm build        # Production build
 pnpm lint         # ESLint (flat config, v9)
+pnpm format       # biome formatting
 pnpm start        # Serve production build
 ```
 

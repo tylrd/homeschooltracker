@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, MessageSquare } from "lucide-react";
+import { ArrowRight, MessageSquare, Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { getColorClasses } from "@/lib/constants";
@@ -11,6 +11,7 @@ import {
   completeLesson,
   uncompleteLesson,
   bumpLesson,
+  scheduleMakeupLesson,
 } from "@/lib/actions/lessons";
 
 type LessonCardProps = {
@@ -18,10 +19,12 @@ type LessonCardProps = {
   lessonNumber: number;
   lessonTitle: string | null;
   status: string;
+  resourceId: string;
   resourceName: string;
   subjectName: string;
   studentColor: string;
   studentId: string;
+  date: string;
   onNoteClick: (studentId: string) => void;
 };
 
@@ -30,10 +33,12 @@ export function LessonCard({
   lessonNumber,
   lessonTitle,
   status,
+  resourceId,
   resourceName,
   subjectName,
   studentColor,
   studentId,
+  date,
   onNoteClick,
 }: LessonCardProps) {
   const [isPending, startTransition] = useTransition();
@@ -53,6 +58,12 @@ export function LessonCard({
   function handleBump() {
     startTransition(async () => {
       await bumpLesson(lessonId);
+    });
+  }
+
+  function handleMakeup() {
+    startTransition(async () => {
+      await scheduleMakeupLesson(resourceId, date);
     });
   }
 
@@ -80,16 +91,28 @@ export function LessonCard({
         </p>
       </Link>
       {!isCompleted && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={handleBump}
-          disabled={isPending}
-          title="Bump to next day"
-        >
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={handleMakeup}
+            disabled={isPending}
+            title="Add makeup lesson"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={handleBump}
+            disabled={isPending}
+            title="Bump to next day"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </>
       )}
       <Button
         variant="ghost"

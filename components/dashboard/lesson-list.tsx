@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { UserX } from "lucide-react";
+import { UserX, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { LessonCard } from "@/components/dashboard/lesson-card";
 import { NoteDialog } from "@/components/dashboard/note-dialog";
 import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
+import { MakeupDialog } from "@/components/dashboard/makeup-dialog";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ type DashboardLesson = {
   lessonNumber: number;
   lessonTitle: string | null;
   lessonStatus: string;
+  resourceId: string;
   resourceName: string;
   subjectName: string;
   studentId: string;
@@ -56,6 +58,14 @@ export function LessonList({
   const [absenceTarget, setAbsenceTarget] = useState<{
     studentId: string | null;
     studentName: string | null;
+  } | null>(null);
+  const [makeupTarget, setMakeupTarget] = useState<{
+    studentName: string;
+    resources: {
+      resourceId: string;
+      resourceName: string;
+      subjectName: string;
+    }[];
   } | null>(null);
 
   // Group by student
@@ -112,6 +122,32 @@ export function LessonList({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs text-muted-foreground"
+                  onClick={() => {
+                    const seen = new Set<string>();
+                    const resources = group.lessons
+                      .filter((l) => {
+                        if (seen.has(l.resourceId)) return false;
+                        seen.add(l.resourceId);
+                        return true;
+                      })
+                      .map((l) => ({
+                        resourceId: l.resourceId,
+                        resourceName: l.resourceName,
+                        subjectName: l.subjectName,
+                      }));
+                    setMakeupTarget({
+                      studentName: group.name,
+                      resources,
+                    });
+                  }}
+                >
+                  <Plus className="mr-1 h-3 w-3" />
+                  Makeup
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground"
                   onClick={() =>
                     setAbsenceTarget({
                       studentId,
@@ -131,10 +167,12 @@ export function LessonList({
                     lessonNumber={lesson.lessonNumber}
                     lessonTitle={lesson.lessonTitle}
                     status={lesson.lessonStatus}
+                    resourceId={lesson.resourceId}
                     resourceName={lesson.resourceName}
                     subjectName={lesson.subjectName}
                     studentColor={lesson.studentColor}
                     studentId={lesson.studentId}
+                    date={date}
                     onNoteClick={setNoteStudentId}
                   />
                 ))}
@@ -165,6 +203,16 @@ export function LessonList({
             ? (absenceMap[absenceTarget.studentId] ?? null)
             : null
         }
+      />
+
+      <MakeupDialog
+        open={makeupTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setMakeupTarget(null);
+        }}
+        studentName={makeupTarget?.studentName ?? ""}
+        date={date}
+        resources={makeupTarget?.resources ?? []}
       />
     </>
   );
