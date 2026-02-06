@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -22,7 +23,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <ThemeToggle />
         </div>
       </header>
-      <main className="px-4 pt-1 pb-20">{children}</main>
+      <main className="px-4 pt-1 pb-20">
+        <PullToRefresh>{children}</PullToRefresh>
+      </main>
       <BottomNav />
     </div>
   );
