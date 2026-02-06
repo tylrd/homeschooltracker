@@ -35,6 +35,16 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
+# Migration image
+FROM base AS migrator
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
+COPY db/migrate.ts ./db/migrate.ts
+COPY drizzle/ ./drizzle/
+RUN corepack enable pnpm
+CMD ["pnpm", "db:migrate:run"]
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app

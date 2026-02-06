@@ -10,6 +10,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:run": "tsx db/migrate.ts",
     "db:seed": "tsx --env-file=.env.local db/seed.ts",
     "db:studio": "drizzle-kit studio",
     "docker:up": "docker compose up -d",
