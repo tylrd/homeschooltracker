@@ -15,7 +15,8 @@ services:
     restart: unless-stopped
 
   migrate:
-    image: ghcr.io/tylrd/homeschooltracker:migrate
+    image: ghcr.io/tylrd/homeschooltracker:latest
+    command: migrate
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/homeschooltracker
     depends_on:

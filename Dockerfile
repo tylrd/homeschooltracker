@@ -35,15 +35,8 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-# Migration image
-FROM base AS migrator
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json ./
-COPY db/migrate.ts ./db/migrate.ts
-COPY drizzle/ ./drizzle/
-RUN corepack enable pnpm
-CMD ["pnpm", "db:migrate:run"]
+# Bundle migrate.ts into a single file for the production image
+RUN npx esbuild db/migrate.ts --bundle --platform=node --outfile=migrate.js
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -63,6 +56,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Migration support
+COPY --from=builder --chown=nextjs:nodejs /app/migrate.js ./migrate.js
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+COPY --chown=nextjs:nodejs deploy/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -72,4 +71,5 @@ ENV PORT=3000
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]
+CMD []
