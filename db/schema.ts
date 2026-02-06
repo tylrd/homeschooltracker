@@ -157,6 +157,11 @@ export const absences = pgTable(
   ],
 );
 
+export const appSettings = pgTable("app_settings", {
+  key: text().primaryKey(),
+  value: text().notNull(),
+});
+
 // ── Relations ──────────────────────────────────────────────────────────────
 
 export const studentsRelations = relations(students, ({ many }) => ({
@@ -235,3 +240,5 @@ export type NewAbsenceReason = typeof absenceReasons.$inferInsert;
 
 export type Absence = typeof absences.$inferSelect;
 export type NewAbsence = typeof absences.$inferInsert;
+
+export type AppSetting = typeof appSettings.$inferSelect;

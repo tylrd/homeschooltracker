@@ -70,14 +70,12 @@ export function DayNav({ date }: { date: string }) {
         <ChevronRight className="h-4 w-4" />
       </Button>
       {!isToday && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="ml-1 h-7 text-xs"
+        <button
+          className="ml-1 text-xs text-muted-foreground underline hover:text-foreground"
           onClick={() => navigate(today)}
         >
           Today
-        </Button>
+        </button>
       )}
     </div>
   );

@@ -5,10 +5,15 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AbsenceReasonForm } from "@/components/settings/absence-reason-form";
+import { ShowCompletedToggle } from "@/components/settings/show-completed-toggle";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
+import { getShowCompletedLessons } from "@/lib/queries/settings";
 
 export default async function SettingsPage() {
-  const reasons = await getOrCreateDefaultReasons();
+  const [reasons, showCompleted] = await Promise.all([
+    getOrCreateDefaultReasons(),
+    getShowCompletedLessons(),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -19,6 +24,13 @@ export default async function SettingsPage() {
           </Button>
         </Link>
         <h1 className="text-2xl font-bold">Settings</h1>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Dashboard</h2>
+        <ShowCompletedToggle defaultValue={showCompleted} />
       </div>
 
       <Separator />

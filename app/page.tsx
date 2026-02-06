@@ -15,7 +15,8 @@ import {
   getAbsencesForDate,
 } from "@/lib/queries/dashboard";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
-import { getTodayDate, formatDate } from "@/lib/dates";
+import { getShowCompletedLessons } from "@/lib/queries/settings";
+import { getTodayDate } from "@/lib/dates";
 
 export default async function DashboardPage({
   searchParams,
@@ -24,14 +25,15 @@ export default async function DashboardPage({
 }) {
   const { student: studentId, date: dateParam } = await searchParams;
   const date = dateParam ?? getTodayDate();
-  const isToday = date === getTodayDate();
-  const [lessons, notes, students, absences, reasons] = await Promise.all([
-    getTodayLessons(date, studentId),
-    getTodayNotes(date),
-    getStudentsForFilter(),
-    getAbsencesForDate(date),
-    getOrCreateDefaultReasons(),
-  ]);
+  const [lessons, notes, students, absences, reasons, showCompleted] =
+    await Promise.all([
+      getTodayLessons(date, studentId),
+      getTodayNotes(date),
+      getStudentsForFilter(),
+      getAbsencesForDate(date),
+      getOrCreateDefaultReasons(),
+      getShowCompletedLessons(),
+    ]);
 
   const plannedCount = lessons.filter(
     (l) => l.lessonStatus === "planned",
@@ -53,12 +55,7 @@ export default async function DashboardPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <DayNav date={date} />
-          {!isToday && (
-            <p className="text-sm text-muted-foreground">{formatDate(date)}</p>
-          )}
-        </div>
+        <DayNav date={date} />
         {plannedCount > 0 && (
           <SickDayButton
             date={date}
@@ -101,6 +98,7 @@ export default async function DashboardPage({
             color: r.color,
           }))}
           absenceMap={Object.fromEntries(absenceMap)}
+          defaultShowCompleted={showCompleted}
         />
       )}
     </div>

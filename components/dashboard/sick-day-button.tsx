@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
 
 type AbsenceReason = {
@@ -22,10 +28,21 @@ export function SickDayButton({
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <UserX className="mr-1 h-4 w-4" />
-        All Absent
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setOpen(true)}
+            >
+              <UserX className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>All Absent</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <AbsenceDialog
         open={open}

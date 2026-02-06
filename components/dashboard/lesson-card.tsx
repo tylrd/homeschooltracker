@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, MessageSquare, Plus } from "lucide-react";
+import { ArrowRight, MessageSquare, Plus, RotateCcw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { getColorClasses } from "@/lib/constants";
@@ -25,6 +25,8 @@ type LessonCardProps = {
   studentColor: string;
   studentId: string;
   date: string;
+  isMakeup?: boolean;
+  exiting?: boolean;
   onNoteClick: (studentId: string) => void;
 };
 
@@ -39,9 +41,12 @@ export function LessonCard({
   studentColor,
   studentId,
   date,
+  isMakeup,
+  exiting,
   onNoteClick,
 }: LessonCardProps) {
   const [isPending, startTransition] = useTransition();
+  const [bumping, setBumping] = useState(false);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
 
@@ -56,9 +61,12 @@ export function LessonCard({
   }
 
   function handleBump() {
-    startTransition(async () => {
-      await bumpLesson(lessonId);
-    });
+    setBumping(true);
+    setTimeout(() => {
+      startTransition(async () => {
+        await bumpLesson(lessonId);
+      });
+    }, 300);
   }
 
   function handleMakeup() {
@@ -70,22 +78,34 @@ export function LessonCard({
   return (
     <div
       className={cn(
-        "flex min-h-14 items-center gap-3 rounded-lg bg-card px-3 py-2.5 shadow-sm transition-opacity",
-        colors.border,
-        isPending && "opacity-50",
-        isCompleted && "opacity-60",
+        "flex min-h-14 items-center gap-3 rounded-lg px-3 py-2.5 transition-opacity",
+        isCompleted
+          ? "bg-muted/50 shadow-none opacity-50"
+          : "bg-card shadow-sm",
+        !isCompleted && colors.border,
+        isPending && !bumping && "opacity-50",
+        (bumping || exiting) && "animate-lesson-out",
+        !bumping && !exiting && "animate-lesson-in",
       )}
     >
       <Checkbox
         checked={isCompleted}
         onCheckedChange={handleToggle}
         className="h-7 w-7 rounded-md"
-        disabled={isPending}
+        disabled={isPending || bumping}
       />
       <Link href={`/lessons/${lessonId}`} className="flex-1 min-w-0">
-        <p className={cn("text-sm font-medium", isCompleted && "line-through")}>
-          {lessonTitle ?? `Lesson ${lessonNumber}`}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className={cn("text-sm font-medium", isCompleted && "line-through text-muted-foreground")}>
+            {lessonTitle ?? `Lesson ${lessonNumber}`}
+          </p>
+          {isMakeup && (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+              <RotateCcw className="h-2.5 w-2.5" />
+              Makeup
+            </span>
+          )}
+        </div>
         <p className="truncate text-xs text-muted-foreground">
           {subjectName} &middot; {resourceName}
         </p>
@@ -97,7 +117,7 @@ export function LessonCard({
             size="icon"
             className="h-8 w-8 shrink-0"
             onClick={handleMakeup}
-            disabled={isPending}
+            disabled={isPending || bumping}
             title="Add makeup lesson"
           >
             <Plus className="h-4 w-4" />
@@ -107,7 +127,7 @@ export function LessonCard({
             size="icon"
             className="h-8 w-8 shrink-0"
             onClick={handleBump}
-            disabled={isPending}
+            disabled={isPending || bumping}
             title="Bump to next day"
           >
             <ArrowRight className="h-4 w-4" />
