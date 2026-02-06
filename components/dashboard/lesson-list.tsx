@@ -144,8 +144,7 @@ export function LessonList({
                   {group.lessons
                     .filter(
                       (l) =>
-                        defaultShowCompleted ||
-                        l.lessonStatus !== "completed",
+                        defaultShowCompleted || l.lessonStatus !== "completed",
                     )
                     .map((lesson) => (
                       <LessonCard
@@ -174,10 +173,7 @@ export function LessonList({
               return (
                 <div key={studentId} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <StudentColorDot
-                      color={group.color}
-                      className="h-3 w-3"
-                    />
+                    <StudentColorDot color={group.color} className="h-3 w-3" />
                     <h2 className="text-sm font-semibold">{group.name}</h2>
                     <span className="text-xs text-muted-foreground">
                       {
@@ -319,9 +315,7 @@ export function LessonList({
                       }
                       const resourceSeen = new Set<string>();
                       return visible.map((lesson) => {
-                        const isDuplicate = resourceSeen.has(
-                          lesson.resourceId,
-                        );
+                        const isDuplicate = resourceSeen.has(lesson.resourceId);
                         resourceSeen.add(lesson.resourceId);
                         const hasDuplicates =
                           (resourceCount.get(lesson.resourceId) ?? 0) > 1;

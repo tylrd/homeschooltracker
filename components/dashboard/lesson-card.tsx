@@ -103,7 +103,12 @@ export function LessonCard({
       />
       <Link href={`/lessons/${lessonId}`} className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <p className={cn("text-sm font-medium", isCompleted && "line-through text-muted-foreground")}>
+          <p
+            className={cn(
+              "text-sm font-medium",
+              isCompleted && "line-through text-muted-foreground",
+            )}
+          >
             {lessonTitle ?? `Lesson ${lessonNumber}`}
           </p>
           {isMakeup && (
@@ -120,7 +125,9 @@ export function LessonCard({
               {studentName} &middot; {resourceName}
             </span>
           ) : (
-            <>{subjectName} &middot; {resourceName}</>
+            <>
+              {subjectName} &middot; {resourceName}
+            </>
           )}
         </p>
       </Link>

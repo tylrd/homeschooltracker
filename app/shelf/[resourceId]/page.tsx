@@ -10,10 +10,7 @@ import { LessonTable } from "@/components/shelf/lesson-table";
 import { BatchCreateForm } from "@/components/shelf/batch-create-form";
 import { AddLessonForm } from "@/components/shelf/add-lesson-form";
 import { getResourceWithLessons } from "@/lib/queries/shelf";
-import {
-  getSchoolDays,
-  getDefaultLessonCount,
-} from "@/lib/queries/settings";
+import { getSchoolDays, getDefaultLessonCount } from "@/lib/queries/settings";
 import { nextSchoolDayStr, toDateString } from "@/lib/dates";
 
 export default async function ResourceDetailPage({

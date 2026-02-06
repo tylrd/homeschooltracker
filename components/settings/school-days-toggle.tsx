@@ -15,11 +15,7 @@ const ALL_DAYS = [
   { value: "6", label: "Sat" },
 ];
 
-export function SchoolDaysToggle({
-  defaultValue,
-}: {
-  defaultValue: number[];
-}) {
+export function SchoolDaysToggle({ defaultValue }: { defaultValue: number[] }) {
   const [isPending, startTransition] = useTransition();
 
   return (

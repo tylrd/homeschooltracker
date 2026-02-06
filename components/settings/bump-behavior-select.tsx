@@ -24,9 +24,7 @@ export function BumpBehaviorSelect({
       <Select
         defaultValue={defaultValue}
         disabled={isPending}
-        onValueChange={(
-          value: "next_school_day" | "same_day_next_week",
-        ) => {
+        onValueChange={(value: "next_school_day" | "same_day_next_week") => {
           startTransition(async () => {
             await setBumpBehavior(value);
           });

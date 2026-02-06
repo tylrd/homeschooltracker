@@ -53,5 +53,7 @@ export async function getBumpBehavior(): Promise<
   "next_school_day" | "same_day_next_week"
 > {
   const value = await getSetting("bumpBehavior");
-  return value === "same_day_next_week" ? "same_day_next_week" : "next_school_day";
+  return value === "same_day_next_week"
+    ? "same_day_next_week"
+    : "next_school_day";
 }

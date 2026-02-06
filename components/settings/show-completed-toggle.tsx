@@ -5,7 +5,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { setShowCompletedLessons } from "@/lib/actions/settings";
 
-export function ShowCompletedToggle({ defaultValue }: { defaultValue: boolean }) {
+export function ShowCompletedToggle({
+  defaultValue,
+}: {
+  defaultValue: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
 
   return (
