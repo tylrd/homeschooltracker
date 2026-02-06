@@ -15,6 +15,13 @@
       "when": 1770372450695,
       "tag": "0001_greedy_lorna_dane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770393961256,
+      "tag": "0002_magenta_falcon",
+      "breakpoints": true
     }
   ]
 }
