@@ -1,14 +1,14 @@
 "use client";
 
+import {
+  BookOpen,
+  Calendar,
+  CalendarCheck,
+  ClipboardList,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  CalendarCheck,
-  BookOpen,
-  Users,
-  Calendar,
-  ClipboardList,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [

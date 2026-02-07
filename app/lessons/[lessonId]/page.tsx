@@ -1,13 +1,13 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
+import { BackButton } from "@/components/back-button";
+import { LessonDetailForm } from "@/components/lessons/lesson-detail-form";
+import { StudentColorDot } from "@/components/student-color-dot";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { BackButton } from "@/components/back-button";
-import { StudentColorDot } from "@/components/student-color-dot";
-import { LessonDetailForm } from "@/components/lessons/lesson-detail-form";
-import { getLessonWithContext } from "@/lib/queries/lessons";
 import { formatDate } from "@/lib/dates";
+import { getLessonWithContext } from "@/lib/queries/lessons";
 
 export default async function LessonDetailPage({
   params,

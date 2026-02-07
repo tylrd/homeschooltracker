@@ -1,26 +1,26 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { AbsenceAutoBumpToggle } from "@/components/settings/absence-auto-bump-toggle";
+import { AbsenceReasonForm } from "@/components/settings/absence-reason-form";
+import { BumpBehaviorSelect } from "@/components/settings/bump-behavior-select";
+import { DashboardGroupingSelect } from "@/components/settings/dashboard-grouping-select";
+import { DefaultLessonCountInput } from "@/components/settings/default-lesson-count-input";
+import { NoteButtonsToggle } from "@/components/settings/note-buttons-toggle";
+import { SchoolDaysToggle } from "@/components/settings/school-days-toggle";
+import { ShowCompletedToggle } from "@/components/settings/show-completed-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AbsenceReasonForm } from "@/components/settings/absence-reason-form";
-import { ShowCompletedToggle } from "@/components/settings/show-completed-toggle";
-import { SchoolDaysToggle } from "@/components/settings/school-days-toggle";
-import { DefaultLessonCountInput } from "@/components/settings/default-lesson-count-input";
-import { AbsenceAutoBumpToggle } from "@/components/settings/absence-auto-bump-toggle";
-import { NoteButtonsToggle } from "@/components/settings/note-buttons-toggle";
-import { DashboardGroupingSelect } from "@/components/settings/dashboard-grouping-select";
-import { BumpBehaviorSelect } from "@/components/settings/bump-behavior-select";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
-  getShowCompletedLessons,
-  getSchoolDays,
-  getDefaultLessonCount,
   getAbsenceAutoBump,
-  getShowNoteButtons,
-  getDashboardGrouping,
   getBumpBehavior,
+  getDashboardGrouping,
+  getDefaultLessonCount,
+  getSchoolDays,
+  getShowCompletedLessons,
+  getShowNoteButtons,
 } from "@/lib/queries/settings";
 
 export default async function SettingsPage() {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { setSchoolDays } from "@/lib/actions/settings";
 
 const ALL_DAYS = [

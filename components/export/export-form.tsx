@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StudentColorDot } from "@/components/student-color-dot";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Label } from "@/components/ui/label";
 import { toDateString } from "@/lib/dates";
 
 type StudentOption = {
@@ -55,6 +55,7 @@ export function ExportForm({ students }: { students: StudentOption[] }) {
         <Label>Students</Label>
         <div className="space-y-2">
           {students.map((student) => (
+            // biome-ignore lint/a11y/noLabelWithoutControl: Checkbox is a custom component wrapping an input
             <label
               key={student.id}
               className="flex items-center gap-2 cursor-pointer"

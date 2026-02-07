@@ -1,27 +1,27 @@
 export const dynamic = "force-dynamic";
 
-import { Suspense } from "react";
 import { CalendarCheck } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
-import { StudentFilter } from "@/components/dashboard/student-filter";
+import { Suspense } from "react";
 import { DayNav } from "@/components/dashboard/day-nav";
 import { LessonList } from "@/components/dashboard/lesson-list";
 import { SickDayButton } from "@/components/dashboard/sick-day-button";
+import { StudentFilter } from "@/components/dashboard/student-filter";
+import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  getTodayLessons,
-  getTodayNotes,
-  getStudentsForFilter,
-  getAbsencesForDate,
-  getStudentResourceMap,
-} from "@/lib/queries/dashboard";
+import { getTodayDate } from "@/lib/dates";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
-  getShowCompletedLessons,
+  getAbsencesForDate,
+  getStudentResourceMap,
+  getStudentsForFilter,
+  getTodayLessons,
+  getTodayNotes,
+} from "@/lib/queries/dashboard";
+import {
   getDashboardGrouping,
+  getShowCompletedLessons,
   getShowNoteButtons,
 } from "@/lib/queries/settings";
-import { getTodayDate } from "@/lib/dates";
 
 export default async function DashboardPage({
   searchParams,
@@ -29,7 +29,8 @@ export default async function DashboardPage({
   searchParams: Promise<{ student?: string; date?: string }>;
 }) {
   const { student: studentId, date: dateParam } = await searchParams;
-  const date = dateParam ?? getTodayDate();
+  const today = getTodayDate();
+  const date = dateParam ?? today;
   const [
     lessons,
     notes,
@@ -96,7 +97,7 @@ export default async function DashboardPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <DayNav date={date} />
+        <DayNav date={date} today={today} />
         {plannedCount > 0 && (
           <SickDayButton
             date={date}

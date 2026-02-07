@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { MonthNav } from "@/components/attendance/month-nav";
-import { StudentFilter } from "@/components/dashboard/student-filter";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
+import { StudentFilter } from "@/components/dashboard/student-filter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getCalendarData } from "@/lib/queries/calendar";
 import { getStudentsForFilter } from "@/lib/queries/dashboard";
 

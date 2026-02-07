@@ -1,8 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { setAbsenceAutoBump } from "@/lib/actions/settings";
 
 export function AbsenceAutoBumpToggle({

@@ -245,3 +245,16 @@
     overscroll-behavior-y: contain;
   }
 }
+
+@media print {
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    font-size: 12px;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+}

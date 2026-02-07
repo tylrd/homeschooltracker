@@ -1,7 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
 import { X } from "lucide-react";
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,12 +10,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
-import { cn } from "@/lib/utils";
 import {
   logAbsence,
   logAbsenceForAll,
   removeAbsence,
 } from "@/lib/actions/absences";
+import { cn } from "@/lib/utils";
 
 type AbsenceReason = {
   id: string;

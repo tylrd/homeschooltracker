@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
 import type { CalendarDay } from "@/lib/queries/calendar";
+import { cn } from "@/lib/utils";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -98,7 +98,8 @@ export function CalendarGrid({
 
         return (
           <button
-            key={idx}
+            type="button"
+            key={cell.dateStr || `pad-${idx}`}
             disabled={cell.isPadding}
             onClick={() => !cell.isPadding && handleDayClick(cell.dateStr)}
             className={cn(

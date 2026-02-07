@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { StudentColorDot } from "@/components/student-color-dot";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { StudentColorDot } from "@/components/student-color-dot";
 
 export function ResourceCard({
   resource,

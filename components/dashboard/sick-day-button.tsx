@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { UserX } from "lucide-react";
+import { useState } from "react";
+import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -9,7 +10,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
 
 type AbsenceReason = {
   id: string;

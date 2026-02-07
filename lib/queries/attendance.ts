@@ -1,12 +1,12 @@
-import { eq, and, gte, lte, asc } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
+  absenceReasons,
+  absences,
   lessons,
   resources,
-  subjects,
   students,
-  absences,
-  absenceReasons,
+  subjects,
 } from "@/db/schema";
 
 export async function getAttendanceForMonth(year: number, month: number) {
@@ -46,7 +46,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
     if (!attendanceMap.has(row.studentId)) {
       attendanceMap.set(row.studentId, new Set());
     }
-    attendanceMap.get(row.studentId)!.add(row.completionDate);
+    attendanceMap.get(row.studentId)?.add(row.completionDate);
 
     if (!studentInfo.has(row.studentId)) {
       studentInfo.set(row.studentId, {
@@ -81,7 +81,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
     if (!absenceMap.has(row.studentId)) {
       absenceMap.set(row.studentId, new Map());
     }
-    absenceMap.get(row.studentId)!.set(row.date, {
+    absenceMap.get(row.studentId)?.set(row.date, {
       reasonName: row.reasonName,
       reasonColor: row.reasonColor,
     });

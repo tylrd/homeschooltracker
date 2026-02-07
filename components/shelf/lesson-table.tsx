@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
-import Link from "next/link";
 import { Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate } from "@/lib/dates";
-import { deleteLesson } from "@/lib/actions/lessons";
 import type { Lesson } from "@/db/schema";
+import { deleteLesson } from "@/lib/actions/lessons";
+import { formatDate } from "@/lib/dates";
 
 export function LessonTable({ lessons }: { lessons: Lesson[] }) {
   const [isPending, startTransition] = useTransition();

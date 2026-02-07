@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { FileText } from "lucide-react";
+import Link from "next/link";
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AttendanceView } from "@/components/attendance/attendance-view";
 import { MonthNav } from "@/components/attendance/month-nav";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getAttendanceForMonth,
   getCompletionLogForMonth,

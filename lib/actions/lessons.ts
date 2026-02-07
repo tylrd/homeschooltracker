@@ -1,16 +1,16 @@
 "use server";
 
-import { eq, and, gte, gt, asc, max } from "drizzle-orm";
+import { and, asc, eq, gt, gte, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { lessons, resources, subjects, students } from "@/db/schema";
+import { lessons, resources, subjects } from "@/db/schema";
 import {
   generateLessonDates,
-  nextSchoolDayStr,
   getNextBumpDate,
+  nextSchoolDayStr,
   toDateString,
 } from "@/lib/dates";
-import { getSchoolDays, getBumpBehavior } from "@/lib/queries/settings";
+import { getBumpBehavior, getSchoolDays } from "@/lib/queries/settings";
 
 export async function batchCreateLessons(
   resourceId: string,
@@ -32,7 +32,7 @@ export async function batchCreateLessons(
   });
   const existingNumbers = new Set(existing.map((l) => l.lessonNumber));
 
-  const startDateObj = new Date(startDate + "T00:00:00");
+  const startDateObj = new Date(`${startDate}T00:00:00`);
   const dates = generateLessonDates(startDateObj, count, schoolDays);
 
   const newLessons = [];
@@ -314,14 +314,11 @@ export async function scheduleMakeupLesson(
 
   if (nextLesson) {
     // Pull the next planned lesson forward to today
-    const updates: Record<string, string> = { scheduledDate: date };
+    const updates: Record<string, string | null> = { scheduledDate: date };
     if (options?.title?.trim()) updates.title = options.title.trim();
     if (options?.notes !== undefined)
-      updates.notes = options.notes.trim() || null!;
-    await db
-      .update(lessons)
-      .set(updates)
-      .where(eq(lessons.id, nextLesson.id));
+      updates.notes = options.notes.trim() || null;
+    await db.update(lessons).set(updates).where(eq(lessons.id, nextLesson.id));
   } else {
     // No future planned lesson — create a new one
     const result = await db
@@ -383,7 +380,11 @@ export async function getUpcomingPlannedLessons(
         gt(lessons.scheduledDate, date),
       ),
     )
-    .orderBy(asc(lessons.scheduledDate), asc(subjects.name), asc(lessons.lessonNumber))
+    .orderBy(
+      asc(lessons.scheduledDate),
+      asc(subjects.name),
+      asc(lessons.lessonNumber),
+    )
     .limit(30);
 
   return rows;

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Settings } from "lucide-react";
+import Link from "next/link";
 import { BottomNav } from "@/components/bottom-nav";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ThemeToggle } from "@/components/theme-toggle";

@@ -1,6 +1,6 @@
-import { eq, sql, count } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { resources, lessons, subjects, students } from "@/db/schema";
+import { lessons, resources, students, subjects } from "@/db/schema";
 
 export async function getAllResourcesWithProgress() {
   const db = getDb();

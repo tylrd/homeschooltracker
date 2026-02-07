@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Plus, Trash2, GripVertical } from "lucide-react";
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -18,17 +16,19 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { AbsenceReason } from "@/db/schema";
 import { ABSENCE_COLORS, getAbsenceColorClasses } from "@/lib/absence-colors";
-import { cn } from "@/lib/utils";
 import {
   createAbsenceReason,
   deleteAbsenceReason,
   reorderAbsenceReasons,
 } from "@/lib/actions/absence-reasons";
-import type { AbsenceReason } from "@/db/schema";
+import { cn } from "@/lib/utils";
 
 function SortableReasonItem({
   reason,

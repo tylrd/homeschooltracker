@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import { Plus, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { StudentCard } from "@/components/students/student-card";
 import { StudentForm } from "@/components/students/student-form";
+import { Button } from "@/components/ui/button";
 import { getStudents } from "@/lib/queries/students";
 
 export default async function StudentsPage() {

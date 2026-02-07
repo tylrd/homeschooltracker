@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
 import { ArrowRight, MessageSquare, RotateCcw } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useState, useTransition } from "react";
 import { StudentColorDot } from "@/components/student-color-dot";
-import { getColorClasses } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
+  bumpLesson,
   completeLesson,
   uncompleteLesson,
-  bumpLesson,
 } from "@/lib/actions/lessons";
+import { getColorClasses } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 type LessonCardProps = {
   lessonId: string;
@@ -38,13 +38,13 @@ export function LessonCard({
   lessonNumber,
   lessonTitle,
   status,
-  resourceId,
+  resourceId: _resourceId,
   resourceName,
   subjectName,
   studentName,
   studentColor,
   studentId,
-  date,
+  date: _date,
   isMakeup,
   exiting,
   showNoteButton = true,

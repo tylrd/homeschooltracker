@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { Student } from "@/db/schema";
+import { createStudent, updateStudent } from "@/lib/actions/students";
 import { STUDENT_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { createStudent, updateStudent } from "@/lib/actions/students";
-import type { Student } from "@/db/schema";
 
 export function StudentForm({
   student,

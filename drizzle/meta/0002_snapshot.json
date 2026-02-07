@@ -130,12 +130,8 @@
           "name": "absences_student_id_students_id_fk",
           "tableFrom": "absences",
           "tableTo": "students",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["student_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -143,12 +139,8 @@
           "name": "absences_reason_id_absence_reasons_id_fk",
           "tableFrom": "absences",
           "tableTo": "absence_reasons",
-          "columnsFrom": [
-            "reason_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["reason_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -256,12 +248,8 @@
           "name": "daily_notes_student_id_students_id_fk",
           "tableFrom": "daily_notes",
           "tableTo": "students",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["student_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -406,12 +394,8 @@
           "name": "lessons_resource_id_resources_id_fk",
           "tableFrom": "lessons",
           "tableTo": "resources",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -482,12 +466,8 @@
           "name": "resources_subject_id_subjects_id_fk",
           "tableFrom": "resources",
           "tableTo": "subjects",
-          "columnsFrom": [
-            "subject_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["subject_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -610,12 +590,8 @@
           "name": "subjects_student_id_students_id_fk",
           "tableFrom": "subjects",
           "tableTo": "students",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["student_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -631,11 +607,7 @@
     "public.lesson_status": {
       "name": "lesson_status",
       "schema": "public",
-      "values": [
-        "planned",
-        "completed",
-        "bumped"
-      ]
+      "values": ["planned", "completed", "bumped"]
     }
   },
   "schemas": {},

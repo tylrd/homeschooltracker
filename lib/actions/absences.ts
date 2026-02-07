@@ -1,9 +1,9 @@
 "use server";
 
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { absences, lessons, resources, subjects, students } from "@/db/schema";
+import { absences, lessons, resources, students, subjects } from "@/db/schema";
 import { bumpStudentLessons } from "@/lib/actions/lessons";
 import { getAbsenceAutoBump } from "@/lib/queries/settings";
 

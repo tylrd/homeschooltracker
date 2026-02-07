@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
 import { StudentColorDot } from "@/components/student-color-dot";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Student } from "@/db/schema";
 
 export function StudentCard({ student }: { student: Student }) {

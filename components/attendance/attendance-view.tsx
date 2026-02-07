@@ -1,8 +1,8 @@
 "use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AttendanceTable } from "@/components/attendance/attendance-table";
 import { AttendanceLog } from "@/components/attendance/attendance-log";
+import { AttendanceTable } from "@/components/attendance/attendance-table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CompletionLogEntry } from "@/lib/queries/attendance";
 
 type AttendanceData = {

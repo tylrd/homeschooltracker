@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
-import { getExportData } from "@/lib/queries/export";
-import { formatDate } from "@/lib/dates";
-import { StudentColorDot } from "@/components/student-color-dot";
 import { PrintButton } from "@/components/export/print-button";
+import { StudentColorDot } from "@/components/student-color-dot";
+import { formatDate } from "@/lib/dates";
+import { getExportData } from "@/lib/queries/export";
 
 export default async function PrintPage({
   searchParams,
@@ -60,18 +60,6 @@ export default async function PrintPage({
 
   return (
     <div className="mx-auto max-w-3xl p-8 print:p-0">
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @media print {
-              nav, .no-print { display: none !important; }
-              body { font-size: 12px; }
-              .page-break { page-break-before: always; }
-            }
-          `,
-        }}
-      />
-
       <div className="mb-8 flex items-center justify-between no-print">
         <h1 className="text-2xl font-bold">Homeschool Report</h1>
         <PrintButton />
@@ -110,8 +98,8 @@ export default async function PrintPage({
               </tr>
             </thead>
             <tbody>
-              {group.lessons.map((lesson, i) => (
-                <tr key={i} className="border-b border-muted/30">
+              {group.lessons.map((lesson) => (
+                <tr key={lesson.lessonId} className="border-b border-muted/30">
                   <td className="py-1 pr-3 whitespace-nowrap">
                     {lesson.completionDate
                       ? formatDate(lesson.completionDate)
@@ -132,8 +120,8 @@ export default async function PrintPage({
           {notesByStudent.has(studentId) && (
             <div className="mb-6">
               <h3 className="mb-2 font-medium">Daily Notes</h3>
-              {notesByStudent.get(studentId)!.map((note, i) => (
-                <div key={i} className="mb-1 text-sm">
+              {notesByStudent.get(studentId)?.map((note) => (
+                <div key={note.id} className="mb-1 text-sm">
                   <span className="font-medium">{formatDate(note.date)}:</span>{" "}
                   {note.content}
                 </div>

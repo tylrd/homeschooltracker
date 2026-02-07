@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 function addDays(dateStr: string, days: number): string {
@@ -23,18 +23,9 @@ function formatLabel(dateStr: string): string {
   });
 }
 
-function getToday(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-export function DayNav({ date }: { date: string }) {
+export function DayNav({ date, today }: { date: string; today: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const today = getToday();
   const isToday = date === today;
 
   function navigate(newDate: string) {
@@ -71,6 +62,7 @@ export function DayNav({ date }: { date: string }) {
       </Button>
       {!isToday && (
         <button
+          type="button"
           className="ml-1 text-xs text-muted-foreground underline hover:text-foreground"
           onClick={() => navigate(today)}
         >

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Plus } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Drawer,
   DrawerContent,
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { batchCreateLessons } from "@/lib/actions/lessons";
 import { generateLessonDates, toDateString } from "@/lib/dates";
@@ -55,7 +55,7 @@ export function BatchCreateForm({
   let endDateStr = "";
   if (count > 0 && schoolDays.length > 0) {
     const dates = generateLessonDates(
-      new Date(startDate + "T00:00:00"),
+      new Date(`${startDate}T00:00:00`),
       count,
       schoolDays,
     );

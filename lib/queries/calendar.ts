@@ -1,6 +1,6 @@
-import { eq, and, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { lessons, resources, subjects, students } from "@/db/schema";
+import { lessons, resources, students, subjects } from "@/db/schema";
 
 export type CalendarDay = {
   total: number;

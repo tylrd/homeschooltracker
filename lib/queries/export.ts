@@ -1,11 +1,11 @@
-import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
+  dailyNotes,
   lessons,
   resources,
-  subjects,
   students,
-  dailyNotes,
+  subjects,
 } from "@/db/schema";
 
 export async function getExportData(
@@ -26,6 +26,7 @@ export async function getExportData(
 
   const completedLessons = await db
     .select({
+      lessonId: lessons.id,
       lessonTitle: lessons.title,
       lessonNumber: lessons.lessonNumber,
       completionDate: lessons.completionDate,
@@ -54,6 +55,7 @@ export async function getExportData(
 
   const notes = await db
     .select({
+      id: dailyNotes.id,
       date: dailyNotes.date,
       content: dailyNotes.content,
       studentId: dailyNotes.studentId,

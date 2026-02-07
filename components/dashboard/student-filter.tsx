@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { getColorClasses } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 type FilterStudent = {
   id: string;
@@ -36,6 +36,7 @@ export function StudentFilter({
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       <button
+        type="button"
         onClick={() => handleSelect(undefined)}
         className={cn(
           "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
@@ -51,6 +52,7 @@ export function StudentFilter({
         const isActive = activeStudentId === student.id;
         return (
           <button
+            type="button"
             key={student.id}
             onClick={() => handleSelect(student.id)}
             className={cn(

@@ -1,20 +1,20 @@
 export const dynamic = "force-dynamic";
 
-import { notFound } from "next/navigation";
-import Link from "next/link";
 import { BookOpen, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { BackButton } from "@/components/back-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { StudentColorDot } from "@/components/student-color-dot";
-import { StudentForm } from "@/components/students/student-form";
-import { SubjectForm } from "@/components/students/subject-form";
-import { ResourceForm } from "@/components/students/resource-form";
+import { DeleteResourceButton } from "@/components/students/delete-resource-button";
 import { DeleteStudentButton } from "@/components/students/delete-student-button";
 import { DeleteSubjectButton } from "@/components/students/delete-subject-button";
-import { DeleteResourceButton } from "@/components/students/delete-resource-button";
+import { ResourceForm } from "@/components/students/resource-form";
+import { StudentForm } from "@/components/students/student-form";
+import { SubjectForm } from "@/components/students/subject-form";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { getStudentWithSubjectsAndResources } from "@/lib/queries/students";
 
 export default async function StudentDetailPage({

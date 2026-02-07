@@ -1,7 +1,12 @@
 "use client";
 
+import { Eye, EyeOff, Plus, UserX } from "lucide-react";
 import { useState } from "react";
-import { UserX, Plus, Eye, EyeOff } from "lucide-react";
+import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
+import { AddLessonDialog } from "@/components/dashboard/add-lesson-dialog";
+import { LessonCard } from "@/components/dashboard/lesson-card";
+import { NoteDialog } from "@/components/dashboard/note-dialog";
+import { StudentColorDot } from "@/components/student-color-dot";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -9,11 +14,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { StudentColorDot } from "@/components/student-color-dot";
-import { LessonCard } from "@/components/dashboard/lesson-card";
-import { NoteDialog } from "@/components/dashboard/note-dialog";
-import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
-import { AddLessonDialog } from "@/components/dashboard/add-lesson-dialog";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
 import { cn } from "@/lib/utils";
 
@@ -378,9 +378,7 @@ export function LessonList({
             ? (studentResourceMap[addLessonTarget.studentId] ?? [])
             : []
         }
-        todayResourceIds={
-          new Set(lessons.map((l) => l.resourceId))
-        }
+        todayResourceIds={new Set(lessons.map((l) => l.resourceId))}
       />
     </>
   );

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
 import { formatDate } from "@/lib/dates";
-import { cn } from "@/lib/utils";
 import type { CompletionLogEntry } from "@/lib/queries/attendance";
+import { cn } from "@/lib/utils";
 
 type AbsenceRow = {
   studentId: string;

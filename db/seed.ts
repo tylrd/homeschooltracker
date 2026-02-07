@@ -1,10 +1,10 @@
 import { getDb, getSql } from "@/db";
 import {
+  dailyNotes,
+  lessons,
+  resources,
   students,
   subjects,
-  resources,
-  lessons,
-  dailyNotes,
 } from "@/db/schema";
 import { generateLessonDates, toDateString } from "@/lib/dates";
 

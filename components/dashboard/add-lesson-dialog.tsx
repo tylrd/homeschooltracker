@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { ArrowLeft } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,16 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  getUpcomingPlannedLessons,
   scheduleMakeupLesson,
   updateLessonScheduledDate,
-  getUpcomingPlannedLessons,
 } from "@/lib/actions/lessons";
 
 type Resource = {

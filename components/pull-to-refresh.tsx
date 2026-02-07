@@ -1,8 +1,8 @@
 "use client";
 
+import { ArrowDown, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
-import { ArrowDown, Loader2 } from "lucide-react";
 
 const THRESHOLD = 80;
 
