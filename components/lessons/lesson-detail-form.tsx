@@ -79,12 +79,24 @@ export function LessonDetailForm({
     if (!confirm("Delete this lesson? This cannot be undone.")) return;
     setIsDeleting(true);
     startTransition(async () => {
-      await deleteLesson(lessonId);
-      toast.success("Lesson deleted");
-      router.back();
-      setTimeout(() => {
-        router.replace("/");
-      }, 200);
+      try {
+        await deleteLesson(lessonId);
+        toast.success("Lesson deleted");
+
+        const lessonPath = `/lessons/${lessonId}`;
+        if (window.history.length > 1) {
+          router.back();
+        }
+
+        setTimeout(() => {
+          if (window.location.pathname === lessonPath) {
+            router.replace("/");
+          }
+        }, 150);
+      } catch {
+        toast.error("Failed to delete lesson");
+        setIsDeleting(false);
+      }
     });
   }
 
