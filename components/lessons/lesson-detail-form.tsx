@@ -1,7 +1,6 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -35,12 +34,10 @@ export function LessonDetailForm({
   notes,
   scheduledDate,
 }: LessonDetailFormProps) {
-  const router = useRouter();
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
   const [titleText, setTitleText] = useState(title ?? "");
   const [isPending, startTransition] = useTransition();
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const isCompleted = status === "completed";
   const savedPlan = plan ?? "";
@@ -77,25 +74,11 @@ export function LessonDetailForm({
 
   function handleDelete() {
     if (!confirm("Delete this lesson? This cannot be undone.")) return;
-    setIsDeleting(true);
     startTransition(async () => {
       try {
-        await deleteLesson(lessonId);
-        toast.success("Lesson deleted");
-
-        const lessonPath = `/lessons/${lessonId}`;
-        if (window.history.length > 1) {
-          router.back();
-        }
-
-        setTimeout(() => {
-          if (window.location.pathname === lessonPath) {
-            router.replace("/");
-          }
-        }, 150);
+        await deleteLesson(lessonId, { redirectTo: "/" });
       } catch {
         toast.error("Failed to delete lesson");
-        setIsDeleting(false);
       }
     });
   }
@@ -171,11 +154,11 @@ export function LessonDetailForm({
       <Button
         variant="outline"
         className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground"
-        disabled={isPending || isDeleting}
+        disabled={isPending}
         onClick={handleDelete}
       >
         <Trash2 className="mr-1 h-4 w-4" />
-        {isDeleting ? "Deleting..." : "Delete Lesson"}
+        {isPending ? "Deleting..." : "Delete Lesson"}
       </Button>
     </div>
   );

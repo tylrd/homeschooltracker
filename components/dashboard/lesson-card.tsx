@@ -58,9 +58,11 @@ export function LessonCard({
   const [deleting, setDeleting] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [startX, setStartX] = useState<number | null>(null);
+  const [swiped, setSwiped] = useState(false);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
-  const swipeThreshold = 80;
+  const swipeThreshold = 40;
+  const revealWidth = 80;
 
   function handleToggle() {
     startTransition(async () => {
@@ -82,11 +84,17 @@ export function LessonCard({
   }
 
   function handleDelete() {
+    if (!confirm("Delete this lesson? This cannot be undone.")) return;
     setDeleting(true);
     startTransition(async () => {
       await deleteLesson(lessonId);
       toast.success("Lesson deleted");
     });
+  }
+
+  function closeSwipe() {
+    setDragX(0);
+    setSwiped(false);
   }
 
   function onTouchStart(clientX: number) {
@@ -97,32 +105,48 @@ export function LessonCard({
   function onTouchMove(clientX: number) {
     if (startX === null || isPending || bumping || deleting) return;
     const delta = clientX - startX;
-    if (delta < 0) {
-      setDragX(Math.max(delta, -120));
+    // Allow swiping left, or swiping right to close when already revealed
+    if (swiped) {
+      setDragX(Math.min(0, Math.max(-revealWidth + delta, -revealWidth)));
+    } else if (delta < 0) {
+      setDragX(Math.max(delta, -revealWidth));
     }
   }
 
   function onTouchEnd() {
-    if (dragX <= -swipeThreshold) {
-      setDragX(-120);
-      handleDelete();
+    if (swiped) {
+      // If swiped right enough, close; otherwise snap back open
+      if (dragX > -swipeThreshold) {
+        closeSwipe();
+      } else {
+        setDragX(-revealWidth);
+      }
     } else {
-      setDragX(0);
+      // Snap open if past threshold, otherwise snap closed
+      if (dragX <= -swipeThreshold) {
+        setDragX(-revealWidth);
+        setSwiped(true);
+      } else {
+        setDragX(0);
+      }
     }
     setStartX(null);
   }
 
   return (
     <div className="relative overflow-hidden rounded-lg">
-      <div className="absolute inset-y-0 right-0 flex w-[120px] items-center justify-center bg-destructive">
+      <div
+        className="absolute inset-y-0 right-0 flex items-center justify-center bg-destructive"
+        style={{ width: `${revealWidth}px` }}
+      >
         <Button
           variant="ghost"
-          className="h-full w-full rounded-none text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground"
+          size="icon"
+          className="h-10 w-10 text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground"
           disabled={isPending || deleting}
           onClick={handleDelete}
         >
-          <Trash2 className="mr-1 h-4 w-4" />
-          Delete
+          <Trash2 className="h-5 w-5" />
         </Button>
       </div>
       <div
@@ -147,7 +171,14 @@ export function LessonCard({
         }}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
+        onClick={swiped ? closeSwipe : undefined}
       >
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 items-center gap-3",
+            swiped && "pointer-events-none",
+          )}
+        >
         <Checkbox
           checked={isCompleted}
           onCheckedChange={handleToggle}
@@ -208,6 +239,7 @@ export function LessonCard({
             <MessageSquare className="h-4 w-4" />
           </Button>
         )}
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { and, asc, eq, gt, gte, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { lessons, resources, subjects } from "@/db/schema";
 import {
@@ -343,7 +344,10 @@ export async function scheduleMakeupLesson(
   revalidatePath("/shelf");
 }
 
-export async function deleteLesson(lessonId: string) {
+export async function deleteLesson(
+  lessonId: string,
+  opts?: { redirectTo?: string },
+) {
   const db = getDb();
   const lesson = await db.query.lessons.findFirst({
     where: eq(lessons.id, lessonId),
@@ -355,6 +359,10 @@ export async function deleteLesson(lessonId: string) {
   revalidatePath("/shelf");
   if (lesson) {
     revalidatePath(`/shelf/${lesson.resourceId}`);
+  }
+
+  if (opts?.redirectTo) {
+    redirect(opts.redirectTo);
   }
 }
 
