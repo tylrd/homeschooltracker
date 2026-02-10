@@ -87,14 +87,14 @@ export function AddLessonDialog({
         title: title.trim() || undefined,
         notes: notes.trim() || undefined,
       });
-      onOpenChange(false);
+      handleOpenChange(false);
     });
   }
 
   function handleMoveExisting(lessonId: string) {
     startTransition(async () => {
       await updateLessonScheduledDate(lessonId, date);
-      onOpenChange(false);
+      handleOpenChange(false);
     });
   }
 
