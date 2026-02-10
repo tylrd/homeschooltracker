@@ -7,6 +7,7 @@ import { LessonList } from "@/components/dashboard/lesson-list";
 import { SickDayButton } from "@/components/dashboard/sick-day-button";
 import { StudentFilter } from "@/components/dashboard/student-filter";
 import { EmptyState } from "@/components/empty-state";
+import { StudentColorDot } from "@/components/student-color-dot";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTodayDate } from "@/lib/dates";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
@@ -117,15 +118,40 @@ export default async function DashboardPage({
       )}
 
       {lessons.length === 0 ? (
-        <EmptyState
-          icon={CalendarCheck}
-          title="No lessons today"
-          description={
-            students.length === 0
-              ? "Add students and generate lessons to see your daily dashboard."
-              : "All caught up! No lessons scheduled for today."
-          }
-        />
+        <div className="space-y-4">
+          <EmptyState
+            icon={CalendarCheck}
+            title="No lessons today"
+            description={
+              students.length === 0
+                ? "Add students and generate lessons to see your daily dashboard."
+                : "All caught up! No lessons scheduled for today."
+            }
+          />
+
+          {students.length > 0 && (
+            <div className="rounded-lg border bg-card p-4">
+              <h2 className="text-sm font-semibold">Students</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Everyone appears here even on days with no scheduled lessons.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {students.map((student) => (
+                  <li
+                    key={student.id}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <StudentColorDot
+                      color={student.color}
+                      className="h-3 w-3"
+                    />
+                    <span>{student.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       ) : (
         <LessonList
           lessons={lessons}
