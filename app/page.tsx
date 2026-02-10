@@ -116,7 +116,7 @@ export default async function DashboardPage({
         </Suspense>
       )}
 
-      {lessons.length === 0 ? (
+      {lessons.length === 0 && (
         <EmptyState
           icon={CalendarCheck}
           title="No lessons today"
@@ -126,9 +126,16 @@ export default async function DashboardPage({
               : "All caught up! No lessons scheduled for today."
           }
         />
-      ) : (
+      )}
+
+      {students.length > 0 && (
         <LessonList
           lessons={lessons}
+          allStudents={
+            studentId
+              ? students.filter((student) => student.id === studentId)
+              : students
+          }
           notes={notes.map((n) => ({
             studentId: n.studentId,
             content: n.content,

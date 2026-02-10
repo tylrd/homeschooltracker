@@ -53,6 +53,12 @@ type StudentResource = {
   subjectName: string;
 };
 
+type StudentSummary = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 export function LessonList({
   lessons,
   notes,
@@ -63,6 +69,7 @@ export function LessonList({
   grouping = "student",
   showNoteButtons = true,
   studentResourceMap = {},
+  allStudents = [],
 }: {
   lessons: DashboardLesson[];
   notes: Note[];
@@ -73,6 +80,7 @@ export function LessonList({
   grouping?: "student" | "subject";
   showNoteButtons?: boolean;
   studentResourceMap?: Record<string, StudentResource[]>;
+  allStudents?: StudentSummary[];
 }) {
   // Per-student overrides: true/false means explicitly toggled, absent means use global
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -92,6 +100,13 @@ export function LessonList({
     string,
     { name: string; color: string; lessons: DashboardLesson[] }
   >();
+  for (const student of allStudents) {
+    byStudent.set(student.id, {
+      name: student.name,
+      color: student.color,
+      lessons: [],
+    });
+  }
   for (const lesson of lessons) {
     const existing = byStudent.get(lesson.studentId);
     if (existing) {
@@ -298,6 +313,15 @@ export function LessonList({
                         : group.lessons.filter(
                             (l) => l.lessonStatus !== "completed",
                           );
+
+                      if (visible.length === 0) {
+                        return (
+                          <p className="text-sm text-muted-foreground">
+                            No lessons scheduled.
+                          </p>
+                        );
+                      }
+
                       const resourceCount = new Map<string, number>();
                       for (const l of visible) {
                         resourceCount.set(
