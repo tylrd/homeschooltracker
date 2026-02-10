@@ -62,6 +62,7 @@ export default async function LessonDetailPage({
 
       <LessonDetailForm
         lessonId={lesson.id}
+        title={lesson.title}
         status={lesson.status}
         plan={lesson.plan}
         notes={lesson.notes}

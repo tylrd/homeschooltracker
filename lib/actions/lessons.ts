@@ -278,6 +278,7 @@ export async function bumpStudentLessons(studentId: string, date: string) {
 
 export async function updateLessonContent(
   lessonId: string,
+  title: string,
   plan: string,
   notes: string,
 ) {
@@ -285,6 +286,7 @@ export async function updateLessonContent(
   await db
     .update(lessons)
     .set({
+      title: title.trim() || null,
       plan: plan.trim() || null,
       notes: notes.trim() || null,
     })

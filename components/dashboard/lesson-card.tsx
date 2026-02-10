@@ -1,14 +1,16 @@
 "use client";
 
-import { ArrowRight, MessageSquare, RotateCcw } from "lucide-react";
+import { ArrowRight, MessageSquare, RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   bumpLesson,
   completeLesson,
+  deleteLesson,
   uncompleteLesson,
 } from "@/lib/actions/lessons";
 import { getColorClasses } from "@/lib/constants";
@@ -53,8 +55,12 @@ export function LessonCard({
 }: LessonCardProps) {
   const [isPending, startTransition] = useTransition();
   const [bumping, setBumping] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [startX, setStartX] = useState<number | null>(null);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
+  const swipeThreshold = 80;
 
   function handleToggle() {
     startTransition(async () => {
@@ -75,78 +81,126 @@ export function LessonCard({
     }, 300);
   }
 
+  function handleDelete() {
+    setDeleting(true);
+    startTransition(async () => {
+      await deleteLesson(lessonId);
+      toast.success("Lesson deleted");
+    });
+  }
+
+  function onTouchStart(clientX: number) {
+    if (isPending || bumping || deleting) return;
+    setStartX(clientX);
+  }
+
+  function onTouchMove(clientX: number) {
+    if (startX === null || isPending || bumping || deleting) return;
+    const delta = clientX - startX;
+    if (delta < 0) {
+      setDragX(Math.max(delta, -120));
+    }
+  }
+
+  function onTouchEnd() {
+    if (dragX <= -swipeThreshold) {
+      setDragX(-120);
+    } else {
+      setDragX(0);
+    }
+    setStartX(null);
+  }
+
   return (
-    <div
-      className={cn(
-        "flex min-h-14 items-center gap-3 rounded-lg px-3 py-2.5 transition-opacity",
-        isCompleted
-          ? "bg-muted/50 shadow-none opacity-50"
-          : "bg-card shadow-sm",
-        !isCompleted && colors.border,
-        isPending && !bumping && "opacity-50",
-        (bumping || exiting) && "animate-lesson-out",
-        !bumping && !exiting && "animate-lesson-in",
-      )}
-    >
-      <Checkbox
-        checked={isCompleted}
-        onCheckedChange={handleToggle}
-        className="h-7 w-7 rounded-md"
-        disabled={isPending || bumping}
-      />
-      <Link href={`/lessons/${lessonId}`} className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p
-            className={cn(
-              "text-sm font-medium",
-              isCompleted && "line-through text-muted-foreground",
+    <div className="relative overflow-hidden rounded-lg">
+      <div className="absolute inset-y-0 right-0 flex w-[120px] items-center justify-center bg-destructive">
+        <Button
+          variant="ghost"
+          className="h-full w-full rounded-none text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground"
+          disabled={isPending || deleting}
+          onClick={handleDelete}
+        >
+          <Trash2 className="mr-1 h-4 w-4" />
+          Delete
+        </Button>
+      </div>
+      <div
+        className={cn(
+          "relative flex min-h-14 items-center gap-3 px-3 py-2.5 transition-[opacity,transform] duration-200",
+          isCompleted
+            ? "bg-muted/50 shadow-none opacity-50"
+            : "bg-card shadow-sm",
+          !isCompleted && colors.border,
+          isPending && !bumping && "opacity-50",
+          (bumping || exiting) && "animate-lesson-out",
+          !bumping && !exiting && "animate-lesson-in",
+        )}
+        style={{ transform: `translateX(${dragX}px)` }}
+        onTouchStart={(e) => onTouchStart(e.touches[0].clientX)}
+        onTouchMove={(e) => onTouchMove(e.touches[0].clientX)}
+        onTouchEnd={onTouchEnd}
+      >
+        <Checkbox
+          checked={isCompleted}
+          onCheckedChange={handleToggle}
+          className="h-7 w-7 rounded-md"
+          disabled={isPending || bumping || deleting}
+        />
+        <Link href={`/lessons/${lessonId}`} className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p
+              className={cn(
+                "text-sm font-medium",
+                isCompleted && "line-through text-muted-foreground",
+              )}
+            >
+              {lessonTitle ?? `Lesson ${lessonNumber}`}
+            </p>
+            {isMakeup && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+                <RotateCcw className="h-2.5 w-2.5" />
+                Makeup
+              </span>
             )}
-          >
-            {lessonTitle ?? `Lesson ${lessonNumber}`}
+          </div>
+          <p className="truncate text-xs text-muted-foreground">
+            {showStudentName ? (
+              <span className="inline-flex items-center gap-1">
+                <StudentColorDot color={studentColor} className="h-2 w-2" />
+                {studentName} &middot; {resourceName}
+              </span>
+            ) : (
+              <>
+                {subjectName} &middot; {resourceName}
+              </>
+            )}
           </p>
-          {isMakeup && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
-              <RotateCcw className="h-2.5 w-2.5" />
-              Makeup
-            </span>
-          )}
-        </div>
-        <p className="truncate text-xs text-muted-foreground">
-          {showStudentName ? (
-            <span className="inline-flex items-center gap-1">
-              <StudentColorDot color={studentColor} className="h-2 w-2" />
-              {studentName} &middot; {resourceName}
-            </span>
-          ) : (
-            <>
-              {subjectName} &middot; {resourceName}
-            </>
-          )}
-        </p>
-      </Link>
-      {!isCompleted && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={handleBump}
-          disabled={isPending || bumping}
-          title="Bump to next day"
-        >
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      )}
-      {showNoteButton && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
-          onClick={() => onNoteClick(studentId)}
-          title="Add note"
-        >
-          <MessageSquare className="h-4 w-4" />
-        </Button>
-      )}
+        </Link>
+        {!isCompleted && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={handleBump}
+            disabled={isPending || bumping || deleting}
+            title="Bump to next day"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        )}
+        {showNoteButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => onNoteClick(studentId)}
+            title="Add note"
+            disabled={deleting}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
