@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -19,6 +20,7 @@ import {
 
 type LessonDetailFormProps = {
   lessonId: string;
+  title: string | null;
   status: string;
   plan: string | null;
   notes: string | null;
@@ -27,6 +29,7 @@ type LessonDetailFormProps = {
 
 export function LessonDetailForm({
   lessonId,
+  title,
   status,
   plan,
   notes,
@@ -35,12 +38,18 @@ export function LessonDetailForm({
   const router = useRouter();
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
+  const [titleText, setTitleText] = useState(title ?? "");
   const [isPending, startTransition] = useTransition();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isCompleted = status === "completed";
   const savedPlan = plan ?? "";
   const savedNotes = notes ?? "";
-  const hasChanges = planText !== savedPlan || notesText !== savedNotes;
+  const savedTitle = title ?? "";
+  const hasChanges =
+    titleText !== savedTitle ||
+    planText !== savedPlan ||
+    notesText !== savedNotes;
 
   function handleToggle() {
     startTransition(async () => {
@@ -61,8 +70,21 @@ export function LessonDetailForm({
 
   function handleSave() {
     startTransition(async () => {
-      await updateLessonContent(lessonId, planText, notesText);
+      await updateLessonContent(lessonId, titleText, planText, notesText);
       toast.success("Lesson saved");
+    });
+  }
+
+  function handleDelete() {
+    if (!confirm("Delete this lesson? This cannot be undone.")) return;
+    setIsDeleting(true);
+    startTransition(async () => {
+      await deleteLesson(lessonId);
+      toast.success("Lesson deleted");
+      router.back();
+      setTimeout(() => {
+        router.replace("/");
+      }, 200);
     });
   }
 
@@ -87,6 +109,17 @@ export function LessonDetailForm({
           value={scheduledDate ?? ""}
           onChange={handleDateChange}
           placeholder="No date scheduled"
+          disabled={isPending}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="title">Lesson Name</Label>
+        <Input
+          id="title"
+          placeholder="Lesson name"
+          value={titleText}
+          onChange={(e) => setTitleText(e.target.value)}
           disabled={isPending}
         />
       </div>
@@ -126,17 +159,11 @@ export function LessonDetailForm({
       <Button
         variant="outline"
         className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground"
-        disabled={isPending}
-        onClick={() => {
-          if (!confirm("Delete this lesson? This cannot be undone.")) return;
-          startTransition(async () => {
-            await deleteLesson(lessonId);
-            router.back();
-          });
-        }}
+        disabled={isPending || isDeleting}
+        onClick={handleDelete}
       >
         <Trash2 className="mr-1 h-4 w-4" />
-        Delete Lesson
+        {isDeleting ? "Deleting..." : "Delete Lesson"}
       </Button>
     </div>
   );
