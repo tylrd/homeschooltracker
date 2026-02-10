@@ -112,6 +112,7 @@ export const dailyNotes = pgTable(
       .notNull()
       .references(() => students.id, { onDelete: "cascade" }),
     date: date().notNull(),
+    dailyPlan: text("daily_plan"),
     content: text().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

@@ -48,6 +48,7 @@ export async function getTodayNotes(date: string) {
     .select({
       noteId: dailyNotes.id,
       studentId: dailyNotes.studentId,
+      dailyPlan: dailyNotes.dailyPlan,
       content: dailyNotes.content,
       studentName: students.name,
       studentColor: students.color,

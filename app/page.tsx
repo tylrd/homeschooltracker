@@ -138,6 +138,7 @@ export default async function DashboardPage({
           }
           notes={notes.map((n) => ({
             studentId: n.studentId,
+            dailyPlan: n.dailyPlan,
             content: n.content,
           }))}
           date={date}

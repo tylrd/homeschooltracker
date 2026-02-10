@@ -32,6 +32,7 @@ type DashboardLesson = {
 
 type Note = {
   studentId: string;
+  dailyPlan: string | null;
   content: string;
 };
 
@@ -140,7 +141,7 @@ export function LessonList({
   }
 
   const noteForStudent = (studentId: string) =>
-    notes.find((n) => n.studentId === studentId)?.content ?? "";
+    notes.find((n) => n.studentId === studentId) ?? null;
 
   return (
     <>
@@ -369,7 +370,12 @@ export function LessonList({
       <NoteDialog
         studentId={noteStudentId}
         date={date}
-        initialContent={noteStudentId ? noteForStudent(noteStudentId) : ""}
+        initialDailyPlan={
+          noteStudentId ? (noteForStudent(noteStudentId)?.dailyPlan ?? "") : ""
+        }
+        initialContent={
+          noteStudentId ? (noteForStudent(noteStudentId)?.content ?? "") : ""
+        }
         onClose={() => setNoteStudentId(null)}
       />
 

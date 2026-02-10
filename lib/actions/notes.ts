@@ -8,6 +8,7 @@ import { dailyNotes } from "@/db/schema";
 export async function upsertNote(
   studentId: string,
   date: string,
+  dailyPlan: string,
   content: string,
 ) {
   const db = getDb();
@@ -17,17 +18,23 @@ export async function upsertNote(
   });
 
   if (existing) {
-    if (content.trim() === "") {
+    if (content.trim() === "" && dailyPlan.trim() === "") {
       await db.delete(dailyNotes).where(eq(dailyNotes.id, existing.id));
     } else {
       await db
         .update(dailyNotes)
-        .set({ content })
+        .set({ dailyPlan: dailyPlan.trim() || null, content })
         .where(eq(dailyNotes.id, existing.id));
     }
-  } else if (content.trim() !== "") {
-    await db.insert(dailyNotes).values({ studentId, date, content });
+  } else if (content.trim() !== "" || dailyPlan.trim() !== "") {
+    await db.insert(dailyNotes).values({
+      studentId,
+      date,
+      dailyPlan: dailyPlan.trim() || null,
+      content,
+    });
   }
 
   revalidatePath("/");
+  revalidatePath("/attendance");
 }
