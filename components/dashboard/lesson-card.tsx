@@ -105,6 +105,7 @@ export function LessonCard({
   function onTouchEnd() {
     if (dragX <= -swipeThreshold) {
       setDragX(-120);
+      handleDelete();
     } else {
       setDragX(0);
     }
@@ -136,9 +137,16 @@ export function LessonCard({
           !bumping && !exiting && "animate-lesson-in",
         )}
         style={{ transform: `translateX(${dragX}px)` }}
-        onTouchStart={(e) => onTouchStart(e.touches[0].clientX)}
-        onTouchMove={(e) => onTouchMove(e.touches[0].clientX)}
+        onTouchStart={(e) => {
+          e.stopPropagation();
+          onTouchStart(e.touches[0].clientX);
+        }}
+        onTouchMove={(e) => {
+          e.stopPropagation();
+          onTouchMove(e.touches[0].clientX);
+        }}
         onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
       >
         <Checkbox
           checked={isCompleted}
