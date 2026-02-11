@@ -12,14 +12,19 @@ export async function createAbsenceReason(name: string, color: string) {
   const existing = await db.select().from(absenceReasons);
   const maxSort = existing.reduce((max, r) => Math.max(max, r.sortOrder), -1);
 
-  await db.insert(absenceReasons).values({
-    name: name.trim(),
-    color,
-    sortOrder: maxSort + 1,
-  });
+  const [createdReason] = await db
+    .insert(absenceReasons)
+    .values({
+      name: name.trim(),
+      color,
+      sortOrder: maxSort + 1,
+    })
+    .returning();
 
   revalidatePath("/settings");
   revalidatePath("/");
+
+  return createdReason;
 }
 
 export async function deleteAbsenceReason(reasonId: string) {

@@ -126,7 +126,10 @@ export function AbsenceReasonForm({ reasons }: { reasons: AbsenceReason[] }) {
   function handleAdd() {
     if (!name.trim()) return;
     startTransition(async () => {
-      await createAbsenceReason(name, selectedColor);
+      const createdReason = await createAbsenceReason(name, selectedColor);
+      if (createdReason) {
+        setItems((prev) => [...prev, createdReason]);
+      }
       setName("");
       setSelectedColor(ABSENCE_COLORS[0].value);
       setShowAdd(false);
