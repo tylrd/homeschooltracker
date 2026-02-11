@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ export function AddLessonDialog({
   resources: Resource[];
   todayResourceIds: Set<string>;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [upcoming, setUpcoming] = useState<UpcomingLesson[] | null>(null);
   const [loadingUpcoming, setLoadingUpcoming] = useState(false);
@@ -87,6 +89,7 @@ export function AddLessonDialog({
         title: title.trim() || undefined,
         notes: notes.trim() || undefined,
       });
+      router.refresh();
       handleOpenChange(false);
     });
   }
@@ -94,6 +97,7 @@ export function AddLessonDialog({
   function handleMoveExisting(lessonId: string) {
     startTransition(async () => {
       await updateLessonScheduledDate(lessonId, date);
+      router.refresh();
       handleOpenChange(false);
     });
   }
