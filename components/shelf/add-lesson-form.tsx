@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -24,6 +25,7 @@ export function AddLessonForm({
   nextLessonNumber: number;
   defaultDate: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [lessonNumber, setLessonNumber] = useState(nextLessonNumber);
   const [title, setTitle] = useState(`Lesson ${nextLessonNumber}`);
@@ -42,6 +44,7 @@ export function AddLessonForm({
   function handleSubmit() {
     startTransition(async () => {
       await createLesson(resourceId, lessonNumber, title, scheduledDate);
+      router.refresh();
       setOpen(false);
     });
   }
