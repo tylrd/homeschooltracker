@@ -30,4 +30,5 @@ export async function upsertNote(
   }
 
   revalidatePath("/");
+  revalidatePath("/attendance");
 }

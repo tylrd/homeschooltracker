@@ -13,6 +13,7 @@ export async function setSetting(key: string, value: string) {
 
   revalidatePath("/");
   revalidatePath("/settings");
+  revalidatePath("/attendance");
 }
 
 export async function setShowCompletedLessons(show: boolean) {
@@ -43,4 +44,8 @@ export async function setBumpBehavior(
   behavior: "next_school_day" | "same_day_next_week",
 ) {
   await setSetting("bumpBehavior", behavior);
+}
+
+export async function setShowDailyLogNotes(show: boolean) {
+  await setSetting("showDailyLogNotes", String(show));
 }

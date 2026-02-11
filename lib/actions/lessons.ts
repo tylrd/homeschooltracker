@@ -277,6 +277,18 @@ export async function bumpStudentLessons(studentId: string, date: string) {
   revalidatePath("/shelf");
 }
 
+export async function updateLessonPlan(lessonId: string, plan: string) {
+  const db = getDb();
+  await db
+    .update(lessons)
+    .set({ plan: plan.trim() || null })
+    .where(eq(lessons.id, lessonId));
+
+  revalidatePath(`/lessons/${lessonId}`);
+  revalidatePath("/");
+  revalidatePath("/shelf");
+}
+
 export async function updateLessonContent(
   lessonId: string,
   title: string,

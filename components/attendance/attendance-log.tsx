@@ -2,7 +2,10 @@ import Link from "next/link";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
 import { formatDate } from "@/lib/dates";
-import type { CompletionLogEntry } from "@/lib/queries/attendance";
+import type {
+  CompletionLogEntry,
+  DailyLogNoteEntry,
+} from "@/lib/queries/attendance";
 import { cn } from "@/lib/utils";
 
 type AbsenceRow = {
@@ -17,9 +20,13 @@ type AbsenceRow = {
 export function AttendanceLog({
   completions,
   absences,
+  notes,
+  showNotes,
 }: {
   completions: CompletionLogEntry[];
   absences: AbsenceRow[];
+  notes: DailyLogNoteEntry[];
+  showNotes: boolean;
 }) {
   // Group completions by date
   const byDate = new Map<string, CompletionLogEntry[]>();
@@ -37,8 +44,22 @@ export function AttendanceLog({
     absencesByDate.set(a.date, list);
   }
 
+  // Group notes by date
+  const notesByDate = new Map<string, DailyLogNoteEntry[]>();
+  for (const note of notes) {
+    const list = notesByDate.get(note.date) ?? [];
+    list.push(note);
+    notesByDate.set(note.date, list);
+  }
+
   // Merge all dates and sort descending (most recent first)
-  const allDates = new Set([...byDate.keys(), ...absencesByDate.keys()]);
+  const allDates = showNotes
+    ? new Set([
+        ...byDate.keys(),
+        ...absencesByDate.keys(),
+        ...notesByDate.keys(),
+      ])
+    : new Set([...byDate.keys(), ...absencesByDate.keys()]);
   const sortedDates = Array.from(allDates).sort((a, b) => b.localeCompare(a));
 
   if (sortedDates.length === 0) {
@@ -54,6 +75,7 @@ export function AttendanceLog({
       {sortedDates.map((dateStr) => {
         const dayCompletions = byDate.get(dateStr) ?? [];
         const dayAbsences = absencesByDate.get(dateStr) ?? [];
+        const dayNotes = notesByDate.get(dateStr) ?? [];
 
         // Group completions by student
         const byStudent = new Map<
@@ -77,6 +99,19 @@ export function AttendanceLog({
           }
         }
 
+        // Add note-only students so notes are visible for the day
+        if (showNotes) {
+          for (const note of dayNotes) {
+            if (!byStudent.has(note.studentId)) {
+              byStudent.set(note.studentId, {
+                name: note.studentName,
+                color: note.studentColor,
+                lessons: [],
+              });
+            }
+          }
+        }
+
         // Absence students who had no completions that day
         const absentOnly = dayAbsences.filter(
           (a) => !byStudent.has(a.studentId),
@@ -92,6 +127,8 @@ export function AttendanceLog({
                 const absence = dayAbsences.find(
                   (a) => a.studentId === studentId,
                 );
+                const note = dayNotes.find((n) => n.studentId === studentId);
+
                 return (
                   <div
                     key={studentId}
@@ -119,24 +156,38 @@ export function AttendanceLog({
                         </span>
                       )}
                     </div>
-                    <ul className="space-y-0.5 pl-5">
-                      {group.lessons.map((lesson) => (
-                        <li key={lesson.lessonId} className="text-sm">
-                          <Link
-                            href={`/lessons/${lesson.lessonId}`}
-                            className="hover:underline"
-                          >
-                            <span className="text-muted-foreground">
-                              {lesson.subjectName} &middot;{" "}
-                            </span>
-                            {lesson.resourceName}{" "}
-                            <span className="text-muted-foreground">
-                              #{lesson.lessonNumber}
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+
+                    {group.lessons.length > 0 && (
+                      <ul className="space-y-0.5 pl-5">
+                        {group.lessons.map((lesson) => (
+                          <li key={lesson.lessonId} className="text-sm">
+                            <Link
+                              href={`/lessons/${lesson.lessonId}`}
+                              className="hover:underline"
+                            >
+                              <span className="text-muted-foreground">
+                                {lesson.subjectName} &middot;{" "}
+                              </span>
+                              {lesson.resourceName}{" "}
+                              <span className="text-muted-foreground">
+                                #{lesson.lessonNumber}
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {showNotes && note && (
+                      <div className="space-y-1 rounded-sm bg-muted/50 px-2 py-1.5 text-sm">
+                        {note.content && (
+                          <p>
+                            <span className="font-medium">Note:</span>{" "}
+                            {note.content}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

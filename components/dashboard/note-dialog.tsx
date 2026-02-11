@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -8,39 +8,68 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { updateLessonPlan } from "@/lib/actions/lessons";
 import { upsertNote } from "@/lib/actions/notes";
 
+type NoteTarget = {
+  studentId: string;
+  lessonId: string;
+};
+
 function NoteForm({
-  studentId,
+  target,
   date,
-  initialContent,
+  plan,
+  note,
+  onPlanChange,
+  onNoteChange,
   onClose,
 }: {
-  studentId: string;
+  target: NoteTarget;
   date: string;
-  initialContent: string;
+  plan: string;
+  note: string;
+  onPlanChange: (value: string) => void;
+  onNoteChange: (value: string) => void;
   onClose: () => void;
 }) {
-  const [content, setContent] = useState(initialContent);
   const [isPending, startTransition] = useTransition();
 
   function handleSave() {
     startTransition(async () => {
-      await upsertNote(studentId, date, content);
+      await Promise.all([
+        updateLessonPlan(target.lessonId, plan),
+        upsertNote(target.studentId, date, note),
+      ]);
       onClose();
     });
   }
 
   return (
     <div className="space-y-4 px-4 pb-8">
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="How did today go?"
-        rows={4}
-        autoFocus
-      />
+      <div className="space-y-2">
+        <Label htmlFor="daily-plan">Daily plan</Label>
+        <Textarea
+          id="daily-plan"
+          value={plan}
+          onChange={(e) => onPlanChange(e.target.value)}
+          placeholder="What is the plan for today?"
+          rows={3}
+          autoFocus
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="daily-note">Note</Label>
+        <Textarea
+          id="daily-note"
+          value={note}
+          onChange={(e) => onNoteChange(e.target.value)}
+          placeholder="How did today go?"
+          rows={4}
+        />
+      </div>
       <Button onClick={handleSave} className="w-full" disabled={isPending}>
         Save Note
       </Button>
@@ -49,28 +78,36 @@ function NoteForm({
 }
 
 export function NoteDialog({
-  studentId,
+  target,
   date,
-  initialContent,
+  plan,
+  note,
+  onPlanChange,
+  onNoteChange,
   onClose,
 }: {
-  studentId: string | null;
+  target: NoteTarget | null;
   date: string;
-  initialContent: string;
+  plan: string;
+  note: string;
+  onPlanChange: (value: string) => void;
+  onNoteChange: (value: string) => void;
   onClose: () => void;
 }) {
   return (
-    <Drawer open={!!studentId} onOpenChange={(open) => !open && onClose()}>
+    <Drawer open={!!target} onOpenChange={(open) => !open && onClose()}>
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>Daily Note</DrawerTitle>
         </DrawerHeader>
-        {studentId && (
+        {target && (
           <NoteForm
-            key={studentId}
-            studentId={studentId}
+            target={target}
             date={date}
-            initialContent={initialContent}
+            plan={plan}
+            note={note}
+            onPlanChange={onPlanChange}
+            onNoteChange={onNoteChange}
             onClose={onClose}
           />
         )}

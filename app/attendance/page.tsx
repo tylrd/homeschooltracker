@@ -11,6 +11,7 @@ import {
   getAttendanceForMonth,
   getCompletionLogForMonth,
 } from "@/lib/queries/attendance";
+import { getShowDailyLogNotes } from "@/lib/queries/settings";
 
 export default async function AttendancePage({
   searchParams,
@@ -22,9 +23,10 @@ export default async function AttendancePage({
   const year = params.year ? Number(params.year) : now.getFullYear();
   const month = params.month ? Number(params.month) : now.getMonth() + 1;
 
-  const [gridData, logData] = await Promise.all([
+  const [gridData, logData, showDailyLogNotes] = await Promise.all([
     getAttendanceForMonth(year, month),
     getCompletionLogForMonth(year, month),
+    getShowDailyLogNotes(),
   ]);
 
   return (
@@ -43,7 +45,11 @@ export default async function AttendancePage({
         <MonthNav year={year} month={month} />
       </Suspense>
 
-      <AttendanceView gridData={gridData} logData={logData} />
+      <AttendanceView
+        gridData={gridData}
+        logData={logData}
+        showDailyLogNotes={showDailyLogNotes}
+      />
     </div>
   );
 }

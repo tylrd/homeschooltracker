@@ -23,6 +23,7 @@ export async function getTodayLessons(date: string, studentId?: string) {
       lessonId: lessons.id,
       lessonNumber: lessons.lessonNumber,
       lessonTitle: lessons.title,
+      lessonPlan: lessons.plan,
       lessonStatus: lessons.status,
       scheduledDate: lessons.scheduledDate,
       resourceId: resources.id,

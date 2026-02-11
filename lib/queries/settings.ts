@@ -44,6 +44,11 @@ export async function getShowNoteButtons(): Promise<boolean> {
   return value !== "false";
 }
 
+export async function getShowDailyLogNotes(): Promise<boolean> {
+  const value = await getSetting("showDailyLogNotes");
+  return value !== "false";
+}
+
 export async function getDashboardGrouping(): Promise<"student" | "subject"> {
   const value = await getSetting("dashboardGrouping");
   return value === "subject" ? "subject" : "student";

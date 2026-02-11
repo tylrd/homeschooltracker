@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import {
   absenceReasons,
   absences,
+  dailyNotes,
   lessons,
   resources,
   students,
@@ -110,6 +111,14 @@ export type CompletionLogEntry = {
   lessonId: string;
 };
 
+export type DailyLogNoteEntry = {
+  studentId: string;
+  date: string;
+  content: string;
+  studentName: string;
+  studentColor: string;
+};
+
 export async function getCompletionLogForMonth(year: number, month: number) {
   const db = getDb();
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -161,7 +170,24 @@ export async function getCompletionLogForMonth(year: number, month: number) {
     .innerJoin(students, eq(absences.studentId, students.id))
     .where(and(gte(absences.date, startDate), lte(absences.date, endDate)));
 
-  return { completions: rows as CompletionLogEntry[], absences: absenceRows };
+  const noteRows = await db
+    .select({
+      studentId: dailyNotes.studentId,
+      date: dailyNotes.date,
+      content: dailyNotes.content,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(dailyNotes)
+    .innerJoin(students, eq(dailyNotes.studentId, students.id))
+    .where(and(gte(dailyNotes.date, startDate), lte(dailyNotes.date, endDate)))
+    .orderBy(asc(dailyNotes.date), asc(students.name));
+
+  return {
+    completions: rows as CompletionLogEntry[],
+    absences: absenceRows,
+    notes: noteRows as DailyLogNoteEntry[],
+  };
 }
 
 export async function getAllStudents() {

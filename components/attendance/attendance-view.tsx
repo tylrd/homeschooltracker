@@ -3,7 +3,10 @@
 import { AttendanceLog } from "@/components/attendance/attendance-log";
 import { AttendanceTable } from "@/components/attendance/attendance-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { CompletionLogEntry } from "@/lib/queries/attendance";
+import type {
+  CompletionLogEntry,
+  DailyLogNoteEntry,
+} from "@/lib/queries/attendance";
 
 type AttendanceData = {
   attendanceMap: Map<string, Set<string>>;
@@ -29,9 +32,15 @@ type AbsenceRow = {
 export function AttendanceView({
   gridData,
   logData,
+  showDailyLogNotes,
 }: {
   gridData: AttendanceData;
-  logData: { completions: CompletionLogEntry[]; absences: AbsenceRow[] };
+  logData: {
+    completions: CompletionLogEntry[];
+    absences: AbsenceRow[];
+    notes: DailyLogNoteEntry[];
+  };
+  showDailyLogNotes: boolean;
 }) {
   return (
     <Tabs defaultValue="grid">
@@ -46,6 +55,8 @@ export function AttendanceView({
         <AttendanceLog
           completions={logData.completions}
           absences={logData.absences}
+          notes={logData.notes}
+          showNotes={showDailyLogNotes}
         />
       </TabsContent>
     </Tabs>
