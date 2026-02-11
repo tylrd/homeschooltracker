@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, gt, gte, max } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
@@ -212,6 +212,10 @@ export async function updateLessonScheduledDate(
   newDate: string,
 ) {
   const db = getDb();
+  const lesson = await db.query.lessons.findFirst({
+    where: eq(lessons.id, lessonId),
+  });
+
   await db
     .update(lessons)
     .set({ scheduledDate: newDate || null })
@@ -220,6 +224,61 @@ export async function updateLessonScheduledDate(
   revalidatePath("/");
   revalidatePath("/shelf");
   revalidatePath(`/lessons/${lessonId}`);
+  if (lesson) {
+    revalidatePath(`/shelf/${lesson.resourceId}`);
+  }
+}
+
+export async function bulkCompleteLessons(lessonIds: string[]) {
+  const ids = Array.from(new Set(lessonIds)).filter(Boolean);
+  if (ids.length === 0) return;
+
+  const db = getDb();
+  const today = toDateString(new Date());
+
+  const affectedLessons = await db.query.lessons.findMany({
+    where: inArray(lessons.id, ids),
+    columns: { id: true, resourceId: true },
+  });
+
+  await db
+    .update(lessons)
+    .set({ status: "completed", completionDate: today })
+    .where(inArray(lessons.id, ids));
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath("/attendance");
+
+  const resourceIds = new Set(
+    affectedLessons.map((lesson) => lesson.resourceId),
+  );
+  for (const resourceId of resourceIds) {
+    revalidatePath(`/shelf/${resourceId}`);
+  }
+}
+
+export async function bulkDeleteLessons(lessonIds: string[]) {
+  const ids = Array.from(new Set(lessonIds)).filter(Boolean);
+  if (ids.length === 0) return;
+
+  const db = getDb();
+  const affectedLessons = await db.query.lessons.findMany({
+    where: inArray(lessons.id, ids),
+    columns: { id: true, resourceId: true },
+  });
+
+  await db.delete(lessons).where(inArray(lessons.id, ids));
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+
+  const resourceIds = new Set(
+    affectedLessons.map((lesson) => lesson.resourceId),
+  );
+  for (const resourceId of resourceIds) {
+    revalidatePath(`/shelf/${resourceId}`);
+  }
 }
 
 export async function bumpStudentLessons(studentId: string, date: string) {
