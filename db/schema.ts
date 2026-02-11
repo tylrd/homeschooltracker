@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -157,6 +158,24 @@ export const absences = pgTable(
   ],
 );
 
+export const globalAbsences = pgTable(
+  "global_absences",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    date: date().notNull(),
+    reasonId: uuid("reason_id")
+      .notNull()
+      .references(() => absenceReasons.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("global_absences_date_unique_idx").on(table.date),
+    index("global_absences_date_idx").on(table.date),
+  ],
+);
+
 export const appSettings = pgTable("app_settings", {
   key: text().primaryKey(),
   value: text().notNull(),
@@ -204,6 +223,7 @@ export const absenceReasonsRelations = relations(
   absenceReasons,
   ({ many }) => ({
     absences: many(absences),
+    globalAbsences: many(globalAbsences),
   }),
 );
 
@@ -214,6 +234,13 @@ export const absencesRelations = relations(absences, ({ one }) => ({
   }),
   reason: one(absenceReasons, {
     fields: [absences.reasonId],
+    references: [absenceReasons.id],
+  }),
+}));
+
+export const globalAbsencesRelations = relations(globalAbsences, ({ one }) => ({
+  reason: one(absenceReasons, {
+    fields: [globalAbsences.reasonId],
     references: [absenceReasons.id],
   }),
 }));
@@ -240,5 +267,8 @@ export type NewAbsenceReason = typeof absenceReasons.$inferInsert;
 
 export type Absence = typeof absences.$inferSelect;
 export type NewAbsence = typeof absences.$inferInsert;
+
+export type GlobalAbsence = typeof globalAbsences.$inferSelect;
+export type NewGlobalAbsence = typeof globalAbsences.$inferInsert;
 
 export type AppSetting = typeof appSettings.$inferSelect;

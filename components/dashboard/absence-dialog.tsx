@@ -14,6 +14,7 @@ import {
   logAbsence,
   logAbsenceForAll,
   removeAbsence,
+  removeGlobalAbsence,
 } from "@/lib/actions/absences";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +25,11 @@ type AbsenceReason = {
 };
 
 type ExistingAbsence = {
-  absenceId: string;
+  absenceId: string | null;
   reasonName: string;
   reasonColor: string;
+  source: "individual" | "global";
+  canRemove: boolean;
 };
 
 export function AbsenceDialog({
@@ -60,9 +63,15 @@ export function AbsenceDialog({
   }
 
   function handleRemoveAbsence() {
-    if (!existingAbsence) return;
+    if (!existingAbsence?.canRemove) return;
+    const absenceId = existingAbsence.absenceId;
+    if (!absenceId) return;
     startTransition(async () => {
-      await removeAbsence(existingAbsence.absenceId);
+      if (existingAbsence.source === "global") {
+        await removeGlobalAbsence(absenceId);
+      } else {
+        await removeAbsence(absenceId);
+      }
       onOpenChange(false);
     });
   }
@@ -95,16 +104,18 @@ export function AbsenceDialog({
                   {existingAbsence.reasonName}
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRemoveAbsence}
-                disabled={isPending}
-                className="text-destructive hover:text-destructive"
-              >
-                <X className="mr-1 h-3 w-3" />
-                Remove
-              </Button>
+              {existingAbsence.canRemove && existingAbsence.absenceId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRemoveAbsence}
+                  disabled={isPending}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <X className="mr-1 h-3 w-3" />
+                  Remove
+                </Button>
+              )}
             </div>
           </div>
         )}

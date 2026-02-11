@@ -4,11 +4,93 @@ import {
   absenceReasons,
   absences,
   dailyNotes,
+  globalAbsences,
   lessons,
   resources,
   students,
   subjects,
 } from "@/db/schema";
+
+type EffectiveAbsenceRow = {
+  studentId: string;
+  date: string;
+  reasonName: string;
+  reasonColor: string;
+  studentName: string;
+  studentColor: string;
+};
+
+async function getEffectiveAbsenceRows(
+  startDate: string,
+  endDate: string,
+  completedByDate: Map<string, Set<string>>,
+) {
+  const db = getDb();
+
+  const explicitRows = await db
+    .select({
+      studentId: absences.studentId,
+      date: absences.date,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(absences)
+    .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
+    .innerJoin(students, eq(absences.studentId, students.id))
+    .where(and(gte(absences.date, startDate), lte(absences.date, endDate)));
+
+  const globalRows = await db
+    .select({
+      date: globalAbsences.date,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+    })
+    .from(globalAbsences)
+    .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
+    .where(
+      and(
+        gte(globalAbsences.date, startDate),
+        lte(globalAbsences.date, endDate),
+      ),
+    );
+
+  if (globalRows.length === 0) return explicitRows;
+
+  const allStudents = await db
+    .select({
+      studentId: students.id,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(students)
+    .orderBy(asc(students.name));
+
+  const explicitKeys = new Set(
+    explicitRows.map((row) => `${row.studentId}|${row.date}`),
+  );
+  const rows: EffectiveAbsenceRow[] = [...explicitRows];
+
+  for (const globalRow of globalRows) {
+    const completedForDate = completedByDate.get(globalRow.date) ?? new Set();
+    for (const student of allStudents) {
+      if (completedForDate.has(student.studentId)) continue;
+      const key = `${student.studentId}|${globalRow.date}`;
+      if (explicitKeys.has(key)) continue;
+      rows.push({
+        studentId: student.studentId,
+        date: globalRow.date,
+        reasonName: globalRow.reasonName,
+        reasonColor: globalRow.reasonColor,
+        studentName: student.studentName,
+        studentColor: student.studentColor,
+      });
+    }
+  }
+
+  return rows;
+}
 
 export async function getAttendanceForMonth(year: number, month: number) {
   const db = getDb();
@@ -39,6 +121,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
 
   // Build set of unique (studentId, date) pairs
   const attendanceMap = new Map<string, Set<string>>();
+  const completedByDate = new Map<string, Set<string>>();
   const studentInfo = new Map<string, { name: string; color: string }>();
 
   for (const row of rows) {
@@ -49,6 +132,11 @@ export async function getAttendanceForMonth(year: number, month: number) {
     }
     attendanceMap.get(row.studentId)?.add(row.completionDate);
 
+    if (!completedByDate.has(row.completionDate)) {
+      completedByDate.set(row.completionDate, new Set());
+    }
+    completedByDate.get(row.completionDate)?.add(row.studentId);
+
     if (!studentInfo.has(row.studentId)) {
       studentInfo.set(row.studentId, {
         name: row.studentName,
@@ -57,20 +145,11 @@ export async function getAttendanceForMonth(year: number, month: number) {
     }
   }
 
-  // Get absences for the month
-  const absenceRows = await db
-    .select({
-      studentId: absences.studentId,
-      date: absences.date,
-      reasonName: absenceReasons.name,
-      reasonColor: absenceReasons.color,
-      studentName: students.name,
-      studentColor: students.color,
-    })
-    .from(absences)
-    .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
-    .innerJoin(students, eq(absences.studentId, students.id))
-    .where(and(gte(absences.date, startDate), lte(absences.date, endDate)));
+  const absenceRows = await getEffectiveAbsenceRows(
+    startDate,
+    endDate,
+    completedByDate,
+  );
 
   // Build absence map: studentId -> date -> { reasonName, reasonColor }
   const absenceMap = new Map<
@@ -155,20 +234,20 @@ export async function getCompletionLogForMonth(year: number, month: number) {
       asc(lessons.lessonNumber),
     );
 
-  // Get absences for the month
-  const absenceRows = await db
-    .select({
-      studentId: absences.studentId,
-      date: absences.date,
-      reasonName: absenceReasons.name,
-      reasonColor: absenceReasons.color,
-      studentName: students.name,
-      studentColor: students.color,
-    })
-    .from(absences)
-    .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
-    .innerJoin(students, eq(absences.studentId, students.id))
-    .where(and(gte(absences.date, startDate), lte(absences.date, endDate)));
+  const completedByDate = new Map<string, Set<string>>();
+  for (const row of rows) {
+    if (!row.completionDate) continue;
+    if (!completedByDate.has(row.completionDate)) {
+      completedByDate.set(row.completionDate, new Set());
+    }
+    completedByDate.get(row.completionDate)?.add(row.studentId);
+  }
+
+  const absenceRows = await getEffectiveAbsenceRows(
+    startDate,
+    endDate,
+    completedByDate,
+  );
 
   const noteRows = await db
     .select({

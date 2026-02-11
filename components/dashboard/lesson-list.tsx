@@ -43,9 +43,10 @@ type AbsenceReason = {
 };
 
 type AbsenceInfo = {
-  absenceId: string;
+  absenceId: string | null;
   reasonName: string;
   reasonColor: string;
+  source: "individual" | "global";
 };
 
 type StudentResource = {
@@ -412,7 +413,16 @@ export function LessonList({
         reasons={reasons}
         existingAbsence={
           absenceTarget?.studentId
-            ? (absenceMap[absenceTarget.studentId] ?? null)
+            ? (() => {
+                const absence = absenceMap[absenceTarget.studentId];
+                if (!absence) return null;
+                return {
+                  ...absence,
+                  canRemove:
+                    absence.source === "individual" &&
+                    Boolean(absence.absenceId),
+                };
+              })()
             : null
         }
       />

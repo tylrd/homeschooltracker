@@ -4,11 +4,21 @@ import {
   absenceReasons,
   absences,
   dailyNotes,
+  globalAbsences,
   lessons,
   resources,
   students,
   subjects,
 } from "@/db/schema";
+
+type DashboardAbsenceRow = {
+  absenceId: string | null;
+  studentId: string;
+  reasonId: string;
+  reasonName: string;
+  reasonColor: string;
+  source: "individual" | "global";
+};
 
 export async function getTodayLessons(date: string, studentId?: string) {
   const db = getDb();
@@ -68,7 +78,7 @@ export async function getStudentsForFilter() {
 
 export async function getAbsencesForDate(date: string) {
   const db = getDb();
-  const rows = await db
+  const explicitRows = await db
     .select({
       absenceId: absences.id,
       studentId: absences.studentId,
@@ -80,7 +90,77 @@ export async function getAbsencesForDate(date: string) {
     .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
     .where(eq(absences.date, date));
 
+  const globalRows = await db
+    .select({
+      globalAbsenceId: globalAbsences.id,
+      reasonId: absenceReasons.id,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+    })
+    .from(globalAbsences)
+    .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
+    .where(eq(globalAbsences.date, date))
+    .limit(1);
+
+  const rows: DashboardAbsenceRow[] = explicitRows.map((row) => ({
+    absenceId: row.absenceId,
+    studentId: row.studentId,
+    reasonId: row.reasonId,
+    reasonName: row.reasonName,
+    reasonColor: row.reasonColor,
+    source: "individual",
+  }));
+
+  const global = globalRows[0];
+  if (!global) return rows;
+
+  const completedRows = await db
+    .select({ studentId: students.id })
+    .from(lessons)
+    .innerJoin(resources, eq(lessons.resourceId, resources.id))
+    .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+    .innerJoin(students, eq(subjects.studentId, students.id))
+    .where(
+      and(eq(lessons.status, "completed"), eq(lessons.completionDate, date)),
+    );
+
+  const explicitStudentIds = new Set(explicitRows.map((r) => r.studentId));
+  const completedStudentIds = new Set(completedRows.map((r) => r.studentId));
+  const allStudentRows = await db
+    .select({ studentId: students.id })
+    .from(students);
+
+  for (const { studentId } of allStudentRows) {
+    if (explicitStudentIds.has(studentId)) continue;
+    if (completedStudentIds.has(studentId)) continue;
+    rows.push({
+      absenceId: null,
+      studentId,
+      reasonId: global.reasonId,
+      reasonName: global.reasonName,
+      reasonColor: global.reasonColor,
+      source: "global" as const,
+    });
+  }
+
   return rows;
+}
+
+export async function getGlobalAbsenceForDate(date: string) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      globalAbsenceId: globalAbsences.id,
+      reasonId: absenceReasons.id,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+    })
+    .from(globalAbsences)
+    .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
+    .where(eq(globalAbsences.date, date))
+    .limit(1);
+
+  return rows[0] ?? null;
 }
 
 export async function getStudentResourceMap() {

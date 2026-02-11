@@ -12,6 +12,7 @@ import { getTodayDate } from "@/lib/dates";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
   getAbsencesForDate,
+  getGlobalAbsenceForDate,
   getStudentResourceMap,
   getStudentsForFilter,
   getTodayLessons,
@@ -36,6 +37,7 @@ export default async function DashboardPage({
     notes,
     students,
     absences,
+    globalAbsence,
     reasons,
     showCompleted,
     dashboardGrouping,
@@ -46,16 +48,13 @@ export default async function DashboardPage({
     getTodayNotes(date),
     getStudentsForFilter(),
     getAbsencesForDate(date),
+    getGlobalAbsenceForDate(date),
     getOrCreateDefaultReasons(),
     getShowCompletedLessons(),
     getDashboardGrouping(),
     getShowNoteButtons(),
     getStudentResourceMap(),
   ]);
-
-  const plannedCount = lessons.filter(
-    (l) => l.lessonStatus === "planned",
-  ).length;
 
   // Build student resource map: studentId -> resources[]
   const studentResourceMap: Record<
@@ -84,13 +83,19 @@ export default async function DashboardPage({
   // Build absence map: studentId -> absence info
   const absenceMap = new Map<
     string,
-    { absenceId: string; reasonName: string; reasonColor: string }
+    {
+      absenceId: string | null;
+      reasonName: string;
+      reasonColor: string;
+      source: "individual" | "global";
+    }
   >();
   for (const a of absences) {
     absenceMap.set(a.studentId, {
       absenceId: a.absenceId,
       reasonName: a.reasonName,
       reasonColor: a.reasonColor,
+      source: a.source,
     });
   }
 
@@ -98,7 +103,7 @@ export default async function DashboardPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <DayNav date={date} today={today} />
-        {plannedCount > 0 && (
+        {students.length > 0 && (
           <SickDayButton
             date={date}
             reasons={reasons.map((r) => ({
@@ -106,6 +111,15 @@ export default async function DashboardPage({
               name: r.name,
               color: r.color,
             }))}
+            existingGlobalAbsence={
+              globalAbsence
+                ? {
+                    absenceId: globalAbsence.globalAbsenceId,
+                    reasonName: globalAbsence.reasonName,
+                    reasonColor: globalAbsence.reasonColor,
+                  }
+                : null
+            }
           />
         )}
       </div>
