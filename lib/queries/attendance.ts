@@ -114,7 +114,6 @@ export type CompletionLogEntry = {
 export type DailyLogNoteEntry = {
   studentId: string;
   date: string;
-  dailyPlan: string | null;
   content: string;
   studentName: string;
   studentColor: string;
@@ -175,7 +174,6 @@ export async function getCompletionLogForMonth(year: number, month: number) {
     .select({
       studentId: dailyNotes.studentId,
       date: dailyNotes.date,
-      dailyPlan: dailyNotes.dailyPlan,
       content: dailyNotes.content,
       studentName: students.name,
       studentColor: students.color,

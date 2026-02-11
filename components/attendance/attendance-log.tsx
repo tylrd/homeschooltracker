@@ -180,12 +180,6 @@ export function AttendanceLog({
 
                     {showNotes && note && (
                       <div className="space-y-1 rounded-sm bg-muted/50 px-2 py-1.5 text-sm">
-                        {note.dailyPlan && (
-                          <p>
-                            <span className="font-medium">Plan:</span>{" "}
-                            {note.dailyPlan}
-                          </p>
-                        )}
                         {note.content && (
                           <p>
                             <span className="font-medium">Note:</span>{" "}

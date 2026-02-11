@@ -21,6 +21,7 @@ type DashboardLesson = {
   lessonId: string;
   lessonNumber: number;
   lessonTitle: string | null;
+  lessonPlan: string | null;
   lessonStatus: string;
   resourceId: string;
   resourceName: string;
@@ -32,7 +33,6 @@ type DashboardLesson = {
 
 type Note = {
   studentId: string;
-  dailyPlan: string | null;
   content: string;
 };
 
@@ -86,7 +86,13 @@ export function LessonList({
   // Per-student overrides: true/false means explicitly toggled, absent means use global
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [hidingStudents, setHidingStudents] = useState<Set<string>>(new Set());
-  const [noteStudentId, setNoteStudentId] = useState<string | null>(null);
+  const [noteTarget, setNoteTarget] = useState<{
+    studentId: string;
+    lessonId: string;
+    lessonPlan: string | null;
+  } | null>(null);
+  const [draftPlan, setDraftPlan] = useState("");
+  const [draftNote, setDraftNote] = useState("");
   const [absenceTarget, setAbsenceTarget] = useState<{
     studentId: string | null;
     studentName: string | null;
@@ -141,7 +147,7 @@ export function LessonList({
   }
 
   const noteForStudent = (studentId: string) =>
-    notes.find((n) => n.studentId === studentId) ?? null;
+    notes.find((n) => n.studentId === studentId)?.content ?? "";
 
   return (
     <>
@@ -172,6 +178,7 @@ export function LessonList({
                         lessonId={lesson.lessonId}
                         lessonNumber={lesson.lessonNumber}
                         lessonTitle={lesson.lessonTitle}
+                        lessonPlan={lesson.lessonPlan}
                         status={lesson.lessonStatus}
                         resourceId={lesson.resourceId}
                         resourceName={lesson.resourceName}
@@ -182,7 +189,11 @@ export function LessonList({
                         date={date}
                         showNoteButton={showNoteButtons}
                         showStudentName
-                        onNoteClick={setNoteStudentId}
+                        onNoteClick={(target) => {
+                          setNoteTarget(target);
+                          setDraftPlan(target.lessonPlan ?? "");
+                          setDraftNote(noteForStudent(target.studentId));
+                        }}
                       />
                     ))}
                 </div>
@@ -342,6 +353,7 @@ export function LessonList({
                             lessonId={lesson.lessonId}
                             lessonNumber={lesson.lessonNumber}
                             lessonTitle={lesson.lessonTitle}
+                            lessonPlan={lesson.lessonPlan}
                             status={lesson.lessonStatus}
                             resourceId={lesson.resourceId}
                             resourceName={lesson.resourceName}
@@ -356,7 +368,11 @@ export function LessonList({
                               lesson.lessonStatus === "completed"
                             }
                             showNoteButton={showNoteButtons}
-                            onNoteClick={setNoteStudentId}
+                            onNoteClick={(target) => {
+                              setNoteTarget(target);
+                              setDraftPlan(target.lessonPlan ?? "");
+                              setDraftNote(noteForStudent(target.studentId));
+                            }}
                           />
                         );
                       });
@@ -368,15 +384,21 @@ export function LessonList({
       </div>
 
       <NoteDialog
-        studentId={noteStudentId}
+        target={
+          noteTarget
+            ? { studentId: noteTarget.studentId, lessonId: noteTarget.lessonId }
+            : null
+        }
         date={date}
-        initialDailyPlan={
-          noteStudentId ? (noteForStudent(noteStudentId)?.dailyPlan ?? "") : ""
-        }
-        initialContent={
-          noteStudentId ? (noteForStudent(noteStudentId)?.content ?? "") : ""
-        }
-        onClose={() => setNoteStudentId(null)}
+        plan={draftPlan}
+        note={draftNote}
+        onPlanChange={setDraftPlan}
+        onNoteChange={setDraftNote}
+        onClose={() => {
+          setNoteTarget(null);
+          setDraftPlan("");
+          setDraftNote("");
+        }}
       />
 
       <AbsenceDialog

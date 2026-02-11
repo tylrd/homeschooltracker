@@ -38,12 +38,17 @@ type LessonCardProps = {
   studentName: string;
   studentColor: string;
   studentId: string;
+  lessonPlan: string | null;
   date: string;
   isMakeup?: boolean;
   exiting?: boolean;
   showNoteButton?: boolean;
   showStudentName?: boolean;
-  onNoteClick: (studentId: string) => void;
+  onNoteClick: (target: {
+    studentId: string;
+    lessonId: string;
+    lessonPlan: string | null;
+  }) => void;
 };
 
 export function LessonCard({
@@ -57,6 +62,7 @@ export function LessonCard({
   studentName,
   studentColor,
   studentId,
+  lessonPlan,
   date: _date,
   isMakeup,
   exiting,
@@ -157,7 +163,13 @@ export function LessonCard({
               variant="ghost"
               size="icon"
               className="h-8 w-8 shrink-0"
-              onClick={() => onNoteClick(studentId)}
+              onClick={() =>
+                onNoteClick({
+                  studentId,
+                  lessonId,
+                  lessonPlan,
+                })
+              }
               title="Add note"
               disabled={deleting}
             >

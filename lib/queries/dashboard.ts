@@ -23,6 +23,7 @@ export async function getTodayLessons(date: string, studentId?: string) {
       lessonId: lessons.id,
       lessonNumber: lessons.lessonNumber,
       lessonTitle: lessons.title,
+      lessonPlan: lessons.plan,
       lessonStatus: lessons.status,
       scheduledDate: lessons.scheduledDate,
       resourceId: resources.id,
@@ -48,7 +49,6 @@ export async function getTodayNotes(date: string) {
     .select({
       noteId: dailyNotes.id,
       studentId: dailyNotes.studentId,
-      dailyPlan: dailyNotes.dailyPlan,
       content: dailyNotes.content,
       studentName: students.name,
       studentColor: students.color,
