@@ -52,7 +52,7 @@ export function AddLessonForm({
   return (
     <Drawer open={open} onOpenChange={handleOpen}>
       <DrawerTrigger asChild>
-        <Button variant="outline">
+        <Button variant="ghost" size="sm" className="text-muted-foreground">
           <Plus className="mr-1 h-4 w-4" />
           Add Lesson
         </Button>
