@@ -79,7 +79,7 @@ export function BatchCreateForm({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button>
+        <Button variant="outline" size="sm" className="text-muted-foreground">
           <Plus className="mr-1 h-4 w-4" />
           Generate Lessons
         </Button>

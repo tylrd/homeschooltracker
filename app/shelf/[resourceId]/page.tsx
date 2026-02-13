@@ -57,25 +57,30 @@ export default async function ResourceDetailPage({
         </Badge>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <AddLessonForm
-          resourceId={resource.id}
-          nextLessonNumber={total + 1}
-          defaultDate={(() => {
-            const lastLesson = resource.lessons[resource.lessons.length - 1];
-            const lastDate = lastLesson?.scheduledDate;
-            return lastDate
-              ? nextSchoolDayStr(lastDate, schoolDays)
-              : toDateString(new Date());
-          })()}
-        />
-        <BatchCreateForm
-          resourceId={resource.id}
-          existingCount={total}
-          defaultSchoolDays={schoolDays}
-          defaultLessonCount={defaultLessonCount}
-        />
-      </div>
+      <details className="rounded-md border bg-muted/30" open={false}>
+        <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-muted-foreground">
+          Lesson tools
+        </summary>
+        <div className="flex flex-wrap justify-end gap-2 border-t px-3 py-3">
+          <AddLessonForm
+            resourceId={resource.id}
+            nextLessonNumber={total + 1}
+            defaultDate={(() => {
+              const lastLesson = resource.lessons[resource.lessons.length - 1];
+              const lastDate = lastLesson?.scheduledDate;
+              return lastDate
+                ? nextSchoolDayStr(lastDate, schoolDays)
+                : toDateString(new Date());
+            })()}
+          />
+          <BatchCreateForm
+            resourceId={resource.id}
+            existingCount={total}
+            defaultSchoolDays={schoolDays}
+            defaultLessonCount={defaultLessonCount}
+          />
+        </div>
+      </details>
 
       <LessonTable lessons={resource.lessons} />
     </div>

@@ -11,7 +11,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Check, GripVertical, Trash2 } from "lucide-react";
+import { Check, GripVertical, SlidersHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -127,6 +127,7 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
+  const [showPlanningTools, setShowPlanningTools] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -271,75 +272,93 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
       onDragEnd={handleDragEnd}
     >
       <div className="space-y-4">
-        <div className="grid gap-3 rounded-md border p-3 md:grid-cols-4">
-          <div>
-            <p className="mb-1 text-xs font-medium text-muted-foreground">
-              From date
-            </p>
-            <DatePicker
-              value={dateFrom}
-              onChange={setDateFrom}
-              placeholder="Any start"
-            />
-          </div>
-          <div>
-            <p className="mb-1 text-xs font-medium text-muted-foreground">
-              To date
-            </p>
-            <DatePicker
-              value={dateTo}
-              onChange={setDateTo}
-              placeholder="Any end"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDateFrom("");
-                setDateTo("");
-              }}
-            >
-              Clear filters
-            </Button>
-          </div>
-          <div className="flex items-end justify-end">
-            <div className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={allFilteredSelected}
-                onCheckedChange={(checked) =>
-                  handleSelectAllFiltered(Boolean(checked))
-                }
-                aria-label="Select all filtered lessons"
-              />
-              <span>Select all filtered</span>
-            </div>
-          </div>
+        <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+          <p className="text-sm text-muted-foreground">
+            Focus mode: lesson list first
+          </p>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowPlanningTools((current) => !current)}
+          >
+            <SlidersHorizontal className="mr-1 h-4 w-4" />
+            {showPlanningTools ? "Hide tools" : "Show tools"}
+          </Button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
-          <p className="text-sm text-muted-foreground">
-            {selectedLessonIds.length} selected
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleBulkComplete}
-              disabled={isPending || selectedLessonIds.length === 0}
-            >
-              <Check className="mr-1 h-4 w-4" /> Mark completed
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleBulkDelete}
-              disabled={isPending || selectedLessonIds.length === 0}
-            >
-              <Trash2 className="mr-1 h-4 w-4" /> Delete selected
-            </Button>
+        {showPlanningTools && (
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="grid gap-3 md:grid-cols-4">
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  From date
+                </p>
+                <DatePicker
+                  value={dateFrom}
+                  onChange={setDateFrom}
+                  placeholder="Any start"
+                />
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  To date
+                </p>
+                <DatePicker
+                  value={dateTo}
+                  onChange={setDateTo}
+                  placeholder="Any end"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
+                >
+                  Clear filters
+                </Button>
+              </div>
+              <div className="flex items-end justify-end">
+                <div className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={allFilteredSelected}
+                    onCheckedChange={(checked) =>
+                      handleSelectAllFiltered(Boolean(checked))
+                    }
+                    aria-label="Select all filtered lessons"
+                  />
+                  <span>Select all filtered</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
+              <p className="text-sm text-muted-foreground">
+                {selectedLessonIds.length} selected
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleBulkComplete}
+                  disabled={isPending || selectedLessonIds.length === 0}
+                >
+                  <Check className="mr-1 h-4 w-4" /> Mark completed
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  disabled={isPending || selectedLessonIds.length === 0}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" /> Delete selected
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
