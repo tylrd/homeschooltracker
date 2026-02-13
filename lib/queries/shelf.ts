@@ -1,6 +1,14 @@
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { lessons, resources, students, subjects } from "@/db/schema";
+import {
+  absenceReasons,
+  absences,
+  globalAbsences,
+  lessons,
+  resources,
+  students,
+  subjects,
+} from "@/db/schema";
 
 export async function getAllResourcesWithProgress() {
   const db = getDb();
@@ -52,4 +60,72 @@ export async function getResourceWithLessons(resourceId: string) {
   });
 
   return resource;
+}
+
+export async function getEffectiveAbsencesForStudent(studentId: string) {
+  const db = getDb();
+
+  const [explicitRows, globalRows, completedRows] = await Promise.all([
+    db
+      .select({
+        date: absences.date,
+        reasonName: absenceReasons.name,
+        reasonColor: absenceReasons.color,
+      })
+      .from(absences)
+      .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
+      .where(eq(absences.studentId, studentId)),
+    db
+      .select({
+        date: globalAbsences.date,
+        reasonName: absenceReasons.name,
+        reasonColor: absenceReasons.color,
+      })
+      .from(globalAbsences)
+      .innerJoin(
+        absenceReasons,
+        eq(globalAbsences.reasonId, absenceReasons.id),
+      ),
+    db
+      .select({
+        completionDate: lessons.completionDate,
+      })
+      .from(lessons)
+      .innerJoin(resources, eq(lessons.resourceId, resources.id))
+      .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+      .where(
+        and(eq(subjects.studentId, studentId), eq(lessons.status, "completed")),
+      ),
+  ]);
+
+  const completedDates = new Set(
+    completedRows
+      .map((row) => row.completionDate)
+      .filter((date): date is string => Boolean(date)),
+  );
+
+  const byDate: Record<
+    string,
+    { reasonName: string; reasonColor: string; source: "individual" | "global" }
+  > = {};
+
+  for (const row of explicitRows) {
+    byDate[row.date] = {
+      reasonName: row.reasonName,
+      reasonColor: row.reasonColor,
+      source: "individual",
+    };
+  }
+
+  for (const row of globalRows) {
+    if (byDate[row.date]) continue;
+    if (completedDates.has(row.date)) continue;
+    byDate[row.date] = {
+      reasonName: row.reasonName,
+      reasonColor: row.reasonColor,
+      source: "global",
+    };
+  }
+
+  return byDate;
 }

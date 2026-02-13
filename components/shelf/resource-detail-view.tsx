@@ -28,6 +28,7 @@ export function ResourceDetailView({
   defaultLessonDate,
   schoolDays,
   defaultLessonCount,
+  absenceByDate,
 }: {
   resourceId: string;
   resourceName: string;
@@ -38,6 +39,10 @@ export function ResourceDetailView({
   defaultLessonDate: string;
   schoolDays: number[];
   defaultLessonCount: number;
+  absenceByDate: Record<
+    string,
+    { reasonName: string; reasonColor: string; source: "individual" | "global" }
+  >;
 }) {
   const [showPlanningTools, setShowPlanningTools] = useState(false);
   const total = lessons.length;
@@ -99,7 +104,13 @@ export function ResourceDetailView({
         </Badge>
       </div>
 
-      <LessonTable lessons={lessons} showPlanningTools={showPlanningTools} />
+      <LessonTable
+        lessons={lessons}
+        showPlanningTools={showPlanningTools}
+        resourceId={resourceId}
+        schoolDays={schoolDays}
+        absenceByDate={absenceByDate}
+      />
     </div>
   );
 }

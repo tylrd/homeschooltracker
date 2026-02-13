@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
+import { AddLessonForm } from "@/components/shelf/add-lesson-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -31,13 +32,20 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import type { Lesson } from "@/db/schema";
+import { getAbsenceColorClasses } from "@/lib/absence-colors";
 import {
   bulkCompleteLessons,
   bulkDeleteLessons,
   deleteLesson,
   updateLessonScheduledDate,
 } from "@/lib/actions/lessons";
-import { formatDate, getTodayDate, parseDate, toDateString } from "@/lib/dates";
+import {
+  formatDate,
+  getTodayDate,
+  isSchoolDay,
+  parseDate,
+  toDateString,
+} from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 function DateDropZone({
@@ -177,15 +185,25 @@ function CompactDateFilterButton({
 export function LessonTable({
   lessons,
   showPlanningTools,
+  resourceId,
+  schoolDays = [1, 2, 3, 4, 5],
+  absenceByDate = {},
 }: {
   lessons: Lesson[];
   showPlanningTools: boolean;
+  resourceId: string;
+  schoolDays?: number[];
+  absenceByDate?: Record<
+    string,
+    { reasonName: string; reasonColor: string; source: "individual" | "global" }
+  >;
 }) {
   const [isPending, startTransition] = useTransition();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const [showEmptyEarlierDays, setShowEmptyEarlierDays] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -212,11 +230,62 @@ export function LessonTable({
     }
 
     const today = getTodayDate();
-    const upcomingDates = Array.from(byDate.keys())
+    const existingScheduledDates = Array.from(byDate.keys())
+      .filter((date) => date !== "unscheduled")
+      .sort((a, b) => a.localeCompare(b));
+
+    const existingUpcomingDates = existingScheduledDates
+      .filter((date) => date >= today)
+      .sort((a, b) => b.localeCompare(a));
+    const existingEarlierDates = existingScheduledDates
+      .filter((date) => date < today)
+      .sort((a, b) => b.localeCompare(a));
+
+    const upcomingDateSet = new Set(existingUpcomingDates);
+    const startFutureDate = dateFrom && dateFrom > today ? dateFrom : today;
+    const cursor = parseDate(startFutureDate);
+    let addedFutureSchoolDays = 0;
+    let iterations = 0;
+    while (addedFutureSchoolDays < 5 && iterations < 3660) {
+      const dateStr = toDateString(cursor);
+      if (dateTo && dateStr > dateTo) {
+        break;
+      }
+      if (isSchoolDay(cursor, schoolDays)) {
+        upcomingDateSet.add(dateStr);
+        addedFutureSchoolDays++;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+      iterations++;
+    }
+
+    const upcomingDates = Array.from(upcomingDateSet)
       .filter((date) => date !== "unscheduled" && date >= today)
       .sort((a, b) => b.localeCompare(a));
-    const earlierDates = Array.from(byDate.keys())
-      .filter((date) => date !== "unscheduled" && date < today)
+
+    const earlierDateSet = new Set(existingEarlierDates);
+    if (existingEarlierDates.length > 0) {
+      const oldestPast = existingEarlierDates[existingEarlierDates.length - 1];
+      const rangeStart = dateFrom && dateFrom < today ? dateFrom : oldestPast;
+      const yesterdayDate = parseDate(today);
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterday = toDateString(yesterdayDate);
+      const rangeEnd = dateTo && dateTo < today ? dateTo : yesterday;
+
+      if (rangeStart <= rangeEnd) {
+        const pastCursor = parseDate(rangeStart);
+        while (toDateString(pastCursor) <= rangeEnd) {
+          const dateStr = toDateString(pastCursor);
+          if (isSchoolDay(pastCursor, schoolDays)) {
+            earlierDateSet.add(dateStr);
+          }
+          pastCursor.setDate(pastCursor.getDate() + 1);
+        }
+      }
+    }
+
+    const earlierDates = Array.from(earlierDateSet)
+      .filter((date) => date < today)
       .sort((a, b) => b.localeCompare(a));
 
     return {
@@ -225,7 +294,7 @@ export function LessonTable({
       earlierDates,
       unscheduled: byDate.get("unscheduled") ?? [],
     };
-  }, [filteredLessons]);
+  }, [dateFrom, dateTo, filteredLessons, schoolDays]);
 
   if (lessons.length === 0) {
     return (
@@ -280,38 +349,69 @@ export function LessonTable({
     });
   }
 
+  const nextLessonNumber =
+    lessons.reduce((max, lesson) => Math.max(max, lesson.lessonNumber), 0) + 1;
+
   function renderLessonGroup(date: string, groupLessons: Lesson[]) {
+    const absence = absenceByDate[date];
+    const absenceColor = absence
+      ? getAbsenceColorClasses(absence.reasonColor)
+      : null;
+
     return (
       <DateDropZone date={date} key={date}>
-        <div className="mb-2 flex items-center gap-2 px-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <Link
-              href={`/?date=${date}`}
-              className="underline-offset-2 hover:text-foreground hover:underline"
-            >
-              {formatDate(date)}
-            </Link>
-          </h3>
-          <span className="text-xs text-muted-foreground">
-            {groupLessons.length}
-          </span>
+        <div className="mb-2 flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Link
+                href={`/?date=${date}`}
+                className="underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {formatDate(date)}
+              </Link>
+            </h3>
+            {absence && absenceColor && (
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  absenceColor.bg,
+                  absenceColor.text,
+                )}
+              >
+                Absent: {absence.reasonName}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <AddLessonForm
+              resourceId={resourceId}
+              nextLessonNumber={nextLessonNumber}
+              defaultDate={date}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          {groupLessons
-            .slice()
-            .sort((a, b) => a.lessonNumber - b.lessonNumber)
-            .map((lesson) => (
-              <DraggableLessonRow
-                key={lesson.id}
-                lesson={lesson}
-                selected={selectedLessonIds.includes(lesson.id)}
-                onSelect={(checked) => toggleSelect(lesson.id, checked)}
-                onDelete={() => handleDelete(lesson.id)}
-                disabled={isPending}
-                showSelection={isBulkEditMode}
-              />
-            ))}
-        </div>
+        {groupLessons.length === 0 ? (
+          <p className="rounded border border-dashed px-3 py-2 text-sm text-muted-foreground">
+            No lesson planned
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {groupLessons
+              .slice()
+              .sort((a, b) => a.lessonNumber - b.lessonNumber)
+              .map((lesson) => (
+                <DraggableLessonRow
+                  key={lesson.id}
+                  lesson={lesson}
+                  selected={selectedLessonIds.includes(lesson.id)}
+                  onSelect={(checked) => toggleSelect(lesson.id, checked)}
+                  onDelete={() => handleDelete(lesson.id)}
+                  disabled={isPending}
+                  showSelection={isBulkEditMode}
+                />
+              ))}
+          </div>
+        )}
       </DateDropZone>
     );
   }
@@ -332,6 +432,11 @@ export function LessonTable({
   const allFilteredSelected =
     filteredLessons.length > 0 &&
     filteredLessons.every((lesson) => selectedLessonIds.includes(lesson.id));
+  const visibleEarlierDates = showEmptyEarlierDays
+    ? grouped.earlierDates
+    : grouped.earlierDates.filter(
+        (date) => (grouped.byDate.get(date) ?? []).length > 0,
+      );
 
   return (
     <DndContext
@@ -439,10 +544,19 @@ export function LessonTable({
           <>
             <Separator />
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Earlier / unscheduled
-              </h2>
-              {grouped.earlierDates.map((date) =>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Earlier / unscheduled
+                </h2>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={() => setShowEmptyEarlierDays((current) => !current)}
+                >
+                  {showEmptyEarlierDays ? "Hide empty days" : "Show empty days"}
+                </Button>
+              </div>
+              {visibleEarlierDates.map((date) =>
                 renderLessonGroup(date, grouped.byDate.get(date) ?? []),
               )}
               {grouped.unscheduled.length > 0 && (

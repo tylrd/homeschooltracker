@@ -6,14 +6,15 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -36,6 +37,7 @@ export function AddLessonForm({
   const [lessonNumber, setLessonNumber] = useState(nextLessonNumber);
   const [title, setTitle] = useState(`Lesson ${nextLessonNumber}`);
   const [scheduledDate, setScheduledDate] = useState(defaultDate);
+  const [plan, setPlan] = useState("");
   const [isPending, startTransition] = useTransition();
 
   function handleOpen(isOpen: boolean) {
@@ -43,24 +45,25 @@ export function AddLessonForm({
       setLessonNumber(nextLessonNumber);
       setTitle(`Lesson ${nextLessonNumber}`);
       setScheduledDate(defaultDate);
+      setPlan("");
     }
     setOpen(isOpen);
   }
 
   function handleSubmit() {
     startTransition(async () => {
-      await createLesson(resourceId, lessonNumber, title, scheduledDate);
+      await createLesson(resourceId, lessonNumber, title, scheduledDate, plan);
       router.refresh();
       setOpen(false);
     });
   }
 
   return (
-    <Drawer open={open} onOpenChange={handleOpen}>
+    <Dialog open={open} onOpenChange={handleOpen}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <DrawerTrigger asChild>
+            <DialogTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -69,16 +72,16 @@ export function AddLessonForm({
               >
                 <Plus className="h-4 w-4" />
               </Button>
-            </DrawerTrigger>
+            </DialogTrigger>
           </TooltipTrigger>
           <TooltipContent>Add Lesson</TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Add Lesson</DrawerTitle>
-        </DrawerHeader>
-        <div className="space-y-4 px-4 pb-8">
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Lesson</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Lesson #</Label>
@@ -104,6 +107,16 @@ export function AddLessonForm({
             />
           </div>
 
+          <div className="space-y-2">
+            <Label>Plan</Label>
+            <Textarea
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              placeholder="What should be covered in this lesson?"
+              rows={4}
+            />
+          </div>
+
           <Button
             onClick={handleSubmit}
             className="w-full"
@@ -112,7 +125,7 @@ export function AddLessonForm({
             {isPending ? "Adding..." : "Add Lesson"}
           </Button>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </DialogContent>
+    </Dialog>
   );
 }

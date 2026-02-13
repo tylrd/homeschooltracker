@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { ResourceDetailView } from "@/components/shelf/resource-detail-view";
 import { getFirstOpenDateOnOrAfter, toDateString } from "@/lib/dates";
 import { getDefaultLessonCount, getSchoolDays } from "@/lib/queries/settings";
-import { getResourceWithLessons } from "@/lib/queries/shelf";
+import {
+  getEffectiveAbsencesForStudent,
+  getResourceWithLessons,
+} from "@/lib/queries/shelf";
 
 export default async function ResourceDetailPage({
   params,
@@ -21,6 +24,10 @@ export default async function ResourceDetailPage({
   if (!resource) {
     notFound();
   }
+
+  const absenceByDate = await getEffectiveAbsencesForStudent(
+    resource.subject.student.id,
+  );
 
   const today = toDateString(new Date());
   const scheduledDates = resource.lessons
@@ -39,6 +46,7 @@ export default async function ResourceDetailPage({
       defaultLessonDate={defaultLessonDate}
       schoolDays={schoolDays}
       defaultLessonCount={defaultLessonCount}
+      absenceByDate={absenceByDate}
     />
   );
 }

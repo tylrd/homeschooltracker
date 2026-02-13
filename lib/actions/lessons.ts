@@ -192,6 +192,7 @@ export async function createLesson(
   lessonNumber: number,
   title: string,
   scheduledDate: string,
+  plan?: string,
 ) {
   const db = getDb();
   await db.insert(lessons).values({
@@ -199,6 +200,7 @@ export async function createLesson(
     lessonNumber,
     title: title.trim() || `Lesson ${lessonNumber}`,
     scheduledDate: scheduledDate || null,
+    plan: plan?.trim() ? plan.trim() : null,
     status: "planned",
   });
 
