@@ -4,7 +4,8 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -108,7 +109,7 @@ function DraggableLessonRow({
       )}
       <button
         type="button"
-        className="cursor-grab text-muted-foreground active:cursor-grabbing"
+        className="cursor-grab touch-none select-none text-muted-foreground active:cursor-grabbing"
         {...listeners}
         {...attributes}
         aria-label={`Drag lesson ${lesson.lessonNumber}`}
@@ -206,8 +207,11 @@ export function LessonTable({
   const [showEmptyEarlierDays, setShowEmptyEarlierDays] = useState(true);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 8 },
     }),
   );
 
