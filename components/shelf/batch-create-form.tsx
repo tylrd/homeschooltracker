@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -14,6 +14,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { batchCreateLessons } from "@/lib/actions/lessons";
 import { generateLessonDates, toDateString } from "@/lib/dates";
 
@@ -78,12 +84,23 @@ export function BatchCreateForm({
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <Button variant="outline" size="sm" className="text-muted-foreground">
-          <Plus className="mr-1 h-4 w-4" />
-          Generate Lessons
-        </Button>
-      </DrawerTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DrawerTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Generate Lessons"
+                className="text-muted-foreground"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            </DrawerTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Generate Lessons</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>Generate Lessons</DrawerTitle>

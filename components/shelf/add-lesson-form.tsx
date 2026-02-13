@@ -14,6 +14,12 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { createLesson } from "@/lib/actions/lessons";
 
 export function AddLessonForm({
@@ -51,12 +57,23 @@ export function AddLessonForm({
 
   return (
     <Drawer open={open} onOpenChange={handleOpen}>
-      <DrawerTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground">
-          <Plus className="mr-1 h-4 w-4" />
-          Add Lesson
-        </Button>
-      </DrawerTrigger>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DrawerTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Add Lesson"
+                className="text-muted-foreground"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DrawerTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Add Lesson</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>Add Lesson</DrawerTitle>

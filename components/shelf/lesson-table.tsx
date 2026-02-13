@@ -11,13 +11,24 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Check, GripVertical, SlidersHorizontal, Trash2 } from "lucide-react";
+import {
+  CalendarIcon,
+  Check,
+  GripVertical,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import type { Lesson } from "@/db/schema";
 import {
@@ -26,7 +37,7 @@ import {
   deleteLesson,
   updateLessonScheduledDate,
 } from "@/lib/actions/lessons";
-import { formatDate, getTodayDate } from "@/lib/dates";
+import { formatDate, getTodayDate, parseDate, toDateString } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 function DateDropZone({
@@ -42,8 +53,8 @@ function DateDropZone({
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-md border p-3 transition-colors",
-        isOver && "border-primary bg-primary/5",
+        "rounded-sm py-1 transition-colors",
+        isOver && "bg-primary/5 ring-1 ring-primary/40",
       )}
     >
       {children}
@@ -57,12 +68,14 @@ function DraggableLessonRow({
   onSelect,
   onDelete,
   disabled,
+  showSelection,
 }: {
   lesson: Lesson;
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onDelete: () => void;
   disabled: boolean;
+  showSelection: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: `lesson:${lesson.id}` });
@@ -72,15 +85,19 @@ function DraggableLessonRow({
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
       className={cn(
-        "grid grid-cols-[auto_auto_1fr_auto_auto_auto] items-center gap-3 rounded border px-2 py-2",
+        showSelection
+          ? "grid grid-cols-[auto_auto_1fr_auto_auto_auto] items-center gap-3 rounded border px-2 py-2"
+          : "grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-3 rounded border px-2 py-2",
         isDragging && "opacity-50",
       )}
     >
-      <Checkbox
-        checked={selected}
-        onCheckedChange={(checked) => onSelect(Boolean(checked))}
-        aria-label={`Select lesson ${lesson.lessonNumber}`}
-      />
+      {showSelection && (
+        <Checkbox
+          checked={selected}
+          onCheckedChange={(checked) => onSelect(Boolean(checked))}
+          aria-label={`Select lesson ${lesson.lessonNumber}`}
+        />
+      )}
       <button
         type="button"
         className="cursor-grab text-muted-foreground active:cursor-grabbing"
@@ -122,12 +139,53 @@ function DraggableLessonRow({
   );
 }
 
-export function LessonTable({ lessons }: { lessons: Lesson[] }) {
+function CompactDateFilterButton({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (date: string) => void;
+  label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? parseDate(value) : undefined;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant={value ? "secondary" : "outline"}>
+          <CalendarIcon className="h-4 w-4" />
+          {label}: {value ? formatDate(value) : "Any"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(date) => {
+            if (date) onChange(toDateString(date));
+            setOpen(false);
+          }}
+          defaultMonth={selected}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function LessonTable({
+  lessons,
+  showPlanningTools,
+}: {
+  lessons: Lesson[];
+  showPlanningTools: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
-  const [showPlanningTools, setShowPlanningTools] = useState(false);
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -156,10 +214,10 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
     const today = getTodayDate();
     const upcomingDates = Array.from(byDate.keys())
       .filter((date) => date !== "unscheduled" && date >= today)
-      .sort((a, b) => a.localeCompare(b));
+      .sort((a, b) => b.localeCompare(a));
     const earlierDates = Array.from(byDate.keys())
       .filter((date) => date !== "unscheduled" && date < today)
-      .sort((a, b) => a.localeCompare(b));
+      .sort((a, b) => b.localeCompare(a));
 
     return {
       byDate,
@@ -225,9 +283,18 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
   function renderLessonGroup(date: string, groupLessons: Lesson[]) {
     return (
       <DateDropZone date={date} key={date}>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-medium">{formatDate(date)}</h3>
-          <Badge variant="outline">{groupLessons.length} lessons</Badge>
+        <div className="mb-2 flex items-center gap-2 px-1">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Link
+              href={`/?date=${date}`}
+              className="underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {formatDate(date)}
+            </Link>
+          </h3>
+          <span className="text-xs text-muted-foreground">
+            {groupLessons.length}
+          </span>
         </div>
         <div className="space-y-2">
           {groupLessons
@@ -241,6 +308,7 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
                 onSelect={(checked) => toggleSelect(lesson.id, checked)}
                 onDelete={() => handleDelete(lesson.id)}
                 disabled={isPending}
+                showSelection={isBulkEditMode}
               />
             ))}
         </div>
@@ -272,91 +340,82 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
       onDragEnd={handleDragEnd}
     >
       <div className="space-y-4">
-        <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
-          <p className="text-sm text-muted-foreground">
-            Focus mode: lesson list first
-          </p>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShowPlanningTools((current) => !current)}
-          >
-            <SlidersHorizontal className="mr-1 h-4 w-4" />
-            {showPlanningTools ? "Hide tools" : "Show tools"}
-          </Button>
-        </div>
-
         {showPlanningTools && (
-          <div className="space-y-3 rounded-md border p-3">
-            <div className="grid gap-3 md:grid-cols-4">
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">
-                  From date
-                </p>
-                <DatePicker
-                  value={dateFrom}
-                  onChange={setDateFrom}
-                  placeholder="Any start"
-                />
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">
-                  To date
-                </p>
-                <DatePicker
-                  value={dateTo}
-                  onChange={setDateTo}
-                  placeholder="Any end"
-                />
-              </div>
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setDateFrom("");
-                    setDateTo("");
-                  }}
-                >
-                  Clear filters
-                </Button>
-              </div>
-              <div className="flex items-end justify-end">
-                <div className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={allFilteredSelected}
-                    onCheckedChange={(checked) =>
-                      handleSelectAllFiltered(Boolean(checked))
-                    }
-                    aria-label="Select all filtered lessons"
-                  />
-                  <span>Select all filtered</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2">
+            <CompactDateFilterButton
+              value={dateFrom}
+              onChange={setDateFrom}
+              label="From"
+            />
+            <CompactDateFilterButton
+              value={dateTo}
+              onChange={setDateTo}
+              label="To"
+            />
 
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
-              <p className="text-sm text-muted-foreground">
-                {selectedLessonIds.length} selected
-              </p>
-              <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+              }}
+              disabled={!dateFrom && !dateTo}
+            >
+              <RotateCcw className="h-4 w-4" />
+              Clear
+            </Button>
+
+            <Button
+              variant={isBulkEditMode ? "secondary" : "outline"}
+              size="sm"
+              onClick={() =>
+                setIsBulkEditMode((current) => {
+                  if (current) {
+                    setSelectedLessonIds([]);
+                  }
+                  return !current;
+                })
+              }
+            >
+              {isBulkEditMode ? "Exit bulk edit" : "Bulk edit"}
+            </Button>
+
+            {isBulkEditMode && (
+              <>
+                <Button
+                  variant={allFilteredSelected ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => handleSelectAllFiltered(!allFilteredSelected)}
+                >
+                  {allFilteredSelected ? "Unselect all" : "Select all"}
+                </Button>
+
+                <span className="text-sm text-muted-foreground">
+                  {selectedLessonIds.length} selected
+                </span>
+
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={handleBulkComplete}
                   disabled={isPending || selectedLessonIds.length === 0}
+                  aria-label="Mark complete"
                 >
-                  <Check className="mr-1 h-4 w-4" /> Mark completed
+                  <Check className="h-4 w-4" />
                 </Button>
+
                 <Button
                   size="sm"
                   variant="destructive"
                   onClick={handleBulkDelete}
                   disabled={isPending || selectedLessonIds.length === 0}
+                  aria-label="Delete selected"
                 >
-                  <Trash2 className="mr-1 h-4 w-4" /> Delete selected
+                  <Trash2 className="h-4 w-4" />
                 </Button>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -387,12 +446,14 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
                 renderLessonGroup(date, grouped.byDate.get(date) ?? []),
               )}
               {grouped.unscheduled.length > 0 && (
-                <div className="rounded-md border p-3">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-medium">Unscheduled</h3>
-                    <Badge variant="outline">
-                      {grouped.unscheduled.length} lessons
-                    </Badge>
+                <div className="py-1">
+                  <div className="mb-2 flex items-center gap-2 px-1">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Unscheduled
+                    </h3>
+                    <span className="text-xs text-muted-foreground">
+                      {grouped.unscheduled.length}
+                    </span>
                   </div>
                   <div className="space-y-2">
                     {grouped.unscheduled
@@ -408,6 +469,7 @@ export function LessonTable({ lessons }: { lessons: Lesson[] }) {
                           }
                           onDelete={() => handleDelete(lesson.id)}
                           disabled={isPending}
+                          showSelection={isBulkEditMode}
                         />
                       ))}
                   </div>

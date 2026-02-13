@@ -71,6 +71,23 @@ export function getTodayDate(): string {
 }
 
 /**
+ * Get the first date on or after startDate that is not present in takenDates.
+ */
+export function getFirstOpenDateOnOrAfter(
+  startDate: string,
+  takenDates: string[],
+): string {
+  const taken = new Set(takenDates.filter(Boolean));
+  const current = parseDate(startDate);
+
+  while (taken.has(toDateString(current))) {
+    current.setDate(current.getDate() + 1);
+  }
+
+  return toDateString(current);
+}
+
+/**
  * Convert a Date object to YYYY-MM-DD string.
  */
 export function toDateString(date: Date): string {
