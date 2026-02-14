@@ -1,26 +1,12 @@
 "use client";
 
-import {
-  Camera,
-  Images,
-  RotateCcw,
-  Trash2,
-  X,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { Camera, Images, RotateCcw, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,7 +65,6 @@ export function LessonDetailForm({
     id: string;
     imageId: string;
   } | null>(null);
-  const [zoom, setZoom] = useState(1);
 
   const isCompleted = status === "completed";
   const savedPlan = plan ?? "";
@@ -350,7 +335,6 @@ export function LessonDetailForm({
                   className="block w-full"
                   onClick={() => {
                     setActiveSample(sample);
-                    setZoom(1);
                   }}
                 >
                   <Image
@@ -377,51 +361,37 @@ export function LessonDetailForm({
         )}
       </div>
 
-      <Dialog
-        open={activeSample !== null}
-        onOpenChange={() => setActiveSample(null)}
-      >
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Work Sample</DialogTitle>
-          </DialogHeader>
-          {activeSample && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setZoom((value) => Math.max(1, value - 0.25))}
-                >
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <span className="w-14 text-center text-xs text-muted-foreground">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setZoom((value) => Math.min(4, value + 0.25))}
-                >
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="max-h-[70vh] overflow-auto rounded-md border bg-muted/20 p-2">
-                <Image
-                  src={`/api/curriculum-images/${activeSample.imageId}`}
-                  alt="Work sample"
-                  width={1280}
-                  height={960}
-                  className="mx-auto h-auto max-w-none origin-top rounded-md"
-                  style={{ transform: `scale(${zoom})` }}
-                />
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {activeSample && (
+        <div className="fixed inset-0 z-50 bg-black">
+          <div className="absolute inset-0 overflow-auto pb-4 pt-16">
+            <Image
+              src={`/api/curriculum-images/${activeSample.imageId}`}
+              alt="Work sample"
+              width={1280}
+              height={960}
+              className="mx-auto block h-auto w-full max-w-none"
+            />
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-3">
+            <a
+              href={`/api/curriculum-images/${activeSample.imageId}`}
+              download
+              className="pointer-events-auto inline-flex h-9 items-center rounded-md border border-white/30 bg-black/50 px-3 text-sm text-white"
+            >
+              Download
+            </a>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="pointer-events-auto border-white/30 bg-black/50 text-white hover:bg-black/70"
+              onClick={() => setActiveSample(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Button
         className="w-full"

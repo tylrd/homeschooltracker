@@ -8,8 +8,7 @@ import {
   Paperclip,
   RotateCcw,
   Trash2,
-  ZoomIn,
-  ZoomOut,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,13 +17,6 @@ import { toast } from "sonner";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -103,7 +95,6 @@ export function LessonCard({
   const [selectedSampleImageId, setSelectedSampleImageId] = useState<
     string | null
   >(null);
-  const [sampleZoom, setSampleZoom] = useState(1);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
 
@@ -234,92 +225,19 @@ export function LessonCard({
             </Button>
           )}
           {workSampleCount > 0 && (
-            <Dialog
-              open={samplesOpen}
-              onOpenChange={(open) => {
-                setSamplesOpen(open);
-                if (!open) {
-                  setSelectedSampleImageId(null);
-                  setSampleZoom(1);
-                }
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              title="View work samples"
+              disabled={deleting}
+              onClick={() => {
+                setSamplesOpen(true);
+                setSelectedSampleImageId(workSampleImageIds[0] ?? null);
               }}
             >
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  title="View work samples"
-                  disabled={deleting}
-                >
-                  <Images className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Work Samples ({workSampleCount})</DialogTitle>
-                </DialogHeader>
-                {selectedSampleImageId && (
-                  <div className="mb-3 space-y-2">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() =>
-                          setSampleZoom((value) => Math.max(1, value - 0.25))
-                        }
-                      >
-                        <ZoomOut className="h-4 w-4" />
-                      </Button>
-                      <span className="w-14 text-center text-xs text-muted-foreground">
-                        {Math.round(sampleZoom * 100)}%
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() =>
-                          setSampleZoom((value) => Math.min(4, value + 0.25))
-                        }
-                      >
-                        <ZoomIn className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="max-h-[50vh] overflow-auto rounded-md border bg-muted/20 p-2">
-                      <Image
-                        src={`/api/curriculum-images/${selectedSampleImageId}`}
-                        alt="Work sample"
-                        width={1280}
-                        height={960}
-                        className="mx-auto h-auto max-w-none origin-top rounded-md"
-                        style={{ transform: `scale(${sampleZoom})` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                <div className="grid max-h-[40vh] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
-                  {workSampleImageIds.map((imageId) => (
-                    <button
-                      key={imageId}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSampleImageId(imageId);
-                        setSampleZoom(1);
-                      }}
-                    >
-                      <Image
-                        src={`/api/curriculum-images/${imageId}`}
-                        alt="Work sample"
-                        width={640}
-                        height={480}
-                        className="h-32 w-full rounded-md border object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
+              <Images className="h-4 w-4" />
+            </Button>
           )}
           <Popover open={menuOpen} onOpenChange={setMenuOpen}>
             <PopoverTrigger asChild>
@@ -358,6 +276,71 @@ export function LessonCard({
           </Popover>
         </div>
       </div>
+      {samplesOpen && (
+        <div className="fixed inset-0 z-50 bg-black">
+          <div className="absolute inset-0 overflow-auto pb-28 pt-16">
+            {selectedSampleImageId && (
+              <Image
+                src={`/api/curriculum-images/${selectedSampleImageId}`}
+                alt="Work sample"
+                width={1280}
+                height={960}
+                className="mx-auto block h-auto w-full max-w-none"
+              />
+            )}
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-3">
+            {selectedSampleImageId ? (
+              <a
+                href={`/api/curriculum-images/${selectedSampleImageId}`}
+                download
+                className="pointer-events-auto inline-flex h-9 items-center rounded-md border border-white/30 bg-black/50 px-3 text-sm text-white"
+              >
+                Download
+              </a>
+            ) : (
+              <span />
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="pointer-events-auto border-white/30 bg-black/50 text-white hover:bg-black/70"
+              onClick={() => {
+                setSamplesOpen(false);
+                setSelectedSampleImageId(null);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 border-t border-white/20 bg-black/70 p-2">
+            <div className="flex gap-2 overflow-x-auto">
+              {workSampleImageIds.map((imageId) => (
+                <button
+                  key={imageId}
+                  type="button"
+                  onClick={() => setSelectedSampleImageId(imageId)}
+                  className="shrink-0 rounded-md"
+                >
+                  <Image
+                    src={`/api/curriculum-images/${imageId}`}
+                    alt="Work sample"
+                    width={640}
+                    height={480}
+                    className={cn(
+                      "h-20 w-20 rounded-md border object-cover",
+                      selectedSampleImageId === imageId
+                        ? "border-primary"
+                        : "border-white/30",
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
