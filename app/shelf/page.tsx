@@ -4,17 +4,19 @@ import { BookOpen } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ResourceCard } from "@/components/shelf/resource-card";
 import { SharedCurriculumCard } from "@/components/shelf/shared-curriculum-card";
-import { SharedCurriculumForm } from "@/components/shelf/shared-curriculum-form";
+import { ShelfAddCurriculumDialog } from "@/components/shelf/shelf-add-curriculum-dialog";
 import { StudentColorDot } from "@/components/student-color-dot";
 import {
   getAllResourcesWithProgress,
   getAllSharedCurriculaWithProgress,
 } from "@/lib/queries/shelf";
+import { getStudentsWithSubjectsForCurriculumAdd } from "@/lib/queries/students";
 
 export default async function ShelfPage() {
-  const [resources, sharedCurricula] = await Promise.all([
+  const [resources, sharedCurricula, students] = await Promise.all([
     getAllResourcesWithProgress(),
     getAllSharedCurriculaWithProgress(),
+    getStudentsWithSubjectsForCurriculumAdd(),
   ]);
 
   if (resources.length === 0 && sharedCurricula.length === 0) {
@@ -22,7 +24,7 @@ export default async function ShelfPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Curriculum Shelf</h1>
-          <SharedCurriculumForm />
+          <ShelfAddCurriculumDialog students={students} />
         </div>
         <EmptyState
           icon={BookOpen}
@@ -55,7 +57,7 @@ export default async function ShelfPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Curriculum Shelf</h1>
-        <SharedCurriculumForm />
+        <ShelfAddCurriculumDialog students={students} />
       </div>
 
       {sharedCurricula.length > 0 && (

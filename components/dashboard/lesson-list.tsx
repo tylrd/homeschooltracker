@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, EyeOff, Plus, Users, UserX } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
 import { AddLessonDialog } from "@/components/dashboard/add-lesson-dialog";
 import { LessonCard } from "@/components/dashboard/lesson-card";
@@ -15,7 +15,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
-import { setDashboardSharedLessonView } from "@/lib/actions/settings";
 import { cn } from "@/lib/utils";
 
 type DashboardLesson = {
@@ -119,10 +118,7 @@ export function LessonList({
   allStudents?: StudentSummary[];
   isStudentFiltered?: boolean;
 }) {
-  const [isPending, startTransition] = useTransition();
-  const [sharedLessonView, setSharedLessonView] = useState<"group" | "student">(
-    defaultSharedLessonView,
-  );
+  const sharedLessonView = defaultSharedLessonView;
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [hidingStudents, setHidingStudents] = useState<Set<string>>(new Set());
   const [noteTarget, setNoteTarget] = useState<{
@@ -266,43 +262,57 @@ export function LessonList({
 
   return (
     <>
-      {grouping === "student" &&
-        !isStudentFiltered &&
-        sharedLessons.length > 0 && (
-          <div className="mb-3 flex items-center justify-end gap-2">
-            <span className="text-xs text-muted-foreground">
-              Shared lessons
-            </span>
-            <Button
-              size="sm"
-              variant={sharedLessonView === "group" ? "secondary" : "outline"}
-              disabled={isPending}
-              onClick={() => {
-                startTransition(async () => {
-                  setSharedLessonView("group");
-                  await setDashboardSharedLessonView("group");
-                });
-              }}
-            >
-              Group cards
-            </Button>
-            <Button
-              size="sm"
-              variant={sharedLessonView === "student" ? "secondary" : "outline"}
-              disabled={isPending}
-              onClick={() => {
-                startTransition(async () => {
-                  setSharedLessonView("student");
-                  await setDashboardSharedLessonView("student");
-                });
-              }}
-            >
-              Student cards
-            </Button>
-          </div>
-        )}
-
       <div className="space-y-4">
+        {grouping === "student" &&
+          !isStudentFiltered &&
+          sharedLessonView === "group" &&
+          sharedGroupLessons.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Shared Curriculum</h2>
+              </div>
+              {sharedGroupLessons.map((lesson) => (
+                <div
+                  key={lesson.lessonId}
+                  className="space-y-1 rounded-md border p-3"
+                >
+                  <LessonCard
+                    lessonKind="shared"
+                    lessonId={lesson.lessonId}
+                    lessonNumber={lesson.lessonNumber}
+                    lessonTitle={lesson.lessonTitle}
+                    lessonPlan={lesson.lessonPlan}
+                    status={lesson.lessonStatus}
+                    resourceId={lesson.lessonId}
+                    resourceName={lesson.sharedCurriculumName}
+                    subjectName="Shared Curriculum"
+                    studentId={lesson.students[0]?.id ?? ""}
+                    studentName={lesson.students[0]?.name ?? "Shared"}
+                    studentColor={lesson.students[0]?.color ?? "blue"}
+                    date={date}
+                    showNoteButton={false}
+                    onNoteClick={() => {}}
+                  />
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {lesson.students.map((student) => (
+                      <span
+                        key={student.id}
+                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                      >
+                        <StudentColorDot
+                          color={student.color}
+                          className="h-2.5 w-2.5"
+                        />
+                        {student.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
         {grouping === "subject"
           ? Array.from(bySubject.entries()).map(([subjectName, group]) => (
               <div key={subjectName} className="space-y-2">
@@ -512,56 +522,6 @@ export function LessonList({
                 </div>
               );
             })}
-
-        {grouping === "student" &&
-          !isStudentFiltered &&
-          sharedLessonView === "group" &&
-          sharedGroupLessons.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold">Shared Curriculum</h2>
-              </div>
-              {sharedGroupLessons.map((lesson) => (
-                <div
-                  key={lesson.lessonId}
-                  className="space-y-1 rounded-md border p-3"
-                >
-                  <LessonCard
-                    lessonKind="shared"
-                    lessonId={lesson.lessonId}
-                    lessonNumber={lesson.lessonNumber}
-                    lessonTitle={lesson.lessonTitle}
-                    lessonPlan={lesson.lessonPlan}
-                    status={lesson.lessonStatus}
-                    resourceId={lesson.lessonId}
-                    resourceName={lesson.sharedCurriculumName}
-                    subjectName="Shared Curriculum"
-                    studentId={lesson.students[0]?.id ?? ""}
-                    studentName={lesson.students[0]?.name ?? "Shared"}
-                    studentColor={lesson.students[0]?.color ?? "blue"}
-                    date={date}
-                    showNoteButton={false}
-                    onNoteClick={() => {}}
-                  />
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {lesson.students.map((student) => (
-                      <span
-                        key={student.id}
-                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
-                      >
-                        <StudentColorDot
-                          color={student.color}
-                          className="h-2.5 w-2.5"
-                        />
-                        {student.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
       </div>
 
       <NoteDialog

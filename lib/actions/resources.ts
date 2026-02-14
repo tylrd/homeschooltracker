@@ -1,9 +1,9 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { resources } from "@/db/schema";
+import { resources, subjects } from "@/db/schema";
 import { validateImageFile } from "@/lib/images/validation";
 import { getImageStore } from "@/lib/storage/image-store";
 
@@ -37,6 +37,74 @@ export async function createResource(formData: FormData) {
   await db.insert(resources).values({ name, subjectId, coverImageId });
   revalidatePath(`/students/${studentId}`);
   revalidatePath("/shelf");
+}
+
+export async function createPersonalCurriculumFromShelf(formData: FormData) {
+  const db = getDb();
+  const imageStore = getImageStore();
+
+  const studentId = ((formData.get("studentId") as string | null) ?? "").trim();
+  const resourceName = ((formData.get("name") as string | null) ?? "").trim();
+  const selectedSubjectId = (
+    (formData.get("subjectId") as string | null) ?? ""
+  ).trim();
+  const newSubjectName = (
+    (formData.get("newSubjectName") as string | null) ?? ""
+  ).trim();
+  const coverImage = formData.get("coverImage");
+
+  if (!studentId || !resourceName) {
+    throw new Error("Student and curriculum name are required.");
+  }
+
+  let subjectId = selectedSubjectId;
+  if (newSubjectName) {
+    const [created] = await db
+      .insert(subjects)
+      .values({ name: newSubjectName, studentId })
+      .returning({ id: subjects.id });
+    subjectId = created.id;
+  }
+
+  if (!subjectId) {
+    throw new Error("Choose an existing subject or enter a new one.");
+  }
+
+  const subject = await db.query.subjects.findFirst({
+    where: and(eq(subjects.id, subjectId), eq(subjects.studentId, studentId)),
+    columns: { id: true },
+  });
+  if (!subject) {
+    throw new Error("Selected subject does not belong to that student.");
+  }
+
+  let coverImageId: string | null = null;
+  if (coverImage instanceof File && coverImage.size > 0) {
+    const validation = validateImageFile(coverImage);
+    if (!validation.ok) {
+      throw new Error(validation.message);
+    }
+
+    const savedImage = await imageStore.saveImage({
+      contentType: coverImage.type,
+      byteSize: coverImage.size,
+      imageData: Buffer.from(await coverImage.arrayBuffer()),
+    });
+    coverImageId = savedImage.id;
+  }
+
+  const [createdResource] = await db
+    .insert(resources)
+    .values({ name: resourceName, subjectId, coverImageId })
+    .returning({ id: resources.id });
+
+  revalidatePath("/shelf");
+  revalidatePath(`/students/${studentId}`);
+
+  return {
+    resourceId: createdResource.id,
+    subjectId,
+  };
 }
 
 export async function deleteResource(id: string, studentId: string) {

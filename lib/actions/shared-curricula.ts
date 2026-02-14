@@ -11,6 +11,10 @@ export async function createSharedCurriculum(formData: FormData) {
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const description = formData.get("description") as string | null;
   const coverImage = formData.get("coverImage");
+  const studentIds = formData
+    .getAll("studentIds")
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter((value) => value.length > 0);
 
   const trimmed = name;
   if (!trimmed) {
@@ -34,14 +38,35 @@ export async function createSharedCurriculum(formData: FormData) {
   }
 
   const db = getDb();
-  await db.insert(sharedCurricula).values({
-    name: trimmed,
-    description: description?.trim() || null,
-    coverImageId,
-  });
+  const [created] = await db
+    .insert(sharedCurricula)
+    .values({
+      name: trimmed,
+      description: description?.trim() || null,
+      coverImageId,
+    })
+    .returning({ id: sharedCurricula.id });
+
+  if (studentIds.length > 0) {
+    await db
+      .insert(sharedCurriculumStudents)
+      .values(
+        studentIds.map((studentId) => ({
+          sharedCurriculumId: created.id,
+          studentId,
+        })),
+      )
+      .onConflictDoNothing();
+  }
 
   revalidatePath("/shelf");
   revalidatePath("/");
+  revalidatePath("/attendance");
+  for (const studentId of studentIds) {
+    revalidatePath(`/students/${studentId}`);
+  }
+
+  return { sharedCurriculumId: created.id };
 }
 
 export async function addStudentToSharedCurriculum(

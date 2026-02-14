@@ -30,3 +30,24 @@ export async function getStudentWithSubjectsAndResources(id: string) {
     },
   });
 }
+
+export async function getStudentsWithSubjectsForCurriculumAdd() {
+  const db = getDb();
+  return db.query.students.findMany({
+    columns: {
+      id: true,
+      name: true,
+      color: true,
+    },
+    with: {
+      subjects: {
+        columns: {
+          id: true,
+          name: true,
+        },
+        orderBy: (subjects, { asc }) => [asc(subjects.name)],
+      },
+    },
+    orderBy: (students, { asc }) => [asc(students.name)],
+  });
+}
