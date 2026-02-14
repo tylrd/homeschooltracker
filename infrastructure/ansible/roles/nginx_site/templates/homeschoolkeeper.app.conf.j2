@@ -1,0 +1,17 @@
+server {
+    listen 80;
+    server_name {{ nginx_landing_domain }};
+
+    root {{ nginx_landing_root }};
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+server {
+    listen 80 default_server;
+    server_name _;
+    return 444;
+}

@@ -1,0 +1,43 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Ensure nginx is enabled and running
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Remove default nginx site symlink
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Remove default nginx site config
+  ansible.builtin.file:
+    path: /etc/nginx/sites-available/default
+    state: absent
+  notify: Reload nginx
+
+- name: Deploy homeschoolkeeper nginx site config
+  ansible.builtin.template:
+    src: homeschoolkeeper.app.conf.j2
+    dest: /etc/nginx/sites-available/homeschoolkeeper.app.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable homeschoolkeeper nginx site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/homeschoolkeeper.app.conf
+    dest: /etc/nginx/sites-enabled/homeschoolkeeper.app.conf
+    state: link
+  notify: Reload nginx
+
+- name: Flush handlers to reload nginx before continuing
+  ansible.builtin.meta: flush_handlers

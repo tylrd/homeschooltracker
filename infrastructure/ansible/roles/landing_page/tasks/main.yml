@@ -1,0 +1,16 @@
+---
+- name: Ensure landing page root exists
+  ansible.builtin.file:
+    path: /var/www/landing
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy landing page HTML
+  ansible.builtin.copy:
+    src: index.html
+    dest: /var/www/landing/index.html
+    owner: root
+    group: root
+    mode: "0644"

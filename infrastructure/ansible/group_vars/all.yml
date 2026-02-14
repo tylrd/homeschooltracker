@@ -17,3 +17,7 @@ security_ufw_allowed_tcp_ports:
 docker_install_compose: true
 docker_users:
   - root
+
+# Local nginx_site role options.
+nginx_landing_domain: homeschoolkeeper.app
+nginx_landing_root: /var/www/landing

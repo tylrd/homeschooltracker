@@ -1,0 +1,3 @@
+---
+nginx_landing_domain: homeschoolkeeper.app
+nginx_landing_root: /var/www/landing
