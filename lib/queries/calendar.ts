@@ -1,6 +1,13 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { lessons, resources, students, subjects } from "@/db/schema";
+import {
+  lessons,
+  resources,
+  sharedCurriculumStudents,
+  sharedLessons,
+  students,
+  subjects,
+} from "@/db/schema";
 
 export type CalendarDay = {
   total: number;
@@ -17,16 +24,16 @@ export async function getCalendarData(
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-  const conditions = [
+  const personalConditions = [
     gte(lessons.scheduledDate, startDate),
     lte(lessons.scheduledDate, endDate),
   ];
 
   if (studentId) {
-    conditions.push(eq(students.id, studentId));
+    personalConditions.push(eq(students.id, studentId));
   }
 
-  const rows = await db
+  const personalRows = await db
     .select({
       scheduledDate: lessons.scheduledDate,
       status: lessons.status,
@@ -35,7 +42,33 @@ export async function getCalendarData(
     .innerJoin(resources, eq(lessons.resourceId, resources.id))
     .innerJoin(subjects, eq(resources.subjectId, subjects.id))
     .innerJoin(students, eq(subjects.studentId, students.id))
-    .where(and(...conditions));
+    .where(and(...personalConditions));
+
+  const sharedConditions = [
+    gte(sharedLessons.scheduledDate, startDate),
+    lte(sharedLessons.scheduledDate, endDate),
+  ];
+  if (studentId) {
+    sharedConditions.push(eq(students.id, studentId));
+  }
+
+  const sharedRows = await db
+    .select({
+      scheduledDate: sharedLessons.scheduledDate,
+      status: sharedLessons.status,
+    })
+    .from(sharedLessons)
+    .innerJoin(
+      sharedCurriculumStudents,
+      eq(
+        sharedLessons.sharedCurriculumId,
+        sharedCurriculumStudents.sharedCurriculumId,
+      ),
+    )
+    .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
+    .where(and(...sharedConditions));
+
+  const rows = [...personalRows, ...sharedRows];
 
   const dayMap = new Map<string, CalendarDay>();
 

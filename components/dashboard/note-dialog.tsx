@@ -12,10 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { updateLessonPlan } from "@/lib/actions/lessons";
 import { upsertNote } from "@/lib/actions/notes";
+import { updateSharedLessonPlan } from "@/lib/actions/shared-lessons";
 
 type NoteTarget = {
   studentId: string;
   lessonId: string;
+  lessonKind?: "personal" | "shared";
 };
 
 function NoteForm({
@@ -40,7 +42,9 @@ function NoteForm({
   function handleSave() {
     startTransition(async () => {
       await Promise.all([
-        updateLessonPlan(target.lessonId, plan),
+        target.lessonKind === "shared"
+          ? updateSharedLessonPlan(target.lessonId, plan)
+          : updateLessonPlan(target.lessonId, plan),
         upsertNote(target.studentId, date, note),
       ]);
       onClose();

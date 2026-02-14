@@ -1,7 +1,7 @@
 "use client";
 
-import { Eye, EyeOff, Plus, UserX } from "lucide-react";
-import { useState } from "react";
+import { Eye, EyeOff, Plus, Users, UserX } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
 import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
 import { AddLessonDialog } from "@/components/dashboard/add-lesson-dialog";
 import { LessonCard } from "@/components/dashboard/lesson-card";
@@ -15,9 +15,38 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
+import { setDashboardSharedLessonView } from "@/lib/actions/settings";
 import { cn } from "@/lib/utils";
 
 type DashboardLesson = {
+  lessonId: string;
+  lessonNumber: number;
+  lessonTitle: string | null;
+  lessonPlan: string | null;
+  lessonStatus: string;
+  resourceId: string;
+  resourceName: string;
+  subjectName: string;
+  studentId: string;
+  studentName: string;
+  studentColor: string;
+};
+
+type DashboardSharedLesson = {
+  sharedLessonId: string;
+  lessonNumber: number;
+  lessonTitle: string | null;
+  lessonPlan: string | null;
+  lessonStatus: string;
+  sharedCurriculumId: string;
+  sharedCurriculumName: string;
+  studentId: string;
+  studentName: string;
+  studentColor: string;
+};
+
+type UnifiedLesson = {
+  lessonKind: "personal" | "shared";
   lessonId: string;
   lessonNumber: number;
   lessonTitle: string | null;
@@ -63,34 +92,44 @@ type StudentSummary = {
 
 export function LessonList({
   lessons,
+  sharedLessons,
   notes,
   date,
   reasons,
   absenceMap,
   defaultShowCompleted,
   grouping = "student",
+  defaultSharedLessonView = "group",
   showNoteButtons = true,
   studentResourceMap = {},
   allStudents = [],
+  isStudentFiltered = false,
 }: {
   lessons: DashboardLesson[];
+  sharedLessons: DashboardSharedLesson[];
   notes: Note[];
   date: string;
   reasons: AbsenceReason[];
   absenceMap: Record<string, AbsenceInfo>;
   defaultShowCompleted: boolean;
   grouping?: "student" | "subject";
+  defaultSharedLessonView?: "group" | "student";
   showNoteButtons?: boolean;
   studentResourceMap?: Record<string, StudentResource[]>;
   allStudents?: StudentSummary[];
+  isStudentFiltered?: boolean;
 }) {
-  // Per-student overrides: true/false means explicitly toggled, absent means use global
+  const [isPending, startTransition] = useTransition();
+  const [sharedLessonView, setSharedLessonView] = useState<"group" | "student">(
+    defaultSharedLessonView,
+  );
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [hidingStudents, setHidingStudents] = useState<Set<string>>(new Set());
   const [noteTarget, setNoteTarget] = useState<{
     studentId: string;
     lessonId: string;
     lessonPlan: string | null;
+    lessonKind?: "personal" | "shared";
   } | null>(null);
   const [draftPlan, setDraftPlan] = useState("");
   const [draftNote, setDraftNote] = useState("");
@@ -103,10 +142,84 @@ export function LessonList({
     studentName: string;
   } | null>(null);
 
-  // Group by student
+  const mergedLessons = useMemo<UnifiedLesson[]>(() => {
+    const personal = lessons.map((lesson) => ({
+      lessonKind: "personal" as const,
+      lessonId: lesson.lessonId,
+      lessonNumber: lesson.lessonNumber,
+      lessonTitle: lesson.lessonTitle,
+      lessonPlan: lesson.lessonPlan,
+      lessonStatus: lesson.lessonStatus,
+      resourceId: lesson.resourceId,
+      resourceName: lesson.resourceName,
+      subjectName: lesson.subjectName,
+      studentId: lesson.studentId,
+      studentName: lesson.studentName,
+      studentColor: lesson.studentColor,
+    }));
+
+    const shared = sharedLessons.map((lesson) => ({
+      lessonKind: "shared" as const,
+      lessonId: lesson.sharedLessonId,
+      lessonNumber: lesson.lessonNumber,
+      lessonTitle: lesson.lessonTitle,
+      lessonPlan: lesson.lessonPlan,
+      lessonStatus: lesson.lessonStatus,
+      resourceId: lesson.sharedCurriculumId,
+      resourceName: lesson.sharedCurriculumName,
+      subjectName: "Shared Curriculum",
+      studentId: lesson.studentId,
+      studentName: lesson.studentName,
+      studentColor: lesson.studentColor,
+    }));
+
+    return [...personal, ...shared];
+  }, [lessons, sharedLessons]);
+
+  const sharedGroupLessons = useMemo(() => {
+    const byLesson = new Map<
+      string,
+      {
+        lessonId: string;
+        lessonNumber: number;
+        lessonTitle: string | null;
+        lessonPlan: string | null;
+        lessonStatus: string;
+        sharedCurriculumName: string;
+        students: { id: string; name: string; color: string }[];
+      }
+    >();
+
+    for (const row of sharedLessons) {
+      const existing = byLesson.get(row.sharedLessonId);
+      const student = {
+        id: row.studentId,
+        name: row.studentName,
+        color: row.studentColor,
+      };
+      if (existing) {
+        existing.students.push(student);
+      } else {
+        byLesson.set(row.sharedLessonId, {
+          lessonId: row.sharedLessonId,
+          lessonNumber: row.lessonNumber,
+          lessonTitle: row.lessonTitle,
+          lessonPlan: row.lessonPlan,
+          lessonStatus: row.lessonStatus,
+          sharedCurriculumName: row.sharedCurriculumName,
+          students: [student],
+        });
+      }
+    }
+
+    return Array.from(byLesson.values()).sort(
+      (a, b) => a.lessonNumber - b.lessonNumber,
+    );
+  }, [sharedLessons]);
+
   const byStudent = new Map<
     string,
-    { name: string; color: string; lessons: DashboardLesson[] }
+    { name: string; color: string; lessons: UnifiedLesson[] }
   >();
   for (const student of allStudents) {
     byStudent.set(student.id, {
@@ -115,7 +228,7 @@ export function LessonList({
       lessons: [],
     });
   }
-  for (const lesson of lessons) {
+  for (const lesson of mergedLessons) {
     const existing = byStudent.get(lesson.studentId);
     if (existing) {
       existing.lessons.push(lesson);
@@ -128,13 +241,12 @@ export function LessonList({
     }
   }
 
-  // Group by subject
   const bySubject = new Map<
     string,
-    { name: string; lessons: DashboardLesson[] }
+    { name: string; lessons: UnifiedLesson[] }
   >();
   if (grouping === "subject") {
-    for (const lesson of lessons) {
+    for (const lesson of mergedLessons) {
       const existing = bySubject.get(lesson.subjectName);
       if (existing) {
         existing.lessons.push(lesson);
@@ -150,8 +262,46 @@ export function LessonList({
   const noteForStudent = (studentId: string) =>
     notes.find((n) => n.studentId === studentId)?.content ?? "";
 
+  const todayResourceIds = new Set(lessons.map((l) => l.resourceId));
+
   return (
     <>
+      {grouping === "student" &&
+        !isStudentFiltered &&
+        sharedLessons.length > 0 && (
+          <div className="mb-3 flex items-center justify-end gap-2">
+            <span className="text-xs text-muted-foreground">
+              Shared lessons
+            </span>
+            <Button
+              size="sm"
+              variant={sharedLessonView === "group" ? "secondary" : "outline"}
+              disabled={isPending}
+              onClick={() => {
+                startTransition(async () => {
+                  setSharedLessonView("group");
+                  await setDashboardSharedLessonView("group");
+                });
+              }}
+            >
+              Group cards
+            </Button>
+            <Button
+              size="sm"
+              variant={sharedLessonView === "student" ? "secondary" : "outline"}
+              disabled={isPending}
+              onClick={() => {
+                startTransition(async () => {
+                  setSharedLessonView("student");
+                  await setDashboardSharedLessonView("student");
+                });
+              }}
+            >
+              Student cards
+            </Button>
+          </div>
+        )}
+
       <div className="space-y-4">
         {grouping === "subject"
           ? Array.from(bySubject.entries()).map(([subjectName, group]) => (
@@ -175,7 +325,8 @@ export function LessonList({
                     )
                     .map((lesson) => (
                       <LessonCard
-                        key={lesson.lessonId}
+                        key={`${lesson.lessonKind}:${lesson.lessonId}:${lesson.studentId}`}
+                        lessonKind={lesson.lessonKind}
                         lessonId={lesson.lessonId}
                         lessonNumber={lesson.lessonNumber}
                         lessonTitle={lesson.lessonTitle}
@@ -202,6 +353,19 @@ export function LessonList({
             ))
           : Array.from(byStudent.entries()).map(([studentId, group]) => {
               const absence = absenceMap[studentId];
+              const studentShow = overrides[studentId] ?? defaultShowCompleted;
+
+              const filteredLessons = group.lessons.filter((lesson) => {
+                if (
+                  lesson.lessonKind === "shared" &&
+                  !isStudentFiltered &&
+                  sharedLessonView === "group"
+                ) {
+                  return false;
+                }
+                return studentShow || lesson.lessonStatus !== "completed";
+              });
+
               return (
                 <div key={studentId} className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -229,55 +393,47 @@ export function LessonList({
                     <div className="flex-1" />
                     <TooltipProvider>
                       <div className="flex items-center">
-                        {(() => {
-                          const studentShow =
-                            overrides[studentId] ?? defaultShowCompleted;
-                          return (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground"
-                                  onClick={() => {
-                                    if (studentShow) {
-                                      setHidingStudents((s) =>
-                                        new Set(s).add(studentId),
-                                      );
-                                      setTimeout(() => {
-                                        setOverrides((prev) => ({
-                                          ...prev,
-                                          [studentId]: false,
-                                        }));
-                                        setHidingStudents((s) => {
-                                          const next = new Set(s);
-                                          next.delete(studentId);
-                                          return next;
-                                        });
-                                      }, 300);
-                                    } else {
-                                      setOverrides((prev) => ({
-                                        ...prev,
-                                        [studentId]: true,
-                                      }));
-                                    }
-                                  }}
-                                >
-                                  {studentShow ? (
-                                    <EyeOff className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <Eye className="h-3.5 w-3.5" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {studentShow
-                                  ? "Hide completed"
-                                  : "Show completed"}
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })()}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              onClick={() => {
+                                if (studentShow) {
+                                  setHidingStudents((s) =>
+                                    new Set(s).add(studentId),
+                                  );
+                                  setTimeout(() => {
+                                    setOverrides((prev) => ({
+                                      ...prev,
+                                      [studentId]: false,
+                                    }));
+                                    setHidingStudents((s) => {
+                                      const next = new Set(s);
+                                      next.delete(studentId);
+                                      return next;
+                                    });
+                                  }, 300);
+                                } else {
+                                  setOverrides((prev) => ({
+                                    ...prev,
+                                    [studentId]: true,
+                                  }));
+                                }
+                              }}
+                            >
+                              {studentShow ? (
+                                <EyeOff className="h-3.5 w-3.5" />
+                              ) : (
+                                <Eye className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {studentShow ? "Hide completed" : "Show completed"}
+                          </TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -318,76 +474,104 @@ export function LessonList({
                     </TooltipProvider>
                   </div>
                   <div className="space-y-2">
-                    {(() => {
-                      const studentShow =
-                        overrides[studentId] ?? defaultShowCompleted;
-                      const visible = studentShow
-                        ? group.lessons
-                        : group.lessons.filter(
-                            (l) => l.lessonStatus !== "completed",
-                          );
-
-                      if (visible.length === 0) {
-                        return (
-                          <p className="text-sm text-muted-foreground">
-                            No lessons scheduled.
-                          </p>
-                        );
-                      }
-
-                      const resourceCount = new Map<string, number>();
-                      for (const l of visible) {
-                        resourceCount.set(
-                          l.resourceId,
-                          (resourceCount.get(l.resourceId) ?? 0) + 1,
-                        );
-                      }
-                      const resourceSeen = new Set<string>();
-                      return visible.map((lesson) => {
-                        const isDuplicate = resourceSeen.has(lesson.resourceId);
-                        resourceSeen.add(lesson.resourceId);
-                        const hasDuplicates =
-                          (resourceCount.get(lesson.resourceId) ?? 0) > 1;
-                        return (
-                          <LessonCard
-                            key={lesson.lessonId}
-                            lessonId={lesson.lessonId}
-                            lessonNumber={lesson.lessonNumber}
-                            lessonTitle={lesson.lessonTitle}
-                            lessonPlan={lesson.lessonPlan}
-                            status={lesson.lessonStatus}
-                            resourceId={lesson.resourceId}
-                            resourceName={lesson.resourceName}
-                            subjectName={lesson.subjectName}
-                            studentName={lesson.studentName}
-                            studentColor={lesson.studentColor}
-                            studentId={lesson.studentId}
-                            date={date}
-                            isMakeup={hasDuplicates && isDuplicate}
-                            exiting={
-                              hidingStudents.has(studentId) &&
-                              lesson.lessonStatus === "completed"
-                            }
-                            showNoteButton={showNoteButtons}
-                            onNoteClick={(target) => {
-                              setNoteTarget(target);
-                              setDraftPlan(target.lessonPlan ?? "");
-                              setDraftNote(noteForStudent(target.studentId));
-                            }}
-                          />
-                        );
-                      });
-                    })()}
+                    {filteredLessons.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No lessons scheduled.
+                      </p>
+                    ) : (
+                      filteredLessons.map((lesson) => (
+                        <LessonCard
+                          key={`${lesson.lessonKind}:${lesson.lessonId}:${lesson.studentId}`}
+                          lessonKind={lesson.lessonKind}
+                          lessonId={lesson.lessonId}
+                          lessonNumber={lesson.lessonNumber}
+                          lessonTitle={lesson.lessonTitle}
+                          lessonPlan={lesson.lessonPlan}
+                          status={lesson.lessonStatus}
+                          resourceId={lesson.resourceId}
+                          resourceName={lesson.resourceName}
+                          subjectName={lesson.subjectName}
+                          studentName={lesson.studentName}
+                          studentColor={lesson.studentColor}
+                          studentId={lesson.studentId}
+                          date={date}
+                          exiting={
+                            hidingStudents.has(studentId) &&
+                            lesson.lessonStatus === "completed"
+                          }
+                          showNoteButton={showNoteButtons}
+                          onNoteClick={(target) => {
+                            setNoteTarget(target);
+                            setDraftPlan(target.lessonPlan ?? "");
+                            setDraftNote(noteForStudent(target.studentId));
+                          }}
+                        />
+                      ))
+                    )}
                   </div>
                 </div>
               );
             })}
+
+        {grouping === "student" &&
+          !isStudentFiltered &&
+          sharedLessonView === "group" &&
+          sharedGroupLessons.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Shared Curriculum</h2>
+              </div>
+              {sharedGroupLessons.map((lesson) => (
+                <div
+                  key={lesson.lessonId}
+                  className="space-y-1 rounded-md border p-3"
+                >
+                  <LessonCard
+                    lessonKind="shared"
+                    lessonId={lesson.lessonId}
+                    lessonNumber={lesson.lessonNumber}
+                    lessonTitle={lesson.lessonTitle}
+                    lessonPlan={lesson.lessonPlan}
+                    status={lesson.lessonStatus}
+                    resourceId={lesson.lessonId}
+                    resourceName={lesson.sharedCurriculumName}
+                    subjectName="Shared Curriculum"
+                    studentId={lesson.students[0]?.id ?? ""}
+                    studentName={lesson.students[0]?.name ?? "Shared"}
+                    studentColor={lesson.students[0]?.color ?? "blue"}
+                    date={date}
+                    showNoteButton={false}
+                    onNoteClick={() => {}}
+                  />
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {lesson.students.map((student) => (
+                      <span
+                        key={student.id}
+                        className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                      >
+                        <StudentColorDot
+                          color={student.color}
+                          className="h-2.5 w-2.5"
+                        />
+                        {student.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
       </div>
 
       <NoteDialog
         target={
           noteTarget
-            ? { studentId: noteTarget.studentId, lessonId: noteTarget.lessonId }
+            ? {
+                studentId: noteTarget.studentId,
+                lessonId: noteTarget.lessonId,
+                lessonKind: noteTarget.lessonKind,
+              }
             : null
         }
         date={date}
@@ -440,7 +624,7 @@ export function LessonList({
             ? (studentResourceMap[addLessonTarget.studentId] ?? [])
             : []
         }
-        todayResourceIds={new Set(lessons.map((l) => l.resourceId))}
+        todayResourceIds={todayResourceIds}
       />
     </>
   );

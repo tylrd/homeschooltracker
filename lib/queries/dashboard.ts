@@ -7,6 +7,9 @@ import {
   globalAbsences,
   lessons,
   resources,
+  sharedCurricula,
+  sharedCurriculumStudents,
+  sharedLessons,
   students,
   subjects,
 } from "@/db/schema";
@@ -51,6 +54,111 @@ export async function getTodayLessons(date: string, studentId?: string) {
     .orderBy(students.name, subjects.name, lessons.lessonNumber);
 
   return rows;
+}
+
+export async function getTodaySharedLessons(date: string, studentId?: string) {
+  const db = getDb();
+  const conditions = [eq(sharedLessons.scheduledDate, date)];
+
+  if (studentId) {
+    conditions.push(eq(students.id, studentId));
+  }
+
+  return db
+    .select({
+      sharedLessonId: sharedLessons.id,
+      lessonNumber: sharedLessons.lessonNumber,
+      lessonTitle: sharedLessons.title,
+      lessonPlan: sharedLessons.plan,
+      lessonStatus: sharedLessons.status,
+      scheduledDate: sharedLessons.scheduledDate,
+      sharedCurriculumId: sharedCurricula.id,
+      sharedCurriculumName: sharedCurricula.name,
+      studentId: students.id,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(sharedLessons)
+    .innerJoin(
+      sharedCurricula,
+      eq(sharedLessons.sharedCurriculumId, sharedCurricula.id),
+    )
+    .innerJoin(
+      sharedCurriculumStudents,
+      eq(sharedCurriculumStudents.sharedCurriculumId, sharedCurricula.id),
+    )
+    .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
+    .where(and(...conditions))
+    .orderBy(students.name, sharedCurricula.name, sharedLessons.lessonNumber);
+}
+
+export async function getSharedCurriculaForDashboardAdd(
+  date: string,
+  studentId?: string,
+) {
+  const db = getDb();
+  const rows = await db
+    .select({
+      sharedCurriculumId: sharedCurricula.id,
+      sharedCurriculumName: sharedCurricula.name,
+      studentId: students.id,
+      studentName: students.name,
+      studentColor: students.color,
+      existingLessonId: sharedLessons.id,
+    })
+    .from(sharedCurricula)
+    .innerJoin(
+      sharedCurriculumStudents,
+      eq(sharedCurriculumStudents.sharedCurriculumId, sharedCurricula.id),
+    )
+    .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
+    .leftJoin(
+      sharedLessons,
+      and(
+        eq(sharedLessons.sharedCurriculumId, sharedCurricula.id),
+        eq(sharedLessons.scheduledDate, date),
+      ),
+    )
+    .where(studentId ? eq(students.id, studentId) : undefined)
+    .orderBy(asc(sharedCurricula.name), asc(students.name));
+
+  const byCurriculum = new Map<
+    string,
+    {
+      sharedCurriculumId: string;
+      sharedCurriculumName: string;
+      students: { id: string; name: string; color: string }[];
+      isScheduledToday: boolean;
+      existingLessonId: string | null;
+    }
+  >();
+
+  for (const row of rows) {
+    const existing = byCurriculum.get(row.sharedCurriculumId);
+    const student = {
+      id: row.studentId,
+      name: row.studentName,
+      color: row.studentColor,
+    };
+    if (existing) {
+      existing.students.push(student);
+      existing.isScheduledToday =
+        existing.isScheduledToday || !!row.existingLessonId;
+      if (!existing.existingLessonId && row.existingLessonId) {
+        existing.existingLessonId = row.existingLessonId;
+      }
+    } else {
+      byCurriculum.set(row.sharedCurriculumId, {
+        sharedCurriculumId: row.sharedCurriculumId,
+        sharedCurriculumName: row.sharedCurriculumName,
+        students: [student],
+        isScheduledToday: !!row.existingLessonId,
+        existingLessonId: row.existingLessonId,
+      });
+    }
+  }
+
+  return Array.from(byCurriculum.values());
 }
 
 export async function getTodayNotes(date: string) {

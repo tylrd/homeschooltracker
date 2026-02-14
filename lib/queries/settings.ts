@@ -54,6 +54,13 @@ export async function getDashboardGrouping(): Promise<"student" | "subject"> {
   return value === "subject" ? "subject" : "student";
 }
 
+export async function getDashboardSharedLessonView(): Promise<
+  "group" | "student"
+> {
+  const value = await getSetting("dashboardSharedLessonView");
+  return value === "student" ? "student" : "group";
+}
+
 export async function getBumpBehavior(): Promise<
   "next_school_day" | "same_day_next_week"
 > {

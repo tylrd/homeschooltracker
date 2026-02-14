@@ -165,9 +165,16 @@ export function AttendanceLog({
                               href={`/lessons/${lesson.lessonId}`}
                               className="hover:underline"
                             >
-                              <span className="text-muted-foreground">
-                                {lesson.subjectName} &middot;{" "}
-                              </span>
+                              {lesson.lessonKind === "shared" && (
+                                <span className="text-muted-foreground">
+                                  Shared &middot;{" "}
+                                </span>
+                              )}
+                              {lesson.lessonKind !== "shared" && (
+                                <span className="text-muted-foreground">
+                                  {lesson.subjectName} &middot;{" "}
+                                </span>
+                              )}
                               {lesson.resourceName}{" "}
                               <span className="text-muted-foreground">
                                 #{lesson.lessonNumber}

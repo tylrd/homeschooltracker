@@ -73,6 +73,49 @@ export const resources = pgTable(
   (table) => [index("resources_subject_id_idx").on(table.subjectId)],
 );
 
+export const sharedCurricula = pgTable("shared_curricula", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  description: text(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const sharedCurriculumStudents = pgTable(
+  "shared_curriculum_students",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    sharedCurriculumId: uuid("shared_curriculum_id")
+      .notNull()
+      .references(() => sharedCurricula.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("shared_curriculum_students_shared_curriculum_id_idx").on(
+      table.sharedCurriculumId,
+    ),
+    index("shared_curriculum_students_student_id_idx").on(table.studentId),
+    uniqueIndex("shared_curriculum_students_unique_idx").on(
+      table.sharedCurriculumId,
+      table.studentId,
+    ),
+  ],
+);
+
 export const lessons = pgTable(
   "lessons",
   {
@@ -99,6 +142,40 @@ export const lessons = pgTable(
     index("lessons_resource_id_idx").on(table.resourceId),
     index("lessons_scheduled_date_idx").on(table.scheduledDate),
     index("lessons_scheduled_date_status_idx").on(
+      table.scheduledDate,
+      table.status,
+    ),
+  ],
+);
+
+export const sharedLessons = pgTable(
+  "shared_lessons",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    sharedCurriculumId: uuid("shared_curriculum_id")
+      .notNull()
+      .references(() => sharedCurricula.id, { onDelete: "cascade" }),
+    lessonNumber: integer("lesson_number").notNull(),
+    title: text(),
+    status: lessonStatusEnum().notNull().default("planned"),
+    scheduledDate: date("scheduled_date"),
+    completionDate: date("completion_date"),
+    plan: text(),
+    notes: text(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("shared_lessons_shared_curriculum_id_idx").on(
+      table.sharedCurriculumId,
+    ),
+    index("shared_lessons_scheduled_date_idx").on(table.scheduledDate),
+    index("shared_lessons_scheduled_date_status_idx").on(
       table.scheduledDate,
       table.status,
     ),
@@ -187,6 +264,7 @@ export const studentsRelations = relations(students, ({ many }) => ({
   subjects: many(subjects),
   dailyNotes: many(dailyNotes),
   absences: many(absences),
+  sharedCurriculumMemberships: many(sharedCurriculumStudents),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -209,6 +287,35 @@ export const lessonsRelations = relations(lessons, ({ one }) => ({
   resource: one(resources, {
     fields: [lessons.resourceId],
     references: [resources.id],
+  }),
+}));
+
+export const sharedCurriculaRelations = relations(
+  sharedCurricula,
+  ({ many }) => ({
+    students: many(sharedCurriculumStudents),
+    lessons: many(sharedLessons),
+  }),
+);
+
+export const sharedCurriculumStudentsRelations = relations(
+  sharedCurriculumStudents,
+  ({ one }) => ({
+    sharedCurriculum: one(sharedCurricula, {
+      fields: [sharedCurriculumStudents.sharedCurriculumId],
+      references: [sharedCurricula.id],
+    }),
+    student: one(students, {
+      fields: [sharedCurriculumStudents.studentId],
+      references: [students.id],
+    }),
+  }),
+);
+
+export const sharedLessonsRelations = relations(sharedLessons, ({ one }) => ({
+  sharedCurriculum: one(sharedCurricula, {
+    fields: [sharedLessons.sharedCurriculumId],
+    references: [sharedCurricula.id],
   }),
 }));
 
@@ -258,6 +365,17 @@ export type NewResource = typeof resources.$inferInsert;
 
 export type Lesson = typeof lessons.$inferSelect;
 export type NewLesson = typeof lessons.$inferInsert;
+
+export type SharedCurriculum = typeof sharedCurricula.$inferSelect;
+export type NewSharedCurriculum = typeof sharedCurricula.$inferInsert;
+
+export type SharedCurriculumStudent =
+  typeof sharedCurriculumStudents.$inferSelect;
+export type NewSharedCurriculumStudent =
+  typeof sharedCurriculumStudents.$inferInsert;
+
+export type SharedLesson = typeof sharedLessons.$inferSelect;
+export type NewSharedLesson = typeof sharedLessons.$inferInsert;
 
 export type DailyNote = typeof dailyNotes.$inferSelect;
 export type NewDailyNote = typeof dailyNotes.$inferInsert;

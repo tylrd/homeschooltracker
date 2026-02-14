@@ -40,6 +40,10 @@ export async function setDashboardGrouping(mode: "student" | "subject") {
   await setSetting("dashboardGrouping", mode);
 }
 
+export async function setDashboardSharedLessonView(mode: "group" | "student") {
+  await setSetting("dashboardSharedLessonView", mode);
+}
+
 export async function setBumpBehavior(
   behavior: "next_school_day" | "same_day_next_week",
 ) {

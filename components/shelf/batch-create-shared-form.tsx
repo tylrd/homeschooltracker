@@ -1,0 +1,169 @@
+"use client";
+
+import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { batchCreateSharedLessons } from "@/lib/actions/shared-lessons";
+import { generateLessonDates, toDateString } from "@/lib/dates";
+
+const ALL_DAYS = [
+  { value: "0", label: "Sun" },
+  { value: "1", label: "Mon" },
+  { value: "2", label: "Tue" },
+  { value: "3", label: "Wed" },
+  { value: "4", label: "Thu" },
+  { value: "5", label: "Fri" },
+  { value: "6", label: "Sat" },
+];
+
+export function BatchCreateSharedForm({
+  sharedCurriculumId,
+  existingCount,
+  defaultSchoolDays = [1, 2, 3, 4, 5],
+  defaultLessonCount = 20,
+}: {
+  sharedCurriculumId: string;
+  existingCount: number;
+  defaultSchoolDays?: number[];
+  defaultLessonCount?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [startLesson, setStartLesson] = useState(existingCount + 1);
+  const [endLesson, setEndLesson] = useState(
+    existingCount + defaultLessonCount,
+  );
+  const [startDate, setStartDate] = useState(toDateString(new Date()));
+  const [selectedDays, setSelectedDays] = useState(
+    defaultSchoolDays.map(String),
+  );
+
+  const count = Math.max(0, endLesson - startLesson + 1);
+  const schoolDays = selectedDays.map(Number);
+
+  let endDateStr = "";
+  if (count > 0 && schoolDays.length > 0) {
+    const dates = generateLessonDates(
+      new Date(`${startDate}T00:00:00`),
+      count,
+      schoolDays,
+    );
+    if (dates.length > 0) {
+      endDateStr = toDateString(dates[dates.length - 1]);
+    }
+  }
+
+  async function handleSubmit() {
+    if (count <= 0 || schoolDays.length === 0) return;
+    await batchCreateSharedLessons(
+      sharedCurriculumId,
+      startLesson,
+      endLesson,
+      startDate,
+      schoolDays,
+    );
+    setOpen(false);
+  }
+
+  return (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DrawerTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Generate Lessons"
+                className="text-muted-foreground"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            </DrawerTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Generate Lessons</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Generate Shared Lessons</DrawerTitle>
+        </DrawerHeader>
+        <div className="space-y-4 px-4 pb-8">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Start Lesson #</Label>
+              <Input
+                type="number"
+                min={1}
+                value={startLesson}
+                onChange={(e) => setStartLesson(Number(e.target.value))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>End Lesson #</Label>
+              <Input
+                type="number"
+                min={startLesson}
+                value={endLesson}
+                onChange={(e) => setEndLesson(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Start Date</Label>
+            <DatePicker value={startDate} onChange={setStartDate} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>School Days</Label>
+            <ToggleGroup
+              type="multiple"
+              value={selectedDays}
+              onValueChange={(value) => {
+                if (value.length > 0) setSelectedDays(value);
+              }}
+              className="justify-start"
+            >
+              {ALL_DAYS.map((day) => (
+                <ToggleGroupItem key={day.value} value={day.value} size="sm">
+                  {day.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+
+          {count > 0 && endDateStr && (
+            <p className="text-sm text-muted-foreground">
+              {count} lessons, {startDate} &rarr; {endDateStr}
+            </p>
+          )}
+
+          <Button
+            onClick={handleSubmit}
+            className="w-full"
+            disabled={count <= 0 || schoolDays.length === 0}
+          >
+            Generate {count} Lessons
+          </Button>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+}

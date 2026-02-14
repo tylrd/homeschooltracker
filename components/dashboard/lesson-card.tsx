@@ -24,6 +24,12 @@ import {
   deleteLesson,
   uncompleteLesson,
 } from "@/lib/actions/lessons";
+import {
+  bumpSharedLesson,
+  completeSharedLesson,
+  deleteSharedLesson,
+  uncompleteSharedLesson,
+} from "@/lib/actions/shared-lessons";
 import { getColorClasses } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +41,7 @@ type LessonCardProps = {
   resourceId: string;
   resourceName: string;
   subjectName: string;
+  lessonKind?: "personal" | "shared";
   studentName: string;
   studentColor: string;
   studentId: string;
@@ -48,6 +55,7 @@ type LessonCardProps = {
     studentId: string;
     lessonId: string;
     lessonPlan: string | null;
+    lessonKind?: "personal" | "shared";
   }) => void;
 };
 
@@ -59,6 +67,7 @@ export function LessonCard({
   resourceId: _resourceId,
   resourceName,
   subjectName,
+  lessonKind = "personal",
   studentName,
   studentColor,
   studentId,
@@ -79,6 +88,15 @@ export function LessonCard({
 
   function handleToggle() {
     startTransition(async () => {
+      if (lessonKind === "shared") {
+        if (isCompleted) {
+          await uncompleteSharedLesson(lessonId);
+        } else {
+          await completeSharedLesson(lessonId);
+        }
+        return;
+      }
+
       if (isCompleted) {
         await uncompleteLesson(lessonId);
       } else {
@@ -92,7 +110,11 @@ export function LessonCard({
     setBumping(true);
     setTimeout(() => {
       startTransition(async () => {
-        await bumpLesson(lessonId);
+        if (lessonKind === "shared") {
+          await bumpSharedLesson(lessonId);
+        } else {
+          await bumpLesson(lessonId);
+        }
       });
     }, 300);
   }
@@ -102,7 +124,11 @@ export function LessonCard({
     setMenuOpen(false);
     setDeleting(true);
     startTransition(async () => {
-      await deleteLesson(lessonId);
+      if (lessonKind === "shared") {
+        await deleteSharedLesson(lessonId);
+      } else {
+        await deleteLesson(lessonId);
+      }
       toast.success("Lesson deleted");
     });
   }
@@ -151,10 +177,10 @@ export function LessonCard({
                   <StudentColorDot color={studentColor} className="h-2 w-2" />
                   {studentName} &middot; {resourceName}
                 </span>
+              ) : lessonKind === "shared" ? (
+                `Shared \u00b7 ${resourceName}`
               ) : (
-                <>
-                  {subjectName} &middot; {resourceName}
-                </>
+                `${subjectName} \u00b7 ${resourceName}`
               )}
             </p>
           </Link>
@@ -168,6 +194,7 @@ export function LessonCard({
                   studentId,
                   lessonId,
                   lessonPlan,
+                  lessonKind,
                 })
               }
               title="Add note"

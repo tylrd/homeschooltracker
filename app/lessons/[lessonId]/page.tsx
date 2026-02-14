@@ -21,52 +21,113 @@ export default async function LessonDetailPage({
     notFound();
   }
 
-  const { resource } = lesson;
-  const { subject } = resource;
-  const { student } = subject;
+  if (lesson.kind === "personal") {
+    const { resource } = lesson.lesson;
+    const { subject } = resource;
+    const { student } = subject;
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <BackButton />
+          <StudentColorDot color={student.color} className="h-4 w-4" />
+          <div className="flex-1">
+            <h1 className="text-xl font-bold">
+              {lesson.lesson.title ?? `Lesson ${lesson.lesson.lessonNumber}`}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {student.name} &middot; {subject.name} &middot; {resource.name}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Badge
+            variant={
+              lesson.lesson.status === "completed" ? "default" : "secondary"
+            }
+          >
+            {lesson.lesson.status}
+          </Badge>
+          {lesson.lesson.scheduledDate && (
+            <span className="text-muted-foreground">
+              Scheduled: {formatDate(lesson.lesson.scheduledDate)}
+            </span>
+          )}
+          {lesson.lesson.completionDate && (
+            <span className="text-muted-foreground">
+              Completed: {formatDate(lesson.lesson.completionDate)}
+            </span>
+          )}
+        </div>
+
+        <Separator />
+
+        <LessonDetailForm
+          lessonId={lesson.lesson.id}
+          title={lesson.lesson.title}
+          status={lesson.lesson.status}
+          plan={lesson.lesson.plan}
+          notes={lesson.lesson.notes}
+          scheduledDate={lesson.lesson.scheduledDate}
+        />
+      </div>
+    );
+  }
+
+  const members = lesson.lesson.sharedCurriculum.students.map((m) => m.student);
+  const leadColor = members[0]?.color ?? "blue";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <BackButton />
-        <StudentColorDot color={student.color} className="h-4 w-4" />
+        <StudentColorDot color={leadColor} className="h-4 w-4" />
         <div className="flex-1">
           <h1 className="text-xl font-bold">
-            {lesson.title ?? `Lesson ${lesson.lessonNumber}`}
+            {lesson.lesson.title ?? `Lesson ${lesson.lesson.lessonNumber}`}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {student.name} &middot; {subject.name} &middot; {resource.name}
+            Shared &middot; {lesson.lesson.sharedCurriculum.name} &middot;{" "}
+            {members.length} students
           </p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge
-          variant={lesson.status === "completed" ? "default" : "secondary"}
+          variant={
+            lesson.lesson.status === "completed" ? "default" : "secondary"
+          }
         >
-          {lesson.status}
+          {lesson.lesson.status}
         </Badge>
-        {lesson.scheduledDate && (
+        {lesson.lesson.scheduledDate && (
           <span className="text-muted-foreground">
-            Scheduled: {formatDate(lesson.scheduledDate)}
+            Scheduled: {formatDate(lesson.lesson.scheduledDate)}
           </span>
         )}
-        {lesson.completionDate && (
+        {lesson.lesson.completionDate && (
           <span className="text-muted-foreground">
-            Completed: {formatDate(lesson.completionDate)}
+            Completed: {formatDate(lesson.lesson.completionDate)}
           </span>
         )}
+      </div>
+
+      <div className="text-sm text-muted-foreground">
+        Students: {members.map((m) => m.name).join(", ")}
       </div>
 
       <Separator />
 
       <LessonDetailForm
-        lessonId={lesson.id}
-        title={lesson.title}
-        status={lesson.status}
-        plan={lesson.plan}
-        notes={lesson.notes}
-        scheduledDate={lesson.scheduledDate}
+        lessonId={lesson.lesson.id}
+        title={lesson.lesson.title}
+        status={lesson.lesson.status}
+        plan={lesson.lesson.plan}
+        notes={lesson.lesson.notes}
+        scheduledDate={lesson.lesson.scheduledDate}
+        lessonKind="shared"
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   absenceReasons,
@@ -7,6 +7,9 @@ import {
   globalAbsences,
   lessons,
   resources,
+  sharedCurricula,
+  sharedCurriculumStudents,
+  sharedLessons,
   students,
   subjects,
 } from "@/db/schema";
@@ -100,7 +103,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   // Get all completions in this month range
-  const rows = await db
+  const personalRows = await db
     .select({
       studentId: students.id,
       studentName: students.name,
@@ -118,6 +121,32 @@ export async function getAttendanceForMonth(year: number, month: number) {
         lte(lessons.completionDate, endDate),
       ),
     );
+
+  const sharedRows = await db
+    .select({
+      studentId: students.id,
+      studentName: students.name,
+      studentColor: students.color,
+      completionDate: sharedLessons.completionDate,
+    })
+    .from(sharedLessons)
+    .innerJoin(
+      sharedCurriculumStudents,
+      eq(
+        sharedLessons.sharedCurriculumId,
+        sharedCurriculumStudents.sharedCurriculumId,
+      ),
+    )
+    .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
+    .where(
+      and(
+        eq(sharedLessons.status, "completed"),
+        gte(sharedLessons.completionDate, startDate),
+        lte(sharedLessons.completionDate, endDate),
+      ),
+    );
+
+  const rows = [...personalRows, ...sharedRows];
 
   // Build set of unique (studentId, date) pairs
   const attendanceMap = new Map<string, Set<string>>();
@@ -188,6 +217,7 @@ export type CompletionLogEntry = {
   lessonTitle: string | null;
   lessonNumber: number;
   lessonId: string;
+  lessonKind: "personal" | "shared";
 };
 
 export type DailyLogNoteEntry = {
@@ -204,7 +234,7 @@ export async function getCompletionLogForMonth(year: number, month: number) {
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-  const rows = await db
+  const personalRows = await db
     .select({
       completionDate: lessons.completionDate,
       studentId: students.id,
@@ -215,6 +245,7 @@ export async function getCompletionLogForMonth(year: number, month: number) {
       lessonTitle: lessons.title,
       lessonNumber: lessons.lessonNumber,
       lessonId: lessons.id,
+      lessonKind: sql<"personal">`'personal'`,
     })
     .from(lessons)
     .innerJoin(resources, eq(lessons.resourceId, resources.id))
@@ -226,13 +257,53 @@ export async function getCompletionLogForMonth(year: number, month: number) {
         gte(lessons.completionDate, startDate),
         lte(lessons.completionDate, endDate),
       ),
-    )
-    .orderBy(
-      asc(lessons.completionDate),
-      asc(students.name),
-      asc(subjects.name),
-      asc(lessons.lessonNumber),
     );
+
+  const sharedRows = await db
+    .select({
+      completionDate: sharedLessons.completionDate,
+      studentId: students.id,
+      studentName: students.name,
+      studentColor: students.color,
+      subjectName: sql<string>`'Shared Curriculum'`,
+      resourceName: sharedCurricula.name,
+      lessonTitle: sharedLessons.title,
+      lessonNumber: sharedLessons.lessonNumber,
+      lessonId: sharedLessons.id,
+      lessonKind: sql<"shared">`'shared'`,
+    })
+    .from(sharedLessons)
+    .innerJoin(
+      sharedCurricula,
+      eq(sharedLessons.sharedCurriculumId, sharedCurricula.id),
+    )
+    .innerJoin(
+      sharedCurriculumStudents,
+      eq(
+        sharedLessons.sharedCurriculumId,
+        sharedCurriculumStudents.sharedCurriculumId,
+      ),
+    )
+    .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
+    .where(
+      and(
+        eq(sharedLessons.status, "completed"),
+        gte(sharedLessons.completionDate, startDate),
+        lte(sharedLessons.completionDate, endDate),
+      ),
+    );
+
+  const rows = [...personalRows, ...sharedRows].sort((a, b) => {
+    const byDate = (a.completionDate ?? "").localeCompare(
+      b.completionDate ?? "",
+    );
+    if (byDate !== 0) return byDate;
+    const byStudent = a.studentName.localeCompare(b.studentName);
+    if (byStudent !== 0) return byStudent;
+    const bySubject = a.subjectName.localeCompare(b.subjectName);
+    if (bySubject !== 0) return bySubject;
+    return a.lessonNumber - b.lessonNumber;
+  });
 
   const completedByDate = new Map<string, Set<string>>();
   for (const row of rows) {

@@ -86,7 +86,6 @@ export function ResourceDetailView({
                   onClick={() => setShowPlanningTools((current) => !current)}
                 >
                   <SlidersHorizontal className="h-4 w-4" />
-                  Tools
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

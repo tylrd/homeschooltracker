@@ -9,12 +9,14 @@ import { DeleteResourceButton } from "@/components/students/delete-resource-butt
 import { DeleteStudentButton } from "@/components/students/delete-student-button";
 import { DeleteSubjectButton } from "@/components/students/delete-subject-button";
 import { ResourceForm } from "@/components/students/resource-form";
+import { SharedCurriculumMemberships } from "@/components/students/shared-curriculum-memberships";
 import { StudentForm } from "@/components/students/student-form";
 import { SubjectForm } from "@/components/students/subject-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { getSharedCurriculumMembershipOptionsForStudent } from "@/lib/queries/shared-curricula";
 import { getStudentWithSubjectsAndResources } from "@/lib/queries/students";
 
 export default async function StudentDetailPage({
@@ -23,7 +25,10 @@ export default async function StudentDetailPage({
   params: Promise<{ studentId: string }>;
 }) {
   const { studentId } = await params;
-  const student = await getStudentWithSubjectsAndResources(studentId);
+  const [student, sharedMembershipOptions] = await Promise.all([
+    getStudentWithSubjectsAndResources(studentId),
+    getSharedCurriculumMembershipOptionsForStudent(studentId),
+  ]);
 
   if (!student) {
     notFound();
@@ -49,6 +54,13 @@ export default async function StudentDetailPage({
       {student.gradeLevel && (
         <p className="text-sm text-muted-foreground">{student.gradeLevel}</p>
       )}
+
+      <Separator />
+
+      <SharedCurriculumMemberships
+        studentId={student.id}
+        options={sharedMembershipOptions}
+      />
 
       <Separator />
 

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { CalendarCheck } from "lucide-react";
 import { Suspense } from "react";
+import { DashboardSharedAddButton } from "@/components/dashboard/dashboard-shared-add-button";
 import { DayNav } from "@/components/dashboard/day-nav";
 import { LessonList } from "@/components/dashboard/lesson-list";
 import { SickDayButton } from "@/components/dashboard/sick-day-button";
@@ -13,13 +14,16 @@ import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
   getAbsencesForDate,
   getGlobalAbsenceForDate,
+  getSharedCurriculaForDashboardAdd,
   getStudentResourceMap,
   getStudentsForFilter,
   getTodayLessons,
   getTodayNotes,
+  getTodaySharedLessons,
 } from "@/lib/queries/dashboard";
 import {
   getDashboardGrouping,
+  getDashboardSharedLessonView,
   getShowCompletedLessons,
   getShowNoteButtons,
 } from "@/lib/queries/settings";
@@ -34,6 +38,7 @@ export default async function DashboardPage({
   const date = dateParam ?? today;
   const [
     lessons,
+    sharedLessons,
     notes,
     students,
     absences,
@@ -41,10 +46,13 @@ export default async function DashboardPage({
     reasons,
     showCompleted,
     dashboardGrouping,
+    dashboardSharedLessonView,
     showNoteButtons,
     resourceRows,
+    sharedCurriculumRows,
   ] = await Promise.all([
     getTodayLessons(date, studentId),
+    getTodaySharedLessons(date, studentId),
     getTodayNotes(date),
     getStudentsForFilter(),
     getAbsencesForDate(date),
@@ -52,8 +60,10 @@ export default async function DashboardPage({
     getOrCreateDefaultReasons(),
     getShowCompletedLessons(),
     getDashboardGrouping(),
+    getDashboardSharedLessonView(),
     getShowNoteButtons(),
     getStudentResourceMap(),
+    getSharedCurriculaForDashboardAdd(date, studentId),
   ]);
 
   // Build student resource map: studentId -> resources[]
@@ -103,25 +113,31 @@ export default async function DashboardPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <DayNav date={date} today={today} />
-        {students.length > 0 && (
-          <SickDayButton
+        <div className="flex items-center gap-2">
+          <DashboardSharedAddButton
             date={date}
-            reasons={reasons.map((r) => ({
-              id: r.id,
-              name: r.name,
-              color: r.color,
-            }))}
-            existingGlobalAbsence={
-              globalAbsence
-                ? {
-                    absenceId: globalAbsence.globalAbsenceId,
-                    reasonName: globalAbsence.reasonName,
-                    reasonColor: globalAbsence.reasonColor,
-                  }
-                : null
-            }
+            options={sharedCurriculumRows}
           />
-        )}
+          {students.length > 0 && (
+            <SickDayButton
+              date={date}
+              reasons={reasons.map((r) => ({
+                id: r.id,
+                name: r.name,
+                color: r.color,
+              }))}
+              existingGlobalAbsence={
+                globalAbsence
+                  ? {
+                      absenceId: globalAbsence.globalAbsenceId,
+                      reasonName: globalAbsence.reasonName,
+                      reasonColor: globalAbsence.reasonColor,
+                    }
+                  : null
+              }
+            />
+          )}
+        </div>
       </div>
 
       {students.length > 0 && (
@@ -130,7 +146,7 @@ export default async function DashboardPage({
         </Suspense>
       )}
 
-      {lessons.length === 0 && (
+      {lessons.length === 0 && sharedLessons.length === 0 && (
         <EmptyState
           icon={CalendarCheck}
           title="No lessons today"
@@ -145,11 +161,13 @@ export default async function DashboardPage({
       {students.length > 0 && (
         <LessonList
           lessons={lessons}
+          sharedLessons={sharedLessons}
           allStudents={
             studentId
               ? students.filter((student) => student.id === studentId)
               : students
           }
+          isStudentFiltered={!!studentId}
           notes={notes.map((n) => ({
             studentId: n.studentId,
             content: n.content,
@@ -163,6 +181,7 @@ export default async function DashboardPage({
           absenceMap={Object.fromEntries(absenceMap)}
           defaultShowCompleted={showCompleted}
           grouping={dashboardGrouping}
+          defaultSharedLessonView={dashboardSharedLessonView}
           showNoteButtons={showNoteButtons}
           studentResourceMap={studentResourceMap}
         />

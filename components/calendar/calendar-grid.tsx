@@ -93,8 +93,10 @@ export function CalendarGrid({
       {allDays.map((cell, idx) => {
         const data = cell.isPadding ? null : (dayMap[cell.dateStr] ?? null);
         const isToday = !cell.isPadding && cell.dateStr === today;
+        const isFuture = !cell.isPadding && cell.dateStr > today;
         const hasLessons = data !== null && data.total > 0;
         const allComplete = hasLessons && data.completed === data.total;
+        const isFuturePlanned = hasLessons && isFuture && !allComplete;
 
         return (
           <button
@@ -123,7 +125,9 @@ export function CalendarGrid({
                   "rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none",
                   allComplete
                     ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+                    : isFuturePlanned
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                      : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
                 )}
               >
                 {data.completed}/{data.total}
@@ -135,13 +139,33 @@ export function CalendarGrid({
                   "h-1.5 w-1.5 rounded-full",
                   allComplete
                     ? "bg-green-500 dark:bg-green-400"
-                    : "bg-blue-500 dark:bg-blue-400",
+                    : isFuturePlanned
+                      ? "bg-amber-500 dark:bg-amber-400"
+                      : "bg-blue-500 dark:bg-blue-400",
                 )}
               />
             )}
           </button>
         );
       })}
+
+      <div className="col-span-7 bg-background px-2 py-2">
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+          <span className="font-medium">Legend:</span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-green-500 dark:bg-green-400" />
+            Completed
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-amber-500 dark:bg-amber-400" />
+            Planned (future)
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400" />
+            In progress / incomplete
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

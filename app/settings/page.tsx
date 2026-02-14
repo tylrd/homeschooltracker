@@ -7,6 +7,7 @@ import { AbsenceReasonForm } from "@/components/settings/absence-reason-form";
 import { BumpBehaviorSelect } from "@/components/settings/bump-behavior-select";
 import { DailyLogNotesToggle } from "@/components/settings/daily-log-notes-toggle";
 import { DashboardGroupingSelect } from "@/components/settings/dashboard-grouping-select";
+import { DashboardSharedLessonViewSelect } from "@/components/settings/dashboard-shared-lesson-view-select";
 import { DefaultLessonCountInput } from "@/components/settings/default-lesson-count-input";
 import { NoteButtonsToggle } from "@/components/settings/note-buttons-toggle";
 import { SchoolDaysToggle } from "@/components/settings/school-days-toggle";
@@ -18,6 +19,7 @@ import {
   getAbsenceAutoBump,
   getBumpBehavior,
   getDashboardGrouping,
+  getDashboardSharedLessonView,
   getDefaultLessonCount,
   getSchoolDays,
   getShowCompletedLessons,
@@ -35,6 +37,7 @@ export default async function SettingsPage() {
     showNoteButtons,
     showDailyLogNotes,
     dashboardGrouping,
+    dashboardSharedLessonView,
     bumpBehavior,
   ] = await Promise.all([
     getOrCreateDefaultReasons(),
@@ -45,6 +48,7 @@ export default async function SettingsPage() {
     getShowNoteButtons(),
     getShowDailyLogNotes(),
     getDashboardGrouping(),
+    getDashboardSharedLessonView(),
     getBumpBehavior(),
   ]);
 
@@ -65,6 +69,9 @@ export default async function SettingsPage() {
         <h2 className="text-lg font-semibold">Dashboard</h2>
         <ShowCompletedToggle defaultValue={showCompleted} />
         <DashboardGroupingSelect defaultValue={dashboardGrouping} />
+        <DashboardSharedLessonViewSelect
+          defaultValue={dashboardSharedLessonView}
+        />
         <NoteButtonsToggle defaultValue={showNoteButtons} />
       </div>
 

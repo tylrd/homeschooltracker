@@ -16,6 +16,13 @@ import {
   updateLessonContent,
   updateLessonScheduledDate,
 } from "@/lib/actions/lessons";
+import {
+  completeSharedLesson,
+  deleteSharedLesson,
+  uncompleteSharedLesson,
+  updateSharedLessonContent,
+  updateSharedLessonScheduledDate,
+} from "@/lib/actions/shared-lessons";
 
 type LessonDetailFormProps = {
   lessonId: string;
@@ -24,6 +31,7 @@ type LessonDetailFormProps = {
   plan: string | null;
   notes: string | null;
   scheduledDate: string | null;
+  lessonKind?: "personal" | "shared";
 };
 
 export function LessonDetailForm({
@@ -33,6 +41,7 @@ export function LessonDetailForm({
   plan,
   notes,
   scheduledDate,
+  lessonKind = "personal",
 }: LessonDetailFormProps) {
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
@@ -50,6 +59,15 @@ export function LessonDetailForm({
 
   function handleToggle() {
     startTransition(async () => {
+      if (lessonKind === "shared") {
+        if (isCompleted) {
+          await uncompleteSharedLesson(lessonId);
+        } else {
+          await completeSharedLesson(lessonId);
+        }
+        return;
+      }
+
       if (isCompleted) {
         await uncompleteLesson(lessonId);
       } else {
@@ -60,14 +78,27 @@ export function LessonDetailForm({
 
   function handleDateChange(newDate: string) {
     startTransition(async () => {
-      await updateLessonScheduledDate(lessonId, newDate);
+      if (lessonKind === "shared") {
+        await updateSharedLessonScheduledDate(lessonId, newDate);
+      } else {
+        await updateLessonScheduledDate(lessonId, newDate);
+      }
       toast.success("Date updated");
     });
   }
 
   function handleSave() {
     startTransition(async () => {
-      await updateLessonContent(lessonId, titleText, planText, notesText);
+      if (lessonKind === "shared") {
+        await updateSharedLessonContent(
+          lessonId,
+          titleText,
+          planText,
+          notesText,
+        );
+      } else {
+        await updateLessonContent(lessonId, titleText, planText, notesText);
+      }
       toast.success("Lesson saved");
     });
   }
@@ -76,7 +107,12 @@ export function LessonDetailForm({
     if (!confirm("Delete this lesson? This cannot be undone.")) return;
     startTransition(async () => {
       try {
-        await deleteLesson(lessonId, { redirectTo: "/" });
+        if (lessonKind === "shared") {
+          await deleteSharedLesson(lessonId);
+          window.location.href = "/";
+        } else {
+          await deleteLesson(lessonId, { redirectTo: "/" });
+        }
       } catch {
         toast.error("Failed to delete lesson");
       }

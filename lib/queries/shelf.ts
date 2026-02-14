@@ -1,4 +1,4 @@
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   absenceReasons,
@@ -6,6 +6,9 @@ import {
   globalAbsences,
   lessons,
   resources,
+  sharedCurricula,
+  sharedCurriculumStudents,
+  sharedLessons,
   students,
   subjects,
 } from "@/db/schema";
@@ -60,6 +63,63 @@ export async function getResourceWithLessons(resourceId: string) {
   });
 
   return resource;
+}
+
+export async function getAllSharedCurriculaWithProgress() {
+  const db = getDb();
+  const rows = await db
+    .select({
+      sharedCurriculumId: sharedCurricula.id,
+      sharedCurriculumName: sharedCurricula.name,
+      sharedCurriculumDescription: sharedCurricula.description,
+      memberCount:
+        sql<number>`count(distinct ${sharedCurriculumStudents.studentId})`.mapWith(
+          Number,
+        ),
+      totalLessons: sql<number>`count(distinct ${sharedLessons.id})`.mapWith(
+        Number,
+      ),
+      completedLessons:
+        sql<number>`count(distinct case when ${sharedLessons.status} = 'completed' then ${sharedLessons.id} end)`.mapWith(
+          Number,
+        ),
+    })
+    .from(sharedCurricula)
+    .leftJoin(
+      sharedCurriculumStudents,
+      eq(sharedCurriculumStudents.sharedCurriculumId, sharedCurricula.id),
+    )
+    .leftJoin(
+      sharedLessons,
+      eq(sharedLessons.sharedCurriculumId, sharedCurricula.id),
+    )
+    .groupBy(
+      sharedCurricula.id,
+      sharedCurricula.name,
+      sharedCurricula.description,
+    )
+    .orderBy(asc(sharedCurricula.name));
+
+  return rows;
+}
+
+export async function getSharedCurriculumWithLessons(
+  sharedCurriculumId: string,
+) {
+  const db = getDb();
+  return db.query.sharedCurricula.findFirst({
+    where: eq(sharedCurricula.id, sharedCurriculumId),
+    with: {
+      lessons: {
+        orderBy: (sharedLessons, { asc }) => [asc(sharedLessons.lessonNumber)],
+      },
+      students: {
+        with: {
+          student: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getEffectiveAbsencesForStudent(studentId: string) {
