@@ -7,6 +7,9 @@ export async function getLessonWithContext(lessonId: string) {
   const personalLesson = await db.query.lessons.findFirst({
     where: eq(lessons.id, lessonId),
     with: {
+      workSamples: {
+        columns: { id: true, imageId: true, createdAt: true },
+      },
       resource: {
         with: {
           subject: {
@@ -29,6 +32,9 @@ export async function getLessonWithContext(lessonId: string) {
   const sharedLesson = await db.query.sharedLessons.findFirst({
     where: eq(sharedLessons.id, lessonId),
     with: {
+      workSamples: {
+        columns: { id: true, imageId: true, createdAt: true },
+      },
       sharedCurriculum: {
         with: {
           students: {

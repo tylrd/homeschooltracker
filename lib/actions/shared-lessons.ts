@@ -3,14 +3,16 @@
 import { and, asc, eq, gt, gte, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { sharedLessons } from "@/db/schema";
+import { sharedLessons, sharedLessonWorkSamples } from "@/db/schema";
 import {
   generateLessonDates,
   getNextBumpDate,
   nextSchoolDayStr,
   toDateString,
 } from "@/lib/dates";
+import { validateImageFile } from "@/lib/images/validation";
 import { getBumpBehavior, getSchoolDays } from "@/lib/queries/settings";
+import { getImageStore } from "@/lib/storage/image-store";
 
 export async function batchCreateSharedLessons(
   sharedCurriculumId: string,
@@ -191,7 +193,15 @@ export async function bulkDeleteSharedLessons(sharedLessonIds: string[]) {
   const ids = Array.from(new Set(sharedLessonIds)).filter(Boolean);
   if (ids.length === 0) return;
   const db = getDb();
+  const sampleRows = await db.query.sharedLessonWorkSamples.findMany({
+    where: inArray(sharedLessonWorkSamples.sharedLessonId, ids),
+    columns: { imageId: true },
+  });
   await db.delete(sharedLessons).where(inArray(sharedLessons.id, ids));
+  const imageStore = getImageStore();
+  for (const { imageId } of sampleRows) {
+    await imageStore.deleteImage(imageId);
+  }
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -200,7 +210,15 @@ export async function bulkDeleteSharedLessons(sharedLessonIds: string[]) {
 
 export async function deleteSharedLesson(sharedLessonId: string) {
   const db = getDb();
+  const sampleRows = await db.query.sharedLessonWorkSamples.findMany({
+    where: eq(sharedLessonWorkSamples.sharedLessonId, sharedLessonId),
+    columns: { imageId: true },
+  });
   await db.delete(sharedLessons).where(eq(sharedLessons.id, sharedLessonId));
+  const imageStore = getImageStore();
+  for (const { imageId } of sampleRows) {
+    await imageStore.deleteImage(imageId);
+  }
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -237,6 +255,53 @@ export async function updateSharedLessonContent(
       notes: notes.trim() || null,
     })
     .where(eq(sharedLessons.id, sharedLessonId));
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath("/attendance");
+  revalidatePath(`/lessons/${sharedLessonId}`);
+}
+
+export async function uploadSharedLessonWorkSamples(
+  sharedLessonId: string,
+  formData: FormData,
+) {
+  const db = getDb();
+  const lesson = await db.query.sharedLessons.findFirst({
+    where: eq(sharedLessons.id, sharedLessonId),
+    columns: { id: true },
+  });
+
+  if (!lesson) {
+    throw new Error("Shared lesson not found");
+  }
+
+  const files = formData
+    .getAll("files")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+
+  if (files.length === 0) {
+    throw new Error("Please choose at least one image.");
+  }
+
+  const imageStore = getImageStore();
+  for (const file of files) {
+    const validation = validateImageFile(file);
+    if (!validation.ok) {
+      throw new Error(validation.message);
+    }
+
+    const savedImage = await imageStore.saveImage({
+      contentType: file.type,
+      byteSize: file.size,
+      imageData: Buffer.from(await file.arrayBuffer()),
+    });
+
+    await db.insert(sharedLessonWorkSamples).values({
+      sharedLessonId,
+      imageId: savedImage.id,
+    });
+  }
 
   revalidatePath("/");
   revalidatePath("/shelf");

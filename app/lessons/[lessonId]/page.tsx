@@ -70,6 +70,7 @@ export default async function LessonDetailPage({
           plan={lesson.lesson.plan}
           notes={lesson.lesson.notes}
           scheduledDate={lesson.lesson.scheduledDate}
+          workSampleImageIds={lesson.lesson.workSamples.map((s) => s.imageId)}
         />
       </div>
     );
@@ -128,6 +129,7 @@ export default async function LessonDetailPage({
         notes={lesson.lesson.notes}
         scheduledDate={lesson.lesson.scheduledDate}
         lessonKind="shared"
+        workSampleImageIds={lesson.lesson.workSamples.map((s) => s.imageId)}
       />
     </div>
   );

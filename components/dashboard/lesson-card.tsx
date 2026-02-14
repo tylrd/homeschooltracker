@@ -3,16 +3,26 @@
 import {
   ArrowRight,
   EllipsisVertical,
+  Images,
   MessageSquare,
+  Paperclip,
   RotateCcw,
   Trash2,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -47,6 +57,8 @@ type LessonCardProps = {
   studentId: string;
   lessonPlan: string | null;
   date: string;
+  workSampleCount: number;
+  workSampleImageIds: string[];
   isMakeup?: boolean;
   exiting?: boolean;
   showNoteButton?: boolean;
@@ -73,6 +85,8 @@ export function LessonCard({
   studentId,
   lessonPlan,
   date: _date,
+  workSampleCount,
+  workSampleImageIds,
   isMakeup,
   exiting,
   showNoteButton = true,
@@ -83,6 +97,7 @@ export function LessonCard({
   const [bumping, setBumping] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [samplesOpen, setSamplesOpen] = useState(false);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
 
@@ -164,6 +179,15 @@ export function LessonCard({
               >
                 {lessonTitle ?? `Lesson ${lessonNumber}`}
               </p>
+              {workSampleCount > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                  title={`${workSampleCount} work samples`}
+                >
+                  <Paperclip className="h-2.5 w-2.5" />
+                  {workSampleCount}
+                </span>
+              )}
               {isMakeup && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
                   <RotateCcw className="h-2.5 w-2.5" />
@@ -202,6 +226,44 @@ export function LessonCard({
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
+          )}
+          {workSampleCount > 0 && (
+            <Dialog open={samplesOpen} onOpenChange={setSamplesOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  title="View work samples"
+                  disabled={deleting}
+                >
+                  <Images className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Work Samples ({workSampleCount})</DialogTitle>
+                </DialogHeader>
+                <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+                  {workSampleImageIds.map((imageId) => (
+                    <a
+                      key={imageId}
+                      href={`/api/curriculum-images/${imageId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Image
+                        src={`/api/curriculum-images/${imageId}`}
+                        alt="Work sample"
+                        width={640}
+                        height={480}
+                        className="h-32 w-full rounded-md border object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
           <Popover open={menuOpen} onOpenChange={setMenuOpen}>
             <PopoverTrigger asChild>

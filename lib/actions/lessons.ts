@@ -4,14 +4,16 @@ import { and, asc, eq, gt, gte, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { lessons, resources, subjects } from "@/db/schema";
+import { lessons, lessonWorkSamples, resources, subjects } from "@/db/schema";
 import {
   generateLessonDates,
   getNextBumpDate,
   nextSchoolDayStr,
   toDateString,
 } from "@/lib/dates";
+import { validateImageFile } from "@/lib/images/validation";
 import { getBumpBehavior, getSchoolDays } from "@/lib/queries/settings";
+import { getImageStore } from "@/lib/storage/image-store";
 
 export async function batchCreateLessons(
   resourceId: string,
@@ -269,8 +271,16 @@ export async function bulkDeleteLessons(lessonIds: string[]) {
     where: inArray(lessons.id, ids),
     columns: { id: true, resourceId: true },
   });
+  const sampleRows = await db.query.lessonWorkSamples.findMany({
+    where: inArray(lessonWorkSamples.lessonId, ids),
+    columns: { imageId: true },
+  });
 
   await db.delete(lessons).where(inArray(lessons.id, ids));
+  const imageStore = getImageStore();
+  for (const { imageId } of sampleRows) {
+    await imageStore.deleteImage(imageId);
+  }
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -371,6 +381,53 @@ export async function updateLessonContent(
   revalidatePath("/shelf");
 }
 
+export async function uploadLessonWorkSamples(
+  lessonId: string,
+  formData: FormData,
+) {
+  const db = getDb();
+  const lesson = await db.query.lessons.findFirst({
+    where: eq(lessons.id, lessonId),
+    columns: { id: true, resourceId: true },
+  });
+
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
+
+  const files = formData
+    .getAll("files")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+
+  if (files.length === 0) {
+    throw new Error("Please choose at least one image.");
+  }
+
+  const imageStore = getImageStore();
+  for (const file of files) {
+    const validation = validateImageFile(file);
+    if (!validation.ok) {
+      throw new Error(validation.message);
+    }
+
+    const savedImage = await imageStore.saveImage({
+      contentType: file.type,
+      byteSize: file.size,
+      imageData: Buffer.from(await file.arrayBuffer()),
+    });
+
+    await db.insert(lessonWorkSamples).values({
+      lessonId,
+      imageId: savedImage.id,
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath(`/shelf/${lesson.resourceId}`);
+  revalidatePath(`/lessons/${lessonId}`);
+}
+
 export async function scheduleMakeupLesson(
   resourceId: string,
   date: string,
@@ -425,8 +482,16 @@ export async function deleteLesson(
   const lesson = await db.query.lessons.findFirst({
     where: eq(lessons.id, lessonId),
   });
+  const sampleRows = await db.query.lessonWorkSamples.findMany({
+    where: eq(lessonWorkSamples.lessonId, lessonId),
+    columns: { imageId: true },
+  });
 
   await db.delete(lessons).where(eq(lessons.id, lessonId));
+  const imageStore = getImageStore();
+  for (const { imageId } of sampleRows) {
+    await imageStore.deleteImage(imageId);
+  }
 
   revalidatePath("/");
   revalidatePath("/shelf");

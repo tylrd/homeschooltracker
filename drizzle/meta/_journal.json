@@ -43,6 +43,13 @@
       "when": 1771405200000,
       "tag": "0005_swanky_cover_images",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771509600000,
+      "tag": "0006_work_sample_images",
+      "breakpoints": true
     }
   ]
 }

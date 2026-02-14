@@ -221,6 +221,48 @@ export const sharedLessons = pgTable(
   ],
 );
 
+export const lessonWorkSamples = pgTable(
+  "lesson_work_samples",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    lessonId: uuid("lesson_id")
+      .notNull()
+      .references(() => lessons.id, { onDelete: "cascade" }),
+    imageId: uuid("image_id")
+      .notNull()
+      .references(() => curriculumImages.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("lesson_work_samples_lesson_id_idx").on(table.lessonId),
+    index("lesson_work_samples_image_id_idx").on(table.imageId),
+  ],
+);
+
+export const sharedLessonWorkSamples = pgTable(
+  "shared_lesson_work_samples",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    sharedLessonId: uuid("shared_lesson_id")
+      .notNull()
+      .references(() => sharedLessons.id, { onDelete: "cascade" }),
+    imageId: uuid("image_id")
+      .notNull()
+      .references(() => curriculumImages.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("shared_lesson_work_samples_shared_lesson_id_idx").on(
+      table.sharedLessonId,
+    ),
+    index("shared_lesson_work_samples_image_id_idx").on(table.imageId),
+  ],
+);
+
 export const dailyNotes = pgTable(
   "daily_notes",
   {
@@ -326,11 +368,12 @@ export const resourcesRelations = relations(resources, ({ one, many }) => ({
   lessons: many(lessons),
 }));
 
-export const lessonsRelations = relations(lessons, ({ one }) => ({
+export const lessonsRelations = relations(lessons, ({ one, many }) => ({
   resource: one(resources, {
     fields: [lessons.resourceId],
     references: [resources.id],
   }),
+  workSamples: many(lessonWorkSamples),
 }));
 
 export const sharedCurriculaRelations = relations(
@@ -350,6 +393,8 @@ export const curriculumImagesRelations = relations(
   ({ many }) => ({
     resources: many(resources),
     sharedCurricula: many(sharedCurricula),
+    lessonWorkSamples: many(lessonWorkSamples),
+    sharedLessonWorkSamples: many(sharedLessonWorkSamples),
   }),
 );
 
@@ -367,12 +412,44 @@ export const sharedCurriculumStudentsRelations = relations(
   }),
 );
 
-export const sharedLessonsRelations = relations(sharedLessons, ({ one }) => ({
-  sharedCurriculum: one(sharedCurricula, {
-    fields: [sharedLessons.sharedCurriculumId],
-    references: [sharedCurricula.id],
+export const sharedLessonsRelations = relations(
+  sharedLessons,
+  ({ one, many }) => ({
+    sharedCurriculum: one(sharedCurricula, {
+      fields: [sharedLessons.sharedCurriculumId],
+      references: [sharedCurricula.id],
+    }),
+    workSamples: many(sharedLessonWorkSamples),
   }),
-}));
+);
+
+export const lessonWorkSamplesRelations = relations(
+  lessonWorkSamples,
+  ({ one }) => ({
+    lesson: one(lessons, {
+      fields: [lessonWorkSamples.lessonId],
+      references: [lessons.id],
+    }),
+    image: one(curriculumImages, {
+      fields: [lessonWorkSamples.imageId],
+      references: [curriculumImages.id],
+    }),
+  }),
+);
+
+export const sharedLessonWorkSamplesRelations = relations(
+  sharedLessonWorkSamples,
+  ({ one }) => ({
+    sharedLesson: one(sharedLessons, {
+      fields: [sharedLessonWorkSamples.sharedLessonId],
+      references: [sharedLessons.id],
+    }),
+    image: one(curriculumImages, {
+      fields: [sharedLessonWorkSamples.imageId],
+      references: [curriculumImages.id],
+    }),
+  }),
+);
 
 export const dailyNotesRelations = relations(dailyNotes, ({ one }) => ({
   student: one(students, {
@@ -434,6 +511,14 @@ export type NewSharedCurriculumStudent =
 
 export type SharedLesson = typeof sharedLessons.$inferSelect;
 export type NewSharedLesson = typeof sharedLessons.$inferInsert;
+
+export type LessonWorkSample = typeof lessonWorkSamples.$inferSelect;
+export type NewLessonWorkSample = typeof lessonWorkSamples.$inferInsert;
+
+export type SharedLessonWorkSample =
+  typeof sharedLessonWorkSamples.$inferSelect;
+export type NewSharedLessonWorkSample =
+  typeof sharedLessonWorkSamples.$inferInsert;
 
 export type DailyNote = typeof dailyNotes.$inferSelect;
 export type NewDailyNote = typeof dailyNotes.$inferInsert;

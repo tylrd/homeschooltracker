@@ -29,6 +29,8 @@ type DashboardLesson = {
   studentId: string;
   studentName: string;
   studentColor: string;
+  workSampleCount: number;
+  workSampleImageIds: string[];
 };
 
 type DashboardSharedLesson = {
@@ -42,6 +44,8 @@ type DashboardSharedLesson = {
   studentId: string;
   studentName: string;
   studentColor: string;
+  workSampleCount: number;
+  workSampleImageIds: string[];
 };
 
 type UnifiedLesson = {
@@ -57,6 +61,8 @@ type UnifiedLesson = {
   studentId: string;
   studentName: string;
   studentColor: string;
+  workSampleCount: number;
+  workSampleImageIds: string[];
 };
 
 type Note = {
@@ -152,6 +158,8 @@ export function LessonList({
       studentId: lesson.studentId,
       studentName: lesson.studentName,
       studentColor: lesson.studentColor,
+      workSampleCount: lesson.workSampleCount,
+      workSampleImageIds: lesson.workSampleImageIds,
     }));
 
     const shared = sharedLessons.map((lesson) => ({
@@ -167,6 +175,8 @@ export function LessonList({
       studentId: lesson.studentId,
       studentName: lesson.studentName,
       studentColor: lesson.studentColor,
+      workSampleCount: lesson.workSampleCount,
+      workSampleImageIds: lesson.workSampleImageIds,
     }));
 
     return [...personal, ...shared];
@@ -182,6 +192,8 @@ export function LessonList({
         lessonPlan: string | null;
         lessonStatus: string;
         sharedCurriculumName: string;
+        workSampleCount: number;
+        workSampleImageIds: string[];
         students: { id: string; name: string; color: string }[];
       }
     >();
@@ -203,6 +215,8 @@ export function LessonList({
           lessonPlan: row.lessonPlan,
           lessonStatus: row.lessonStatus,
           sharedCurriculumName: row.sharedCurriculumName,
+          workSampleCount: row.workSampleCount,
+          workSampleImageIds: row.workSampleImageIds,
           students: [student],
         });
       }
@@ -291,6 +305,8 @@ export function LessonList({
                     studentName={lesson.students[0]?.name ?? "Shared"}
                     studentColor={lesson.students[0]?.color ?? "blue"}
                     date={date}
+                    workSampleCount={lesson.workSampleCount}
+                    workSampleImageIds={lesson.workSampleImageIds}
                     showNoteButton={false}
                     onNoteClick={() => {}}
                   />
@@ -349,6 +365,8 @@ export function LessonList({
                         studentColor={lesson.studentColor}
                         studentId={lesson.studentId}
                         date={date}
+                        workSampleCount={lesson.workSampleCount}
+                        workSampleImageIds={lesson.workSampleImageIds}
                         showNoteButton={showNoteButtons}
                         showStudentName
                         onNoteClick={(target) => {
@@ -505,6 +523,8 @@ export function LessonList({
                           studentColor={lesson.studentColor}
                           studentId={lesson.studentId}
                           date={date}
+                          workSampleCount={lesson.workSampleCount}
+                          workSampleImageIds={lesson.workSampleImageIds}
                           exiting={
                             hidingStudents.has(studentId) &&
                             lesson.lessonStatus === "completed"

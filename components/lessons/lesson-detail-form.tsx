@@ -1,7 +1,8 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Camera, Images, RotateCcw, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +16,7 @@ import {
   uncompleteLesson,
   updateLessonContent,
   updateLessonScheduledDate,
+  uploadLessonWorkSamples,
 } from "@/lib/actions/lessons";
 import {
   completeSharedLesson,
@@ -22,7 +24,9 @@ import {
   uncompleteSharedLesson,
   updateSharedLessonContent,
   updateSharedLessonScheduledDate,
+  uploadSharedLessonWorkSamples,
 } from "@/lib/actions/shared-lessons";
+import { validateImageFile } from "@/lib/images/validation";
 
 type LessonDetailFormProps = {
   lessonId: string;
@@ -32,6 +36,7 @@ type LessonDetailFormProps = {
   notes: string | null;
   scheduledDate: string | null;
   lessonKind?: "personal" | "shared";
+  workSampleImageIds: string[];
 };
 
 export function LessonDetailForm({
@@ -42,11 +47,17 @@ export function LessonDetailForm({
   notes,
   scheduledDate,
   lessonKind = "personal",
+  workSampleImageIds,
 }: LessonDetailFormProps) {
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
   const [titleText, setTitleText] = useState(title ?? "");
+  const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
+  const [failedFiles, setFailedFiles] = useState<File[] | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isUploadPending, startUploadTransition] = useTransition();
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const libraryInputRef = useRef<HTMLInputElement | null>(null);
 
   const isCompleted = status === "completed";
   const savedPlan = plan ?? "";
@@ -119,6 +130,57 @@ export function LessonDetailForm({
     });
   }
 
+  function handleFilesSelected(fileList: FileList | null) {
+    const files = Array.from(fileList ?? []).filter((file) => file.size > 0);
+    if (files.length === 0) {
+      return;
+    }
+    uploadFiles(files);
+  }
+
+  function uploadFiles(files: File[]) {
+    for (const file of files) {
+      const validation = validateImageFile(file);
+      if (!validation.ok) {
+        setFailedFiles(files);
+        toast.error(validation.message);
+        return;
+      }
+    }
+
+    const loadingToastId = toast.loading(
+      files.length === 1 ? "Uploading photo..." : "Uploading photos...",
+    );
+    setPendingFiles(files);
+    setFailedFiles(null);
+    startUploadTransition(async () => {
+      try {
+        const formData = new FormData();
+        for (const file of files) {
+          formData.append("files", file);
+        }
+
+        if (lessonKind === "shared") {
+          await uploadSharedLessonWorkSamples(lessonId, formData);
+        } else {
+          await uploadLessonWorkSamples(lessonId, formData);
+        }
+
+        setPendingFiles(null);
+        setFailedFiles(null);
+        toast.dismiss(loadingToastId);
+        toast.success("Work samples uploaded");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Upload failed";
+        setPendingFiles(null);
+        setFailedFiles(files);
+        toast.dismiss(loadingToastId);
+        toast.error(message);
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -177,6 +239,88 @@ export function LessonDetailForm({
           onChange={(e) => setNotesText(e.target.value)}
           disabled={isPending}
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Work Samples</Label>
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => {
+            handleFilesSelected(e.target.files);
+            e.currentTarget.value = "";
+          }}
+        />
+        <input
+          ref={libraryInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          onChange={(e) => {
+            handleFilesSelected(e.target.files);
+            e.currentTarget.value = "";
+          }}
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={isUploadPending}
+          >
+            <Camera className="mr-1 h-4 w-4" />
+            Take Photo
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => libraryInputRef.current?.click()}
+            disabled={isUploadPending}
+          >
+            <Images className="mr-1 h-4 w-4" />
+            Add from Library
+          </Button>
+          {failedFiles && failedFiles.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => uploadFiles(failedFiles)}
+              disabled={isUploadPending}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" />
+              Retry ({failedFiles.length})
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {workSampleImageIds.length} attached
+          {(pendingFiles?.length ?? 0) > 0
+            ? ` · ${pendingFiles?.length} uploading`
+            : ""}
+        </p>
+        {workSampleImageIds.length > 0 && (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {workSampleImageIds.map((imageId) => (
+              <a
+                key={imageId}
+                href={`/api/curriculum-images/${imageId}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Image
+                  src={`/api/curriculum-images/${imageId}`}
+                  alt="Work sample"
+                  width={320}
+                  height={240}
+                  className="h-20 w-full rounded-md border object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        )}
       </div>
 
       <Button

@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   absenceReasons,
@@ -6,10 +6,12 @@ import {
   dailyNotes,
   globalAbsences,
   lessons,
+  lessonWorkSamples,
   resources,
   sharedCurricula,
   sharedCurriculumStudents,
   sharedLessons,
+  sharedLessonWorkSamples,
   students,
   subjects,
 } from "@/db/schema";
@@ -53,7 +55,36 @@ export async function getTodayLessons(date: string, studentId?: string) {
     .where(and(...conditions))
     .orderBy(students.name, subjects.name, lessons.lessonNumber);
 
-  return rows;
+  const lessonIds = rows.map((row) => row.lessonId);
+  if (lessonIds.length === 0) {
+    return rows.map((row) => ({
+      ...row,
+      workSampleCount: 0,
+      workSampleImageIds: [] as string[],
+    }));
+  }
+
+  const sampleRows = await db.query.lessonWorkSamples.findMany({
+    where: inArray(lessonWorkSamples.lessonId, lessonIds),
+    columns: { lessonId: true, imageId: true },
+    orderBy: (table, { desc }) => [desc(table.createdAt)],
+  });
+
+  const sampleMap = new Map<string, string[]>();
+  for (const sample of sampleRows) {
+    const existing = sampleMap.get(sample.lessonId) ?? [];
+    existing.push(sample.imageId);
+    sampleMap.set(sample.lessonId, existing);
+  }
+
+  return rows.map((row) => {
+    const imageIds = sampleMap.get(row.lessonId) ?? [];
+    return {
+      ...row,
+      workSampleCount: imageIds.length,
+      workSampleImageIds: imageIds.slice(0, 8),
+    };
+  });
 }
 
 export async function getTodaySharedLessons(date: string, studentId?: string) {
@@ -64,7 +95,7 @@ export async function getTodaySharedLessons(date: string, studentId?: string) {
     conditions.push(eq(students.id, studentId));
   }
 
-  return db
+  const rows = await db
     .select({
       sharedLessonId: sharedLessons.id,
       lessonNumber: sharedLessons.lessonNumber,
@@ -90,6 +121,37 @@ export async function getTodaySharedLessons(date: string, studentId?: string) {
     .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
     .where(and(...conditions))
     .orderBy(students.name, sharedCurricula.name, sharedLessons.lessonNumber);
+
+  const sharedLessonIds = rows.map((row) => row.sharedLessonId);
+  if (sharedLessonIds.length === 0) {
+    return rows.map((row) => ({
+      ...row,
+      workSampleCount: 0,
+      workSampleImageIds: [] as string[],
+    }));
+  }
+
+  const sampleRows = await db.query.sharedLessonWorkSamples.findMany({
+    where: inArray(sharedLessonWorkSamples.sharedLessonId, sharedLessonIds),
+    columns: { sharedLessonId: true, imageId: true },
+    orderBy: (table, { desc }) => [desc(table.createdAt)],
+  });
+
+  const sampleMap = new Map<string, string[]>();
+  for (const sample of sampleRows) {
+    const existing = sampleMap.get(sample.sharedLessonId) ?? [];
+    existing.push(sample.imageId);
+    sampleMap.set(sample.sharedLessonId, existing);
+  }
+
+  return rows.map((row) => {
+    const imageIds = sampleMap.get(row.sharedLessonId) ?? [];
+    return {
+      ...row,
+      workSampleCount: imageIds.length,
+      workSampleImageIds: imageIds.slice(0, 8),
+    };
+  });
 }
 
 export async function getSharedCurriculaForDashboardAdd(
