@@ -1,0 +1,19 @@
+---
+# Base hardening options for geerlingguy.security.
+security_ssh_port: 22
+security_ssh_password_authentication: "no"
+security_fail2ban_enabled: true
+security_autoupdate_enabled: true
+
+# UFW configuration for geerlingguy.security.
+security_ufw_enabled: true
+security_ufw_allow_outgoing: true
+security_ufw_allowed_tcp_ports:
+  - "{{ security_ssh_port }}"
+  - "80"
+  - "443"
+
+# Docker options for geerlingguy.docker.
+docker_install_compose: true
+docker_users:
+  - root

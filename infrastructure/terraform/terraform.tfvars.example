@@ -1,0 +1,16 @@
+do_token = "dop_v1_xxxxx"
+
+# Optional: use existing SSH keys from your DO account by fingerprint.
+# do_ssh_key_fingerprints = ["aa:bb:cc:..."]
+
+# Optional: defaults to "~/.ssh/id_ed25519.pub".
+# ansible_public_key_path = "~/.ssh/id_ed25519.pub"
+
+# Optional overrides
+# region                   = "nyc3"
+# droplet_name             = "homeschooltracker"
+# droplet_size             = "s-1vcpu-1gb"
+# image                    = "ubuntu-24-04-x64"
+# ansible_playbook         = "../ansible/site.yml"
+# ansible_extra_args       = "-vv"
+# remote_exec_timeout      = "15m"

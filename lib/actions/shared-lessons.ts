@@ -309,6 +309,41 @@ export async function uploadSharedLessonWorkSamples(
   revalidatePath(`/lessons/${sharedLessonId}`);
 }
 
+export async function deleteSharedLessonWorkSample(
+  sharedLessonId: string,
+  workSampleId: string,
+) {
+  const db = getDb();
+  const sample = await db.query.sharedLessonWorkSamples.findFirst({
+    where: and(
+      eq(sharedLessonWorkSamples.id, workSampleId),
+      eq(sharedLessonWorkSamples.sharedLessonId, sharedLessonId),
+    ),
+    columns: { id: true, imageId: true },
+  });
+
+  if (!sample) {
+    throw new Error("Work sample not found");
+  }
+
+  await db
+    .delete(sharedLessonWorkSamples)
+    .where(
+      and(
+        eq(sharedLessonWorkSamples.id, workSampleId),
+        eq(sharedLessonWorkSamples.sharedLessonId, sharedLessonId),
+      ),
+    );
+
+  const imageStore = getImageStore();
+  await imageStore.deleteImage(sample.imageId);
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath("/attendance");
+  revalidatePath(`/lessons/${sharedLessonId}`);
+}
+
 export async function scheduleMakeupSharedLesson(
   sharedCurriculumId: string,
   date: string,

@@ -1,0 +1,7 @@
+---
+- name: Harden and provision Docker host
+  hosts: all
+  become: true
+  roles:
+    - role: geerlingguy.security
+    - role: geerlingguy.docker

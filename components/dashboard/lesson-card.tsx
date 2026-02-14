@@ -8,6 +8,8 @@ import {
   Paperclip,
   RotateCcw,
   Trash2,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -98,6 +100,10 @@ export function LessonCard({
   const [deleting, setDeleting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [samplesOpen, setSamplesOpen] = useState(false);
+  const [selectedSampleImageId, setSelectedSampleImageId] = useState<
+    string | null
+  >(null);
+  const [sampleZoom, setSampleZoom] = useState(1);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
 
@@ -228,7 +234,16 @@ export function LessonCard({
             </Button>
           )}
           {workSampleCount > 0 && (
-            <Dialog open={samplesOpen} onOpenChange={setSamplesOpen}>
+            <Dialog
+              open={samplesOpen}
+              onOpenChange={(open) => {
+                setSamplesOpen(open);
+                if (!open) {
+                  setSelectedSampleImageId(null);
+                  setSampleZoom(1);
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button
                   variant="ghost"
@@ -244,13 +259,54 @@ export function LessonCard({
                 <DialogHeader>
                   <DialogTitle>Work Samples ({workSampleCount})</DialogTitle>
                 </DialogHeader>
-                <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+                {selectedSampleImageId && (
+                  <div className="mb-3 space-y-2">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() =>
+                          setSampleZoom((value) => Math.max(1, value - 0.25))
+                        }
+                      >
+                        <ZoomOut className="h-4 w-4" />
+                      </Button>
+                      <span className="w-14 text-center text-xs text-muted-foreground">
+                        {Math.round(sampleZoom * 100)}%
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() =>
+                          setSampleZoom((value) => Math.min(4, value + 0.25))
+                        }
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="max-h-[50vh] overflow-auto rounded-md border bg-muted/20 p-2">
+                      <Image
+                        src={`/api/curriculum-images/${selectedSampleImageId}`}
+                        alt="Work sample"
+                        width={1280}
+                        height={960}
+                        className="mx-auto h-auto max-w-none origin-top rounded-md"
+                        style={{ transform: `scale(${sampleZoom})` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="grid max-h-[40vh] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
                   {workSampleImageIds.map((imageId) => (
-                    <a
+                    <button
                       key={imageId}
-                      href={`/api/curriculum-images/${imageId}`}
-                      target="_blank"
-                      rel="noreferrer"
+                      type="button"
+                      onClick={() => {
+                        setSelectedSampleImageId(imageId);
+                        setSampleZoom(1);
+                      }}
                     >
                       <Image
                         src={`/api/curriculum-images/${imageId}`}
@@ -259,7 +315,7 @@ export function LessonCard({
                         height={480}
                         className="h-32 w-full rounded-md border object-cover"
                       />
-                    </a>
+                    </button>
                   ))}
                 </div>
               </DialogContent>

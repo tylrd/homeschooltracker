@@ -428,6 +428,46 @@ export async function uploadLessonWorkSamples(
   revalidatePath(`/lessons/${lessonId}`);
 }
 
+export async function deleteLessonWorkSample(
+  lessonId: string,
+  workSampleId: string,
+) {
+  const db = getDb();
+  const sample = await db.query.lessonWorkSamples.findFirst({
+    where: and(
+      eq(lessonWorkSamples.id, workSampleId),
+      eq(lessonWorkSamples.lessonId, lessonId),
+    ),
+    columns: { id: true, imageId: true },
+    with: {
+      lesson: {
+        columns: { resourceId: true },
+      },
+    },
+  });
+
+  if (!sample) {
+    throw new Error("Work sample not found");
+  }
+
+  await db
+    .delete(lessonWorkSamples)
+    .where(
+      and(
+        eq(lessonWorkSamples.id, workSampleId),
+        eq(lessonWorkSamples.lessonId, lessonId),
+      ),
+    );
+
+  const imageStore = getImageStore();
+  await imageStore.deleteImage(sample.imageId);
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath(`/shelf/${sample.lesson.resourceId}`);
+  revalidatePath(`/lessons/${lessonId}`);
+}
+
 export async function scheduleMakeupLesson(
   resourceId: string,
   date: string,

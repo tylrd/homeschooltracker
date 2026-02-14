@@ -1,18 +1,33 @@
 "use client";
 
-import { Camera, Images, RotateCcw, Trash2 } from "lucide-react";
+import {
+  Camera,
+  Images,
+  RotateCcw,
+  Trash2,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   completeLesson,
   deleteLesson,
+  deleteLessonWorkSample,
   uncompleteLesson,
   updateLessonContent,
   updateLessonScheduledDate,
@@ -21,6 +36,7 @@ import {
 import {
   completeSharedLesson,
   deleteSharedLesson,
+  deleteSharedLessonWorkSample,
   uncompleteSharedLesson,
   updateSharedLessonContent,
   updateSharedLessonScheduledDate,
@@ -36,7 +52,7 @@ type LessonDetailFormProps = {
   notes: string | null;
   scheduledDate: string | null;
   lessonKind?: "personal" | "shared";
-  workSampleImageIds: string[];
+  workSamples: { id: string; imageId: string }[];
 };
 
 export function LessonDetailForm({
@@ -47,7 +63,7 @@ export function LessonDetailForm({
   notes,
   scheduledDate,
   lessonKind = "personal",
-  workSampleImageIds,
+  workSamples,
 }: LessonDetailFormProps) {
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
@@ -56,8 +72,14 @@ export function LessonDetailForm({
   const [failedFiles, setFailedFiles] = useState<File[] | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isUploadPending, startUploadTransition] = useTransition();
+  const [isDeletingSample, startDeleteSampleTransition] = useTransition();
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const libraryInputRef = useRef<HTMLInputElement | null>(null);
+  const [activeSample, setActiveSample] = useState<{
+    id: string;
+    imageId: string;
+  } | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const isCompleted = status === "completed";
   const savedPlan = plan ?? "";
@@ -181,6 +203,23 @@ export function LessonDetailForm({
     });
   }
 
+  function handleDeleteWorkSample(workSampleId: string) {
+    startDeleteSampleTransition(async () => {
+      try {
+        if (lessonKind === "shared") {
+          await deleteSharedLessonWorkSample(lessonId, workSampleId);
+        } else {
+          await deleteLessonWorkSample(lessonId, workSampleId);
+        }
+        toast.success("Work sample deleted");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to delete sample";
+        toast.error(message);
+      }
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -296,32 +335,93 @@ export function LessonDetailForm({
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          {workSampleImageIds.length} attached
+          {workSamples.length} attached
           {(pendingFiles?.length ?? 0) > 0
             ? ` · ${pendingFiles?.length} uploading`
             : ""}
         </p>
-        {workSampleImageIds.length > 0 && (
+        {workSamples.length > 0 && (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {workSampleImageIds.map((imageId) => (
-              <a
-                key={imageId}
-                href={`/api/curriculum-images/${imageId}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Image
-                  src={`/api/curriculum-images/${imageId}`}
-                  alt="Work sample"
-                  width={320}
-                  height={240}
-                  className="h-20 w-full rounded-md border object-cover"
-                />
-              </a>
+            {workSamples.map((sample) => (
+              <div key={sample.id} className="relative">
+                <button
+                  type="button"
+                  aria-label="View work sample"
+                  className="block w-full"
+                  onClick={() => {
+                    setActiveSample(sample);
+                    setZoom(1);
+                  }}
+                >
+                  <Image
+                    src={`/api/curriculum-images/${sample.imageId}`}
+                    alt="Work sample"
+                    width={320}
+                    height={240}
+                    className="h-20 w-full rounded-md border object-cover"
+                  />
+                </button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  className="absolute right-1 top-1 h-6 w-6 rounded-full"
+                  disabled={isDeletingSample}
+                  onClick={() => handleDeleteWorkSample(sample.id)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      <Dialog
+        open={activeSample !== null}
+        onOpenChange={() => setActiveSample(null)}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Work Sample</DialogTitle>
+          </DialogHeader>
+          {activeSample && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setZoom((value) => Math.max(1, value - 0.25))}
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="w-14 text-center text-xs text-muted-foreground">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setZoom((value) => Math.min(4, value + 0.25))}
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="max-h-[70vh] overflow-auto rounded-md border bg-muted/20 p-2">
+                <Image
+                  src={`/api/curriculum-images/${activeSample.imageId}`}
+                  alt="Work sample"
+                  width={1280}
+                  height={960}
+                  className="mx-auto h-auto max-w-none origin-top rounded-md"
+                  style={{ transform: `scale(${zoom})` }}
+                />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Button
         className="w-full"

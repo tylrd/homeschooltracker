@@ -1,0 +1,17 @@
+#cloud-config
+users:
+  - default
+  - name: ansible
+    gecos: Ansible User
+    shell: /bin/bash
+    groups: sudo
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ansible_public_key}
+
+package_update: true
+package_upgrade: false
+
+runcmd:
+  - [ sh, -c, "mkdir -p /home/ansible/.ssh && chown -R ansible:ansible /home/ansible/.ssh && chmod 700 /home/ansible/.ssh" ]
