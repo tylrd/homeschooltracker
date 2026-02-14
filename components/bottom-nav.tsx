@@ -1,31 +1,23 @@
 "use client";
 
-import {
-  BookOpen,
-  Calendar,
-  CalendarCheck,
-  ClipboardList,
-  Users,
-} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NAV_ITEMS } from "@/components/navigation/nav-items";
 import { cn } from "@/lib/utils";
 
-const tabs = [
-  { href: "/", label: "Today", icon: CalendarCheck },
-  { href: "/shelf", label: "Shelf", icon: BookOpen },
-  { href: "/calendar", label: "Calendar", icon: Calendar },
-  { href: "/attendance", label: "Attendance", icon: ClipboardList },
-  { href: "/students", label: "Students", icon: Users },
-] as const;
-
-export function BottomNav() {
+export function BottomNav({ className }: { className?: string }) {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background">
+    <nav
+      data-testid="bottom-nav"
+      className={cn(
+        "fixed right-0 bottom-0 left-0 z-50 border-t bg-background",
+        className,
+      )}
+    >
       <div className="mx-auto flex max-w-lg">
-        {tabs.map((tab) => {
+        {NAV_ITEMS.map((tab) => {
           const isActive =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
           return (

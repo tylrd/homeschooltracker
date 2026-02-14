@@ -109,42 +109,47 @@ export default async function DashboardPage({
     });
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <DayNav date={date} today={today} />
-        <div className="flex items-center gap-2">
-          <DashboardSharedAddButton
-            date={date}
-            options={sharedCurriculumRows}
-          />
-          {students.length > 0 && (
-            <SickDayButton
-              date={date}
-              reasons={reasons.map((r) => ({
-                id: r.id,
-                name: r.name,
-                color: r.color,
-              }))}
-              existingGlobalAbsence={
-                globalAbsence
-                  ? {
-                      absenceId: globalAbsence.globalAbsenceId,
-                      reasonName: globalAbsence.reasonName,
-                      reasonColor: globalAbsence.reasonColor,
-                    }
-                  : null
-              }
-            />
-          )}
-        </div>
-      </div>
-
+  const renderDashboardActions = () => (
+    <>
+      <DashboardSharedAddButton date={date} options={sharedCurriculumRows} />
       {students.length > 0 && (
-        <Suspense fallback={<Skeleton className="h-8 w-full" />}>
-          <StudentFilter students={students} activeStudentId={studentId} />
-        </Suspense>
+        <SickDayButton
+          date={date}
+          reasons={reasons.map((r) => ({
+            id: r.id,
+            name: r.name,
+            color: r.color,
+          }))}
+          existingGlobalAbsence={
+            globalAbsence
+              ? {
+                  absenceId: globalAbsence.globalAbsenceId,
+                  reasonName: globalAbsence.reasonName,
+                  reasonColor: globalAbsence.reasonColor,
+                }
+              : null
+          }
+        />
       )}
+    </>
+  );
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-4">
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <DayNav date={date} today={today} compact={false} />
+          <div className="ml-auto flex items-center gap-2">
+            {renderDashboardActions()}
+          </div>
+        </div>
+
+        {students.length > 0 && (
+          <Suspense fallback={<Skeleton className="h-8 w-full" />}>
+            <StudentFilter students={students} activeStudentId={studentId} />
+          </Suspense>
+        )}
+      </section>
 
       {lessons.length === 0 && sharedLessons.length === 0 && (
         <EmptyState

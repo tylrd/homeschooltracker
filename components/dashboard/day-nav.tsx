@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function addDays(dateStr: string, days: number): string {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -23,7 +24,15 @@ function formatLabel(dateStr: string): string {
   });
 }
 
-export function DayNav({ date, today }: { date: string; today: string }) {
+export function DayNav({
+  date,
+  today,
+  compact = false,
+}: {
+  date: string;
+  today: string;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isToday = date === today;
@@ -49,7 +58,12 @@ export function DayNav({ date, today }: { date: string; today: string }) {
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="min-w-[120px] text-center text-lg font-bold">
+      <span
+        className={cn(
+          "text-center font-bold",
+          compact ? "min-w-[88px] text-base" : "min-w-[120px] text-lg",
+        )}
+      >
         {isToday ? "Today" : formatLabel(date)}
       </span>
       <Button
