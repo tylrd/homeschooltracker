@@ -1,11 +1,13 @@
 "use client";
 
 import { SlidersHorizontal } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import { BackButton } from "@/components/back-button";
 import { AddLessonForm } from "@/components/shelf/add-lesson-form";
 import { BatchCreateForm } from "@/components/shelf/batch-create-form";
 import { LessonTable } from "@/components/shelf/lesson-table";
+import { ResourceEditForm } from "@/components/shelf/resource-edit-form";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +22,9 @@ import type { Lesson } from "@/db/schema";
 
 export function ResourceDetailView({
   resourceId,
+  studentId,
   resourceName,
+  coverImageId,
   subjectName,
   studentName,
   studentColor,
@@ -31,7 +35,9 @@ export function ResourceDetailView({
   absenceByDate,
 }: {
   resourceId: string;
+  studentId: string;
   resourceName: string;
+  coverImageId: string | null;
   subjectName: string;
   studentName: string;
   studentColor: string;
@@ -53,19 +59,39 @@ export function ResourceDetailView({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3">
           <BackButton />
-          <StudentColorDot color={studentColor} className="h-4 w-4" />
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">{resourceName}</h1>
-            <p className="text-sm text-muted-foreground">
-              {subjectName} &middot; {studentName}
-            </p>
+          {coverImageId ? (
+            <Image
+              src={`/api/curriculum-images/${coverImageId}`}
+              alt={`${resourceName} cover`}
+              width={48}
+              height={64}
+              className="h-16 w-12 rounded object-cover"
+            />
+          ) : null}
+          <div className="relative min-w-0 flex-1 pr-8">
+            <div className="absolute right-0 top-0">
+              <ResourceEditForm
+                resourceId={resourceId}
+                studentId={studentId}
+                currentName={resourceName}
+              />
+            </div>
+            <h1 className="break-words text-xl font-bold leading-tight">
+              {resourceName}
+            </h1>
+            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <StudentColorDot color={studentColor} className="h-3 w-3" />
+              <span>
+                {subjectName} &middot; {studentName}
+              </span>
+            </div>
           </div>
         </div>
         <TooltipProvider>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex items-center gap-1 self-start sm:shrink-0 sm:self-auto">
             <AddLessonForm
               resourceId={resourceId}
               nextLessonNumber={total + 1}

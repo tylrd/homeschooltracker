@@ -39,25 +39,35 @@ export function ResourceForm({
 
   return (
     <form ref={formRef} action={handleSubmit} className="flex gap-2">
-      <Input
-        name="name"
-        placeholder="Resource name"
-        required
-        autoFocus
-        className="h-8 text-sm"
-      />
-      <Button type="submit" size="sm" className="h-8">
-        Add
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="h-8"
-        onClick={() => setIsAdding(false)}
-      >
-        Cancel
-      </Button>
+      <div className="flex-1 space-y-2">
+        <Input
+          name="name"
+          placeholder="Resource name"
+          required
+          autoFocus
+          className="h-8 text-sm"
+        />
+        <Input
+          name="coverImage"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="h-8 text-xs"
+        />
+      </div>
+      <div className="flex items-start gap-2">
+        <Button type="submit" size="sm" className="h-8">
+          Add
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8"
+          onClick={() => setIsAdding(false)}
+        >
+          Cancel
+        </Button>
+      </div>
     </form>
   );
 }

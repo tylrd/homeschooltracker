@@ -40,6 +40,7 @@ export default async function SharedCurriculumDetailPage({
       sharedCurriculumId={curriculum.id}
       name={curriculum.name}
       description={curriculum.description}
+      coverImageId={curriculum.coverImageId}
       lessons={curriculum.lessons}
       members={curriculum.students.map((member) => member.student)}
       availableStudents={availableStudents}

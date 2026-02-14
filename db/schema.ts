@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  customType,
   date,
   index,
   integer,
@@ -18,6 +19,12 @@ export const lessonStatusEnum = pgEnum("lesson_status", [
   "completed",
   "bumped",
 ]);
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 // ── Tables ─────────────────────────────────────────────────────────────────
 
@@ -54,11 +61,31 @@ export const subjects = pgTable(
   (table) => [index("subjects_student_id_idx").on(table.studentId)],
 );
 
+export const curriculumImages = pgTable("curriculum_images", {
+  id: uuid().primaryKey().defaultRandom(),
+  provider: text().notNull().default("postgres"),
+  contentType: text("content_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  width: integer(),
+  height: integer(),
+  imageData: bytea("image_data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
 export const resources = pgTable(
   "resources",
   {
     id: uuid().primaryKey().defaultRandom(),
     name: text().notNull(),
+    coverImageId: uuid("cover_image_id").references(() => curriculumImages.id, {
+      onDelete: "set null",
+    }),
     subjectId: uuid("subject_id")
       .notNull()
       .references(() => subjects.id, { onDelete: "cascade" }),
@@ -70,21 +97,33 @@ export const resources = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index("resources_subject_id_idx").on(table.subjectId)],
+  (table) => [
+    index("resources_subject_id_idx").on(table.subjectId),
+    index("resources_cover_image_id_idx").on(table.coverImageId),
+  ],
 );
 
-export const sharedCurricula = pgTable("shared_curricula", {
-  id: uuid().primaryKey().defaultRandom(),
-  name: text().notNull(),
-  description: text(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const sharedCurricula = pgTable(
+  "shared_curricula",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    name: text().notNull(),
+    description: text(),
+    coverImageId: uuid("cover_image_id").references(() => curriculumImages.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("shared_curricula_cover_image_id_idx").on(table.coverImageId),
+  ],
+);
 
 export const sharedCurriculumStudents = pgTable(
   "shared_curriculum_students",
@@ -280,6 +319,10 @@ export const resourcesRelations = relations(resources, ({ one, many }) => ({
     fields: [resources.subjectId],
     references: [subjects.id],
   }),
+  coverImage: one(curriculumImages, {
+    fields: [resources.coverImageId],
+    references: [curriculumImages.id],
+  }),
   lessons: many(lessons),
 }));
 
@@ -292,9 +335,21 @@ export const lessonsRelations = relations(lessons, ({ one }) => ({
 
 export const sharedCurriculaRelations = relations(
   sharedCurricula,
-  ({ many }) => ({
+  ({ one, many }) => ({
+    coverImage: one(curriculumImages, {
+      fields: [sharedCurricula.coverImageId],
+      references: [curriculumImages.id],
+    }),
     students: many(sharedCurriculumStudents),
     lessons: many(sharedLessons),
+  }),
+);
+
+export const curriculumImagesRelations = relations(
+  curriculumImages,
+  ({ many }) => ({
+    resources: many(resources),
+    sharedCurricula: many(sharedCurricula),
   }),
 );
 
@@ -362,6 +417,9 @@ export type NewSubject = typeof subjects.$inferInsert;
 
 export type Resource = typeof resources.$inferSelect;
 export type NewResource = typeof resources.$inferInsert;
+
+export type CurriculumImage = typeof curriculumImages.$inferSelect;
+export type NewCurriculumImage = typeof curriculumImages.$inferInsert;
 
 export type Lesson = typeof lessons.$inferSelect;
 export type NewLesson = typeof lessons.$inferInsert;

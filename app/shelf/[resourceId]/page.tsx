@@ -38,7 +38,9 @@ export default async function ResourceDetailPage({
   return (
     <ResourceDetailView
       resourceId={resource.id}
+      studentId={resource.subject.student.id}
       resourceName={resource.name}
+      coverImageId={resource.coverImageId}
       subjectName={resource.subject.name}
       studentName={resource.subject.student.name}
       studentColor={resource.subject.student.color}

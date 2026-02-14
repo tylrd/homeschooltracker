@@ -1,4 +1,5 @@
 import { ChevronRight, Users } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,6 +11,7 @@ export function SharedCurriculumCard({
     sharedCurriculumId: string;
     sharedCurriculumName: string;
     sharedCurriculumDescription: string | null;
+    coverImageId: string | null;
     memberCount: number;
     totalLessons: number;
     completedLessons: number;
@@ -26,7 +28,20 @@ export function SharedCurriculumCard({
     <Link href={`/shared-curriculum/${curriculum.sharedCurriculumId}`}>
       <Card className="gap-0 py-0 transition-colors hover:bg-accent">
         <CardContent className="space-y-2 p-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {curriculum.coverImageId ? (
+              <Image
+                src={`/api/curriculum-images/${curriculum.coverImageId}`}
+                alt={`${curriculum.sharedCurriculumName} cover`}
+                width={40}
+                height={48}
+                className="h-12 w-10 rounded object-cover"
+              />
+            ) : (
+              <div className="flex h-12 w-10 items-center justify-center rounded bg-muted">
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
             <span className="flex-1 font-medium">
               {curriculum.sharedCurriculumName}
             </span>

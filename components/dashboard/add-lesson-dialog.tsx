@@ -2,7 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { suggestLessonTitleFromImage } from "@/lib/actions/lesson-title-suggestions";
 import {
   getUpcomingPlannedLessons,
   scheduleMakeupLesson,
@@ -69,17 +70,41 @@ export function AddLessonDialog({
   const [selected, setSelected] = useState<SelectedResource | null>(null);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
+  const [isAnalyzingCover, setIsAnalyzingCover] = useState(false);
+  const [suggestionMessage, setSuggestionMessage] = useState<string | null>(
+    null,
+  );
+  const [titleEdited, setTitleEdited] = useState(false);
+  const titleEditedRef = useRef(false);
+  const coverImageRef = useRef<HTMLInputElement>(null);
+
+  function setTitleEditedState(value: boolean) {
+    titleEditedRef.current = value;
+    setTitleEdited(value);
+  }
 
   function handleSelectResource(resource: SelectedResource) {
     setSelected(resource);
     setTitle("");
     setNotes("");
+    setTitleEditedState(false);
+    setSuggestionMessage(null);
+    setIsAnalyzingCover(false);
+    if (coverImageRef.current) {
+      coverImageRef.current.value = "";
+    }
   }
 
   function handleBack() {
     setSelected(null);
     setTitle("");
     setNotes("");
+    setTitleEditedState(false);
+    setSuggestionMessage(null);
+    setIsAnalyzingCover(false);
+    if (coverImageRef.current) {
+      coverImageRef.current.value = "";
+    }
   }
 
   function handleConfirmAdd() {
@@ -119,8 +144,52 @@ export function AddLessonDialog({
       setSelected(null);
       setTitle("");
       setNotes("");
+      setTitleEditedState(false);
+      setSuggestionMessage(null);
+      setIsAnalyzingCover(false);
+      if (coverImageRef.current) {
+        coverImageRef.current.value = "";
+      }
     }
     onOpenChange(nextOpen);
+  }
+
+  async function handleCoverImageChange(file: File | null) {
+    if (!file || !selected) {
+      setSuggestionMessage(null);
+      return;
+    }
+
+    setIsAnalyzingCover(true);
+    setSuggestionMessage(null);
+    try {
+      const formData = new FormData();
+      formData.set("image", file);
+      formData.set("resourceName", selected.resourceName);
+      const result = await suggestLessonTitleFromImage(formData);
+
+      if (result.reason === "ok" && result.suggestedTitle) {
+        if (!titleEditedRef.current) {
+          setTitle(result.suggestedTitle);
+        }
+        setSuggestionMessage(`Suggested title: ${result.suggestedTitle}`);
+        return;
+      }
+
+      if (result.reason === "invalid_image") {
+        setSuggestionMessage(
+          "Could not analyze that file. Use JPG, PNG, or WEBP.",
+        );
+      } else if (result.reason === "no_text") {
+        setSuggestionMessage("No readable book title found in image.");
+      } else {
+        setSuggestionMessage(
+          "Suggestion unavailable. You can still add manually.",
+        );
+      }
+    } finally {
+      setIsAnalyzingCover(false);
+    }
   }
 
   // Group resources by subject
@@ -169,9 +238,37 @@ export function AddLessonDialog({
                 id="lesson-title"
                 placeholder="Leave blank for default"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (!titleEdited) {
+                    setTitleEditedState(true);
+                  }
+                }}
                 disabled={isPending}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lesson-cover">Cover Photo (optional)</Label>
+              <Input
+                id="lesson-cover"
+                ref={coverImageRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isPending || isAnalyzingCover}
+                onChange={(e) =>
+                  void handleCoverImageChange(e.target.files?.[0] ?? null)
+                }
+              />
+              {isAnalyzingCover && (
+                <p className="text-xs text-muted-foreground">
+                  Analyzing cover...
+                </p>
+              )}
+              {!isAnalyzingCover && suggestionMessage && (
+                <p className="text-xs text-muted-foreground">
+                  {suggestionMessage}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="lesson-notes">Notes</Label>

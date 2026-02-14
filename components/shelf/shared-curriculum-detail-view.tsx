@@ -1,10 +1,12 @@
 "use client";
 
 import { SlidersHorizontal, UserPlus } from "lucide-react";
+import Image from "next/image";
 import { useState, useTransition } from "react";
 import { BackButton } from "@/components/back-button";
 import { AddSharedLessonForm } from "@/components/shelf/add-shared-lesson-form";
 import { BatchCreateSharedForm } from "@/components/shelf/batch-create-shared-form";
+import { SharedCurriculumEditForm } from "@/components/shelf/shared-curriculum-edit-form";
 import { SharedLessonTable } from "@/components/shelf/shared-lesson-table";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +35,7 @@ export function SharedCurriculumDetailView({
   sharedCurriculumId,
   name,
   description,
+  coverImageId,
   lessons,
   members,
   availableStudents,
@@ -43,6 +46,7 @@ export function SharedCurriculumDetailView({
   sharedCurriculumId: string;
   name: string;
   description: string | null;
+  coverImageId: string | null;
   lessons: SharedLesson[];
   members: { id: string; name: string; color: string }[];
   availableStudents: { id: string; name: string; color: string }[];
@@ -61,18 +65,38 @@ export function SharedCurriculumDetailView({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3">
           <BackButton />
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">{name}</h1>
+          {coverImageId ? (
+            <Image
+              src={`/api/curriculum-images/${coverImageId}`}
+              alt={`${name} cover`}
+              width={48}
+              height={64}
+              className="h-16 w-12 rounded object-cover"
+            />
+          ) : null}
+          <div className="relative min-w-0 flex-1 pr-8">
+            <div className="absolute right-0 top-0">
+              <SharedCurriculumEditForm
+                sharedCurriculumId={sharedCurriculumId}
+                currentName={name}
+                currentDescription={description}
+              />
+            </div>
+            <h1 className="break-words text-xl font-bold leading-tight">
+              {name}
+            </h1>
             {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {description}
+              </p>
             )}
           </div>
         </div>
         <TooltipProvider>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex items-center gap-1 self-start sm:shrink-0 sm:self-auto">
             <AddSharedLessonForm
               sharedCurriculumId={sharedCurriculumId}
               nextLessonNumber={total + 1}

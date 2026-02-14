@@ -19,6 +19,7 @@ export async function getAllResourcesWithProgress() {
     .select({
       resourceId: resources.id,
       resourceName: resources.name,
+      coverImageId: resources.coverImageId,
       subjectName: subjects.name,
       studentId: students.id,
       studentName: students.name,
@@ -36,6 +37,7 @@ export async function getAllResourcesWithProgress() {
     .groupBy(
       resources.id,
       resources.name,
+      resources.coverImageId,
       subjects.name,
       students.id,
       students.name,
@@ -72,6 +74,7 @@ export async function getAllSharedCurriculaWithProgress() {
       sharedCurriculumId: sharedCurricula.id,
       sharedCurriculumName: sharedCurricula.name,
       sharedCurriculumDescription: sharedCurricula.description,
+      coverImageId: sharedCurricula.coverImageId,
       memberCount:
         sql<number>`count(distinct ${sharedCurriculumStudents.studentId})`.mapWith(
           Number,
@@ -97,6 +100,7 @@ export async function getAllSharedCurriculaWithProgress() {
       sharedCurricula.id,
       sharedCurricula.name,
       sharedCurricula.description,
+      sharedCurricula.coverImageId,
     )
     .orderBy(asc(sharedCurricula.name));
 

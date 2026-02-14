@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,14 +19,20 @@ export function SharedCurriculumForm() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
 
-  function handleSubmit() {
+  function handleSubmit(formData: FormData) {
     if (!name.trim()) return;
     startTransition(async () => {
-      await createSharedCurriculum(name, description);
+      formData.set("name", name);
+      formData.set("description", description);
+      await createSharedCurriculum(formData);
       setName("");
       setDescription("");
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
       setOpen(false);
     });
   }
@@ -43,7 +49,7 @@ export function SharedCurriculumForm() {
         <DialogHeader>
           <DialogTitle>New Shared Curriculum</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="shared-name">Name</Label>
             <Input
@@ -63,14 +69,25 @@ export function SharedCurriculumForm() {
               rows={3}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="shared-cover-image">Cover Image</Label>
+            <Input
+              id="shared-cover-image"
+              name="coverImage"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              ref={fileRef}
+              className="text-sm"
+            />
+          </div>
           <Button
-            onClick={handleSubmit}
+            type="submit"
             className="w-full"
-            disabled={isPending}
+            disabled={isPending || !name.trim()}
           >
             Create
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
