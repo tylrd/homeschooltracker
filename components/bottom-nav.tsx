@@ -19,7 +19,9 @@ export function BottomNav({ className }: { className?: string }) {
       <div className="mx-auto flex max-w-lg pt-1">
         {NAV_ITEMS.map((tab) => {
           const isActive =
-            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+            tab.href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname.startsWith(tab.href);
           return (
             <Link
               key={tab.href}

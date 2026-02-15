@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "HomeschoolTracker",
-    short_name: "HSTracker",
+    name: "Homeschool Keeper",
+    short_name: "Homeschool Keeper",
     description: "Plan in minutes, log in seconds.",
     start_url: "/",
     display: "standalone",

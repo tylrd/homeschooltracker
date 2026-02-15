@@ -14,6 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const isPublicAuthRoute =
     pathname === "/sign-in" || pathname.startsWith("/org/select");
+  const isLandingRoute = pathname === "/";
 
   if (isPublicAuthRoute) {
     return (
@@ -21,6 +22,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="w-full">{children}</div>
       </div>
     );
+  }
+
+  if (isLandingRoute) {
+    return <>{children}</>;
   }
 
   return (
@@ -42,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-full min-h-0 flex-col lg:pl-6">
           <header className="flex items-center justify-between px-4 pt-3 pb-1 lg:hidden">
             <span className="text-sm font-semibold tracking-tight text-muted-foreground">
-              HomeschoolTracker
+              Homeschool Keeper
             </span>
             <div className="flex items-center gap-2">
               <ThemeToggle />

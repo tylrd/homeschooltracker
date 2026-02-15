@@ -1,199 +1,107 @@
-export const dynamic = "force-dynamic";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { getSessionOrNull } from "@/lib/auth/session";
 
-import { CalendarCheck } from "lucide-react";
-import { Suspense } from "react";
-import { DashboardSharedAddButton } from "@/components/dashboard/dashboard-shared-add-button";
-import { DayNav } from "@/components/dashboard/day-nav";
-import { LessonList } from "@/components/dashboard/lesson-list";
-import { SickDayButton } from "@/components/dashboard/sick-day-button";
-import { StudentFilter } from "@/components/dashboard/student-filter";
-import { EmptyState } from "@/components/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
-import { requireAppRouteAccess } from "@/lib/auth/session";
-import { getTodayDate } from "@/lib/dates";
-import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
-import {
-  getAbsencesForDate,
-  getGlobalAbsenceForDate,
-  getSharedCurriculaForDashboardAdd,
-  getStudentResourceMap,
-  getStudentsForFilter,
-  getTodayLessons,
-  getTodayNotes,
-  getTodaySharedLessons,
-} from "@/lib/queries/dashboard";
-import {
-  getDashboardGrouping,
-  getDashboardSharedLessonView,
-  getShowCompletedLessons,
-  getShowNoteButtons,
-} from "@/lib/queries/settings";
+export default async function LandingPage() {
+  const session = await getSessionOrNull();
+  const userId = session?.user?.id ?? session?.session?.userId ?? null;
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ student?: string; date?: string }>;
-}) {
-  await requireAppRouteAccess("/");
-
-  const { student: studentId, date: dateParam } = await searchParams;
-  const today = getTodayDate();
-  const date = dateParam ?? today;
-  const [
-    lessons,
-    sharedLessons,
-    notes,
-    students,
-    absences,
-    globalAbsence,
-    reasons,
-    showCompleted,
-    dashboardGrouping,
-    dashboardSharedLessonView,
-    showNoteButtons,
-    resourceRows,
-    sharedCurriculumRows,
-  ] = await Promise.all([
-    getTodayLessons(date, studentId),
-    getTodaySharedLessons(date, studentId),
-    getTodayNotes(date),
-    getStudentsForFilter(),
-    getAbsencesForDate(date),
-    getGlobalAbsenceForDate(date),
-    getOrCreateDefaultReasons(),
-    getShowCompletedLessons(),
-    getDashboardGrouping(),
-    getDashboardSharedLessonView(),
-    getShowNoteButtons(),
-    getStudentResourceMap(),
-    getSharedCurriculaForDashboardAdd(date, studentId),
-  ]);
-
-  // Build student resource map: studentId -> resources[]
-  const studentResourceMap: Record<
-    string,
-    { resourceId: string; resourceName: string; subjectName: string }[]
-  > = {};
-  for (const row of resourceRows) {
-    const existing = studentResourceMap[row.studentId];
-    if (existing) {
-      existing.push({
-        resourceId: row.resourceId,
-        resourceName: row.resourceName,
-        subjectName: row.subjectName,
-      });
-    } else {
-      studentResourceMap[row.studentId] = [
-        {
-          resourceId: row.resourceId,
-          resourceName: row.resourceName,
-          subjectName: row.subjectName,
-        },
-      ];
-    }
+  if (userId) {
+    redirect("/dashboard");
   }
-
-  // Build absence map: studentId -> absence info
-  const absenceMap = new Map<
-    string,
-    {
-      absenceId: string | null;
-      reasonName: string;
-      reasonColor: string;
-      source: "individual" | "global";
-    }
-  >();
-  for (const a of absences) {
-    absenceMap.set(a.studentId, {
-      absenceId: a.absenceId,
-      reasonName: a.reasonName,
-      reasonColor: a.reasonColor,
-      source: a.source,
-    });
-  }
-
-  const renderDashboardActions = () => (
-    <>
-      <DashboardSharedAddButton date={date} options={sharedCurriculumRows} />
-      {students.length > 0 && (
-        <SickDayButton
-          date={date}
-          reasons={reasons.map((r) => ({
-            id: r.id,
-            name: r.name,
-            color: r.color,
-          }))}
-          existingGlobalAbsence={
-            globalAbsence
-              ? {
-                  absenceId: globalAbsence.globalAbsenceId,
-                  reasonName: globalAbsence.reasonName,
-                  reasonColor: globalAbsence.reasonColor,
-                }
-              : null
-          }
-        />
-      )}
-    </>
-  );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <DayNav date={date} today={today} compact={false} />
-          <div className="ml-auto flex items-center gap-2">
-            {renderDashboardActions()}
-          </div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-background via-background to-muted/30">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,_var(--color-primary)_0%,_transparent_70%)] opacity-10" />
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold tracking-tight text-foreground">
+            Homeschool Keeper
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Plan in minutes, log in seconds.
+          </p>
         </div>
+        <Button asChild variant="outline">
+          <Link href="/sign-in">Log in</Link>
+        </Button>
+      </header>
 
-        {students.length > 0 && (
-          <Suspense fallback={<Skeleton className="h-8 w-full" />}>
-            <StudentFilter students={students} activeStudentId={studentId} />
-          </Suspense>
-        )}
-      </section>
+      <main className="relative mx-auto w-full max-w-6xl space-y-16 px-4 pt-6 pb-16 sm:px-6 lg:px-8">
+        <section className="rounded-2xl border bg-card/90 p-8 shadow-sm backdrop-blur-sm sm:p-12">
+          <div className="mx-auto max-w-3xl space-y-5 text-center">
+            <Badge
+              variant="secondary"
+              className="gap-1 border border-border/70 bg-muted text-foreground"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Beta
+            </Badge>
+            <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              A friendlier way to manage your homeschool day
+            </h1>
+            <p className="text-pretty text-base text-muted-foreground sm:text-lg">
+              Homeschool Keeper helps you keep lessons, attendance, and planning
+              in one place so you can spend less time organizing and more time
+              teaching.
+            </p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Beta notice: The project is currently in beta and features will
+              continue to improve.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Button asChild size="lg">
+                <Link href="/sign-in?mode=sign-up">
+                  Create a new account
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="ghost">
+                <Link href="/sign-in">I already have an account</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
 
-      {lessons.length === 0 && sharedLessons.length === 0 && (
-        <EmptyState
-          icon={CalendarCheck}
-          title="No lessons today"
-          description={
-            students.length === 0
-              ? "Add students and generate lessons to see your daily dashboard."
-              : "All caught up! No lessons scheduled for today."
-          }
-        />
-      )}
-
-      {students.length > 0 && (
-        <LessonList
-          lessons={lessons}
-          sharedLessons={sharedLessons}
-          allStudents={
-            studentId
-              ? students.filter((student) => student.id === studentId)
-              : students
-          }
-          isStudentFiltered={!!studentId}
-          notes={notes.map((n) => ({
-            studentId: n.studentId,
-            content: n.content,
-          }))}
-          date={date}
-          reasons={reasons.map((r) => ({
-            id: r.id,
-            name: r.name,
-            color: r.color,
-          }))}
-          absenceMap={Object.fromEntries(absenceMap)}
-          defaultShowCompleted={showCompleted}
-          grouping={dashboardGrouping}
-          defaultSharedLessonView={dashboardSharedLessonView}
-          showNoteButtons={showNoteButtons}
-          studentResourceMap={studentResourceMap}
-        />
-      )}
+        <section className="space-y-5">
+          <div className="space-y-2 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              See how it works
+            </h2>
+            <p className="text-sm text-muted-foreground sm:text-base">
+              A quick look at the Homeschool Keeper dashboard in the current
+              beta.
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-md">
+            <Image
+              src="/screenshot.png"
+              alt="Homeschool Keeper dashboard preview"
+              width={2148}
+              height={1160}
+              priority
+              className="h-auto w-full object-cover dark:hidden"
+            />
+            <Image
+              src="/screenshot-dark.png"
+              alt="Homeschool Keeper dashboard preview in dark mode"
+              width={2194}
+              height={1068}
+              priority
+              className="hidden h-auto w-full object-cover dark:block"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Real app preview from the current beta.
+            </p>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

@@ -12,7 +12,7 @@ export default async function SignInPage() {
     null;
 
   if (activeOrganizationId) {
-    redirect("/");
+    redirect("/dashboard");
   }
 
   if (session) {
