@@ -9,11 +9,24 @@ type SessionLike = {
   session?: {
     userId?: string | null;
     activeOrganizationId?: string | null;
+    activeOrganization?: { id?: string | null } | null;
   } | null;
+  activeOrganizationId?: string | null;
+  activeOrganization?: { id?: string | null } | null;
 } | null;
 
 function getUserId(session: SessionLike) {
   return session?.user?.id ?? session?.session?.userId ?? null;
+}
+
+function getActiveOrganizationId(session: SessionLike) {
+  return (
+    session?.session?.activeOrganizationId ??
+    session?.session?.activeOrganization?.id ??
+    session?.activeOrganizationId ??
+    session?.activeOrganization?.id ??
+    null
+  );
 }
 
 export async function GET(request: Request) {
@@ -55,7 +68,7 @@ export async function GET(request: Request) {
       slug: row.slug,
     })),
     defaultOrganizationId: defaultRow?.organizationId ?? null,
-    activeOrganizationId: session?.session?.activeOrganizationId ?? null,
+    activeOrganizationId: getActiveOrganizationId(session),
   });
 }
 
