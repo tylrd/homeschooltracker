@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb, getSql } from "@/db";
 import {
   BOOTSTRAP_ORGANIZATION_ID,
@@ -134,6 +134,25 @@ async function seed() {
     throw new Error("Failed to create seeded auth user.");
   }
 
+  const autoCreatedMemberships = await db
+    .select({ organizationId: members.organizationId })
+    .from(members)
+    .where(eq(members.userId, seededUser.id));
+
+  if (autoCreatedMemberships.length > 0) {
+    const autoOrganizationIds = autoCreatedMemberships.map(
+      (membership) => membership.organizationId,
+    );
+
+    await db
+      .delete(userDefaultOrganizations)
+      .where(eq(userDefaultOrganizations.userId, seededUser.id));
+    await db.delete(members).where(eq(members.userId, seededUser.id));
+    await db
+      .delete(organizations)
+      .where(inArray(organizations.id, autoOrganizationIds));
+  }
+
   await db
     .insert(members)
     .values({
@@ -142,20 +161,6 @@ async function seed() {
       role: "owner",
     })
     .onConflictDoNothing({ target: [members.organizationId, members.userId] });
-
-  await db
-    .insert(userDefaultOrganizations)
-    .values({
-      userId: seededUser.id,
-      organizationId: BOOTSTRAP_ORGANIZATION_ID,
-    })
-    .onConflictDoUpdate({
-      target: userDefaultOrganizations.userId,
-      set: {
-        organizationId: BOOTSTRAP_ORGANIZATION_ID,
-        updatedAt: new Date(),
-      },
-    });
 
   const today = new Date();
   // Start all generated dates from today onward.

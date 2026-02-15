@@ -12,8 +12,7 @@ import { cn } from "@/lib/utils";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
-  const isPublicAuthRoute =
-    pathname === "/sign-in" || pathname.startsWith("/org/select");
+  const isPublicAuthRoute = pathname === "/sign-in";
   const isLandingRoute = pathname === "/";
 
   if (isPublicAuthRoute) {

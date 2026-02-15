@@ -16,7 +16,7 @@ export default async function SignInPage() {
   }
 
   if (session) {
-    redirect("/org/select");
+    redirect("/dashboard");
   }
 
   return <SignInForm />;
