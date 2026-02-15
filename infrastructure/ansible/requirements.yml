@@ -2,3 +2,5 @@
 roles:
   - name: geerlingguy.security
   - name: geerlingguy.docker
+collections:
+  - name: community.docker

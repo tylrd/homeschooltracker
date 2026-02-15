@@ -20,4 +20,10 @@ docker_users:
 
 # Local nginx_site role options.
 nginx_landing_domain: homeschoolkeeper.app
-nginx_landing_root: /var/www/landing
+nginx_proxy_upstream: http://127.0.0.1:3000
+
+# Local docker_compose_app role options.
+docker_compose_project_dir: /home/ansible/homeschool-docker
+docker_compose_owner: ansible
+docker_compose_group: ansible
+docker_compose_env_file: /home/ansible/homeschool-docker/.env

@@ -1,0 +1,7 @@
+---
+docker_compose_project_dir: /home/ansible/homeschool-docker
+docker_compose_owner: ansible
+docker_compose_group: ansible
+docker_compose_env_file: "{{ docker_compose_project_dir }}/.env"
+docker_compose_pull_policy: always
+docker_compose_recreate: auto

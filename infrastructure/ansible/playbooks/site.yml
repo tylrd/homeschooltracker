@@ -5,7 +5,7 @@
   roles:
     - role: geerlingguy.security
     - role: geerlingguy.docker
+    - role: docker_compose_app
+      tags: docker_compose_app
     - role: nginx_site
       tags: nginx_site
-    - role: landing_page
-      tags: landing_page

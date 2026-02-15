@@ -1,0 +1,42 @@
+services:
+  homeschool_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - homeschool_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  homeschool_migrate:
+    image: ghcr.io/tylrd/homeschooltracker:latest
+    command: migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@homeschool_db:5432/${POSTGRES_DB}
+    depends_on:
+      homeschool_db:
+        condition: service_healthy
+
+  homeschool:
+    image: ghcr.io/tylrd/homeschooltracker:latest
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@homeschool_db:5432/${POSTGRES_DB}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_BASE_URL: ${BETTER_AUTH_BASE_URL}
+    ports:
+      - 3000:3000
+    depends_on:
+      homeschool_db:
+        condition: service_healthy
+      homeschool_migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  homeschool_data:

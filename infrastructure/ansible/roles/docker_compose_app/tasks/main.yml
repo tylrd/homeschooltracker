@@ -1,0 +1,37 @@
+---
+- name: Ensure Docker Compose project directory exists
+  ansible.builtin.file:
+    path: "{{ docker_compose_project_dir }}"
+    state: directory
+    owner: "{{ docker_compose_owner }}"
+    group: "{{ docker_compose_group }}"
+    mode: "0750"
+
+- name: Render docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yaml.j2
+    dest: "{{ docker_compose_project_dir }}/docker-compose.yaml"
+    owner: "{{ docker_compose_owner }}"
+    group: "{{ docker_compose_group }}"
+    mode: "0640"
+
+- name: Check for existing compose env file
+  ansible.builtin.stat:
+    path: "{{ docker_compose_env_file }}"
+  register: docker_compose_env_file_stat
+
+- name: Ensure compose env file exists
+  ansible.builtin.assert:
+    that:
+      - docker_compose_env_file_stat.stat.exists
+      - docker_compose_env_file_stat.stat.isreg
+    fail_msg: "Missing {{ docker_compose_env_file }}. Create it manually before running this playbook."
+
+- name: Ensure homeschool compose services are running
+  community.docker.docker_compose_v2:
+    project_src: "{{ docker_compose_project_dir }}"
+    files:
+      - docker-compose.yaml
+    pull: "{{ docker_compose_pull_policy }}"
+    recreate: "{{ docker_compose_recreate }}"
+    state: present
