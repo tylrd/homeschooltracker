@@ -1,17 +1,28 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { LandingScreenshot } from "@/components/landing/landing-screenshot";
+import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getSessionOrNull } from "@/lib/auth/session";
 
 export default async function LandingPage() {
   const session = await getSessionOrNull();
-  const userId = session?.user?.id ?? session?.session?.userId ?? null;
+  const userId = session?.user?.id ?? null;
+  const activeOrganizationId =
+    session?.session?.activeOrganizationId ??
+    session?.session?.activeOrganization?.id ??
+    session?.activeOrganizationId ??
+    session?.activeOrganization?.id ??
+    null;
+
+  if (userId && activeOrganizationId) {
+    redirect("/dashboard");
+  }
 
   if (userId) {
-    redirect("/dashboard");
+    redirect("/org/select");
   }
 
   return (
@@ -26,9 +37,15 @@ export default async function LandingPage() {
             Plan in minutes, log in seconds.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/sign-in">Log in</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/docs">Docs</Link>
+          </Button>
+          <LandingThemeToggle />
+          <Button asChild variant="outline">
+            <Link href="/sign-in">Log in</Link>
+          </Button>
+        </div>
       </header>
 
       <main className="relative mx-auto w-full max-w-6xl space-y-16 px-4 pt-6 pb-16 sm:px-6 lg:px-8">
@@ -78,22 +95,7 @@ export default async function LandingPage() {
             </p>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card shadow-md">
-            <Image
-              src="/screenshot.png"
-              alt="Homeschool Keeper dashboard preview"
-              width={2148}
-              height={1160}
-              priority
-              className="h-auto w-full object-cover dark:hidden"
-            />
-            <Image
-              src="/screenshot-dark.png"
-              alt="Homeschool Keeper dashboard preview in dark mode"
-              width={2194}
-              height={1068}
-              priority
-              className="hidden h-auto w-full object-cover dark:block"
-            />
+            <LandingScreenshot />
           </div>
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
