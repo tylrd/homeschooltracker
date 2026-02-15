@@ -36,7 +36,7 @@ export function DesktopSidebar({
             collapsed && "sr-only",
           )}
         >
-          HomeschoolTracker
+          Homeschool Keeper
         </p>
         <Button
           variant="ghost"
@@ -51,8 +51,8 @@ export function DesktopSidebar({
       <nav className="mt-2 flex flex-1 flex-col gap-1 px-3">
         {NAV_ITEMS.map((item) => {
           const isActive =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
           return (
             <Link

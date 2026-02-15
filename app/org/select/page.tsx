@@ -73,7 +73,7 @@ export default async function OrgSelectPage() {
       headers: requestHeaders,
       body: { organizationId: autoOrganizationId },
     });
-    redirect("/");
+    redirect("/dashboard");
   }
 
   return (

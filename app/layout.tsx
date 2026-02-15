@@ -16,12 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HomeschoolTracker",
+  title: "Homeschool Keeper",
   description: "Plan in minutes, log in seconds.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "HomeschoolTracker",
+    title: "Homeschool Keeper",
   },
   icons: {
     icon: "/favicon.ico",

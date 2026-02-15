@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,9 @@ type AuthMode = "sign-in" | "sign-up";
 export function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<AuthMode>("sign-in");
+  const modeParam =
+    searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
+  const [mode, setMode] = useState<AuthMode>(modeParam);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,9 +23,13 @@ export function SignInForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const nextPath = useMemo(
-    () => searchParams.get("next") ?? "/",
+    () => searchParams.get("next") ?? "/dashboard",
     [searchParams],
   );
+
+  useEffect(() => {
+    setMode(modeParam);
+  }, [modeParam]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

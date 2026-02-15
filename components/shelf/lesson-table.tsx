@@ -368,7 +368,7 @@ export function LessonTable({
           <div className="flex items-center gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <Link
-                href={`/?date=${date}`}
+                href={`/dashboard?date=${date}`}
                 className="underline-offset-2 hover:text-foreground hover:underline"
               >
                 {formatDate(date)}

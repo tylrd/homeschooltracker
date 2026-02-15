@@ -45,7 +45,7 @@ export function DayNav({
       params.set("date", newDate);
     }
     const qs = params.toString();
-    router.push(qs ? `/?${qs}` : "/");
+    router.push(qs ? `/dashboard?${qs}` : "/dashboard");
   }
 
   return (
