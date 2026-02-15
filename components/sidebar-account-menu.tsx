@@ -3,7 +3,7 @@
 import { Check, LogOut, Settings, Star, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -51,6 +51,7 @@ export function SidebarAccountMenu({
 
   const { data: session } = authClient.useSession();
   const activeOrgQuery = authClient.useActiveOrganization();
+  const listOrganizationsQuery = authClient.useListOrganizations();
 
   const sessionActiveOrganizationId =
     session?.session?.activeOrganizationId ?? null;
@@ -58,50 +59,56 @@ export function SidebarAccountMenu({
     activeOrgQuery.data?.id ??
     activeOrganizationId ??
     sessionActiveOrganizationId;
+  const effectiveOrganizations =
+    listOrganizationsQuery.data && listOrganizationsQuery.data.length > 0
+      ? listOrganizationsQuery.data.map((org) => ({
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+        }))
+      : organizations;
 
   const userName = session?.user?.name ?? "Unknown user";
   const userEmail = session?.user?.email ?? "";
   const organizationName =
     activeOrgQuery.data?.name ??
-    organizations.find((org) => org.id === effectiveActiveOrganizationId)
-      ?.name ??
+    effectiveOrganizations.find(
+      (org) => org.id === effectiveActiveOrganizationId,
+    )?.name ??
     "No active organization";
 
   const initials = useMemo(() => getInitials(userName), [userName]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadPreferences = useCallback(async () => {
+    const response = await fetch("/api/organization/preferences", {
+      cache: "no-store",
+    });
 
-    async function loadPreferences() {
-      const response = await fetch("/api/organization/preferences", {
-        cache: "no-store",
-      });
-
-      if (!response.ok || cancelled) {
-        return;
-      }
-
-      const data = (await response.json()) as {
-        organizations: OrganizationOption[];
-        defaultOrganizationId: string | null;
-        activeOrganizationId: string | null;
-      };
-
-      if (cancelled) {
-        return;
-      }
-
-      setOrganizations(data.organizations);
-      setDefaultOrganizationId(data.defaultOrganizationId);
-      setActiveOrganizationId(data.activeOrganizationId);
+    if (!response.ok) {
+      return;
     }
 
-    void loadPreferences();
-
-    return () => {
-      cancelled = true;
+    const data = (await response.json()) as {
+      organizations: OrganizationOption[];
+      defaultOrganizationId: string | null;
+      activeOrganizationId: string | null;
     };
+
+    setOrganizations(data.organizations);
+    setDefaultOrganizationId(data.defaultOrganizationId);
+    setActiveOrganizationId(data.activeOrganizationId);
   }, []);
+
+  useEffect(() => {
+    void loadPreferences();
+  }, [loadPreferences]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    void loadPreferences();
+  }, [open, loadPreferences]);
 
   async function setDefaultOrganization(organizationId: string | null) {
     setSettingDefaultOrgId(organizationId);
@@ -151,8 +158,8 @@ export function SidebarAccountMenu({
         <button
           type="button"
           className={cn(
-            "inline-flex max-w-full items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-left transition-colors hover:bg-accent",
-            collapsed && "h-9 w-9 justify-center p-0",
+            "inline-flex max-w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent/60",
+            collapsed && "h-9 w-9 justify-center px-0 py-0",
           )}
           aria-label="Open account menu"
         >
@@ -186,11 +193,11 @@ export function SidebarAccountMenu({
           <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Organizations
           </p>
-          {organizations.map((organization) => {
+          {effectiveOrganizations.map((organization) => {
             const isActive = organization.id === effectiveActiveOrganizationId;
             const isDefault = defaultOrganizationId
               ? organization.id === defaultOrganizationId
-              : organizations.length === 1;
+              : effectiveOrganizations.length === 1;
 
             return (
               <div
@@ -231,6 +238,11 @@ export function SidebarAccountMenu({
               </div>
             );
           })}
+          {effectiveOrganizations.length === 0 && (
+            <p className="px-2 py-2 text-xs text-muted-foreground">
+              No organizations found for this user.
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-1">
