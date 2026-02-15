@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getSharedCurriculumMembershipOptionsForStudent } from "@/lib/queries/shared-curricula";
 import { getStudentWithSubjectsAndResources } from "@/lib/queries/students";
 
@@ -24,6 +25,8 @@ export default async function StudentDetailPage({
 }: {
   params: Promise<{ studentId: string }>;
 }) {
+  await requireAppRouteAccess();
+
   const { studentId } = await params;
   const [student, sharedMembershipOptions] = await Promise.all([
     getStudentWithSubjectsAndResources(studentId),

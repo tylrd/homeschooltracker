@@ -7,6 +7,7 @@ import {
   students,
   subjects,
 } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 export async function getExportData(
   studentIds: string[],
@@ -14,7 +15,9 @@ export async function getExportData(
   endDate: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const conditions = [
+    eq(lessons.organizationId, organizationId),
     gte(lessons.completionDate, startDate),
     lte(lessons.completionDate, endDate),
     eq(lessons.status, "completed"),
@@ -45,6 +48,7 @@ export async function getExportData(
 
   // Get daily notes in range
   const noteConditions = [
+    eq(dailyNotes.organizationId, organizationId),
     gte(dailyNotes.date, startDate),
     lte(dailyNotes.date, endDate),
   ];

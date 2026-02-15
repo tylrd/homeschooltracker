@@ -4,7 +4,14 @@ import { and, asc, eq, gt, gte, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { lessons, lessonWorkSamples, resources, subjects } from "@/db/schema";
+import {
+  curriculumImages,
+  lessons,
+  lessonWorkSamples,
+  resources,
+  subjects,
+} from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 import {
   generateLessonDates,
   getNextBumpDate,
@@ -23,12 +30,14 @@ export async function batchCreateLessons(
   schoolDays: number[],
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const count = endLesson - startLesson + 1;
   if (count <= 0) throw new Error("Invalid lesson range");
 
   // Check for existing lessons in this range
   const existing = await db.query.lessons.findMany({
     where: and(
+      eq(lessons.organizationId, organizationId),
       eq(lessons.resourceId, resourceId),
       gte(lessons.lessonNumber, startLesson),
     ),
@@ -43,6 +52,7 @@ export async function batchCreateLessons(
   for (let num = startLesson; num <= endLesson; num++) {
     if (!existingNumbers.has(num)) {
       newLessons.push({
+        organizationId,
         resourceId,
         lessonNumber: num,
         title: `Lesson ${num}`,
@@ -64,11 +74,14 @@ export async function batchCreateLessons(
 
 export async function completeLesson(lessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const today = toDateString(new Date());
   await db
     .update(lessons)
     .set({ status: "completed", completionDate: today })
-    .where(eq(lessons.id, lessonId));
+    .where(
+      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -78,10 +91,13 @@ export async function completeLesson(lessonId: string) {
 
 export async function uncompleteLesson(lessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .update(lessons)
     .set({ status: "planned", completionDate: null })
-    .where(eq(lessons.id, lessonId));
+    .where(
+      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -91,8 +107,14 @@ export async function uncompleteLesson(lessonId: string) {
 
 export async function bumpLesson(lessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const [lesson, schoolDays, bumpBehavior] = await Promise.all([
-    db.query.lessons.findFirst({ where: eq(lessons.id, lessonId) }),
+    db.query.lessons.findFirst({
+      where: and(
+        eq(lessons.id, lessonId),
+        eq(lessons.organizationId, organizationId),
+      ),
+    }),
     getSchoolDays(),
     getBumpBehavior(),
   ]);
@@ -105,6 +127,7 @@ export async function bumpLesson(lessonId: string) {
     .from(lessons)
     .where(
       and(
+        eq(lessons.organizationId, organizationId),
         eq(lessons.resourceId, lesson.resourceId),
         eq(lessons.status, "planned"),
         gte(lessons.scheduledDate, lesson.scheduledDate),
@@ -126,7 +149,12 @@ export async function bumpLesson(lessonId: string) {
       await tx
         .update(lessons)
         .set({ scheduledDate: currentDate })
-        .where(eq(lessons.id, futureLessons[i].id));
+        .where(
+          and(
+            eq(lessons.id, futureLessons[i].id),
+            eq(lessons.organizationId, organizationId),
+          ),
+        );
       currentDate = nextSchoolDayStr(currentDate, schoolDays);
     }
   });
@@ -138,6 +166,7 @@ export async function bumpLesson(lessonId: string) {
 
 export async function bumpAllToday(date: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const [schoolDays, bumpBehavior] = await Promise.all([
     getSchoolDays(),
     getBumpBehavior(),
@@ -147,7 +176,13 @@ export async function bumpAllToday(date: string) {
   const todayLessons = await db
     .select()
     .from(lessons)
-    .where(and(eq(lessons.scheduledDate, date), eq(lessons.status, "planned")));
+    .where(
+      and(
+        eq(lessons.organizationId, organizationId),
+        eq(lessons.scheduledDate, date),
+        eq(lessons.status, "planned"),
+      ),
+    );
 
   if (todayLessons.length === 0) return;
 
@@ -167,6 +202,7 @@ export async function bumpAllToday(date: string) {
         .from(lessons)
         .where(
           and(
+            eq(lessons.organizationId, organizationId),
             eq(lessons.resourceId, resourceId),
             eq(lessons.status, "planned"),
             gte(lessons.scheduledDate, date),
@@ -179,7 +215,12 @@ export async function bumpAllToday(date: string) {
         await tx
           .update(lessons)
           .set({ scheduledDate: currentDate })
-          .where(eq(lessons.id, futureLessons[i].id));
+          .where(
+            and(
+              eq(lessons.id, futureLessons[i].id),
+              eq(lessons.organizationId, organizationId),
+            ),
+          );
         currentDate = nextSchoolDayStr(currentDate, schoolDays);
       }
     }
@@ -197,7 +238,9 @@ export async function createLesson(
   plan?: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db.insert(lessons).values({
+    organizationId,
     resourceId,
     lessonNumber,
     title: title.trim() || `Lesson ${lessonNumber}`,
@@ -216,14 +259,20 @@ export async function updateLessonScheduledDate(
   newDate: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const lesson = await db.query.lessons.findFirst({
-    where: eq(lessons.id, lessonId),
+    where: and(
+      eq(lessons.id, lessonId),
+      eq(lessons.organizationId, organizationId),
+    ),
   });
 
   await db
     .update(lessons)
     .set({ scheduledDate: newDate || null })
-    .where(eq(lessons.id, lessonId));
+    .where(
+      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -238,17 +287,23 @@ export async function bulkCompleteLessons(lessonIds: string[]) {
   if (ids.length === 0) return;
 
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const today = toDateString(new Date());
 
   const affectedLessons = await db.query.lessons.findMany({
-    where: inArray(lessons.id, ids),
+    where: and(
+      eq(lessons.organizationId, organizationId),
+      inArray(lessons.id, ids),
+    ),
     columns: { id: true, resourceId: true },
   });
 
   await db
     .update(lessons)
     .set({ status: "completed", completionDate: today })
-    .where(inArray(lessons.id, ids));
+    .where(
+      and(eq(lessons.organizationId, organizationId), inArray(lessons.id, ids)),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -267,16 +322,27 @@ export async function bulkDeleteLessons(lessonIds: string[]) {
   if (ids.length === 0) return;
 
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const affectedLessons = await db.query.lessons.findMany({
-    where: inArray(lessons.id, ids),
+    where: and(
+      eq(lessons.organizationId, organizationId),
+      inArray(lessons.id, ids),
+    ),
     columns: { id: true, resourceId: true },
   });
   const sampleRows = await db.query.lessonWorkSamples.findMany({
-    where: inArray(lessonWorkSamples.lessonId, ids),
+    where: and(
+      eq(lessonWorkSamples.organizationId, organizationId),
+      inArray(lessonWorkSamples.lessonId, ids),
+    ),
     columns: { imageId: true },
   });
 
-  await db.delete(lessons).where(inArray(lessons.id, ids));
+  await db
+    .delete(lessons)
+    .where(
+      and(eq(lessons.organizationId, organizationId), inArray(lessons.id, ids)),
+    );
   const imageStore = getImageStore();
   for (const { imageId } of sampleRows) {
     await imageStore.deleteImage(imageId);
@@ -295,6 +361,7 @@ export async function bulkDeleteLessons(lessonIds: string[]) {
 
 export async function bumpStudentLessons(studentId: string, date: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const [schoolDays, bumpBehavior] = await Promise.all([
     getSchoolDays(),
     getBumpBehavior(),
@@ -308,6 +375,7 @@ export async function bumpStudentLessons(studentId: string, date: string) {
     .innerJoin(subjects, eq(resources.subjectId, subjects.id))
     .where(
       and(
+        eq(lessons.organizationId, organizationId),
         eq(lessons.scheduledDate, date),
         eq(lessons.status, "planned"),
         eq(subjects.studentId, studentId),
@@ -326,6 +394,7 @@ export async function bumpStudentLessons(studentId: string, date: string) {
         .from(lessons)
         .where(
           and(
+            eq(lessons.organizationId, organizationId),
             eq(lessons.resourceId, resourceId),
             eq(lessons.status, "planned"),
             gte(lessons.scheduledDate, date),
@@ -338,7 +407,12 @@ export async function bumpStudentLessons(studentId: string, date: string) {
         await tx
           .update(lessons)
           .set({ scheduledDate: currentDate })
-          .where(eq(lessons.id, futureLessons[i].id));
+          .where(
+            and(
+              eq(lessons.id, futureLessons[i].id),
+              eq(lessons.organizationId, organizationId),
+            ),
+          );
         currentDate = nextSchoolDayStr(currentDate, schoolDays);
       }
     }
@@ -350,10 +424,13 @@ export async function bumpStudentLessons(studentId: string, date: string) {
 
 export async function updateLessonPlan(lessonId: string, plan: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .update(lessons)
     .set({ plan: plan.trim() || null })
-    .where(eq(lessons.id, lessonId));
+    .where(
+      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
+    );
 
   revalidatePath(`/lessons/${lessonId}`);
   revalidatePath("/");
@@ -367,6 +444,7 @@ export async function updateLessonContent(
   notes: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .update(lessons)
     .set({
@@ -374,7 +452,9 @@ export async function updateLessonContent(
       plan: plan.trim() || null,
       notes: notes.trim() || null,
     })
-    .where(eq(lessons.id, lessonId));
+    .where(
+      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
+    );
 
   revalidatePath(`/lessons/${lessonId}`);
   revalidatePath("/");
@@ -386,8 +466,12 @@ export async function uploadLessonWorkSamples(
   formData: FormData,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const lesson = await db.query.lessons.findFirst({
-    where: eq(lessons.id, lessonId),
+    where: and(
+      eq(lessons.id, lessonId),
+      eq(lessons.organizationId, organizationId),
+    ),
     columns: { id: true, resourceId: true },
   });
 
@@ -415,8 +499,13 @@ export async function uploadLessonWorkSamples(
       byteSize: file.size,
       imageData: Buffer.from(await file.arrayBuffer()),
     });
+    await db
+      .update(curriculumImages)
+      .set({ organizationId })
+      .where(eq(curriculumImages.id, savedImage.id));
 
     await db.insert(lessonWorkSamples).values({
+      organizationId,
       lessonId,
       imageId: savedImage.id,
     });
@@ -433,8 +522,10 @@ export async function deleteLessonWorkSample(
   workSampleId: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const sample = await db.query.lessonWorkSamples.findFirst({
     where: and(
+      eq(lessonWorkSamples.organizationId, organizationId),
       eq(lessonWorkSamples.id, workSampleId),
       eq(lessonWorkSamples.lessonId, lessonId),
     ),
@@ -454,6 +545,7 @@ export async function deleteLessonWorkSample(
     .delete(lessonWorkSamples)
     .where(
       and(
+        eq(lessonWorkSamples.organizationId, organizationId),
         eq(lessonWorkSamples.id, workSampleId),
         eq(lessonWorkSamples.lessonId, lessonId),
       ),
@@ -474,10 +566,12 @@ export async function scheduleMakeupLesson(
   options?: { title?: string; notes?: string },
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
 
   // Find the next planned lesson after this date
   const nextLesson = await db.query.lessons.findFirst({
     where: and(
+      eq(lessons.organizationId, organizationId),
       eq(lessons.resourceId, resourceId),
       eq(lessons.status, "planned"),
       gt(lessons.scheduledDate, date),
@@ -491,16 +585,30 @@ export async function scheduleMakeupLesson(
     if (options?.title?.trim()) updates.title = options.title.trim();
     if (options?.notes !== undefined)
       updates.notes = options.notes.trim() || null;
-    await db.update(lessons).set(updates).where(eq(lessons.id, nextLesson.id));
+    await db
+      .update(lessons)
+      .set(updates)
+      .where(
+        and(
+          eq(lessons.id, nextLesson.id),
+          eq(lessons.organizationId, organizationId),
+        ),
+      );
   } else {
     // No future planned lesson — create a new one
     const result = await db
       .select({ maxNum: max(lessons.lessonNumber) })
       .from(lessons)
-      .where(eq(lessons.resourceId, resourceId));
+      .where(
+        and(
+          eq(lessons.organizationId, organizationId),
+          eq(lessons.resourceId, resourceId),
+        ),
+      );
     const nextNum = (result[0]?.maxNum ?? 0) + 1;
 
     await db.insert(lessons).values({
+      organizationId,
       resourceId,
       lessonNumber: nextNum,
       title: options?.title?.trim() || `Lesson ${nextNum}`,
@@ -519,15 +627,26 @@ export async function deleteLesson(
   opts?: { redirectTo?: string },
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const lesson = await db.query.lessons.findFirst({
-    where: eq(lessons.id, lessonId),
+    where: and(
+      eq(lessons.id, lessonId),
+      eq(lessons.organizationId, organizationId),
+    ),
   });
   const sampleRows = await db.query.lessonWorkSamples.findMany({
-    where: eq(lessonWorkSamples.lessonId, lessonId),
+    where: and(
+      eq(lessonWorkSamples.organizationId, organizationId),
+      eq(lessonWorkSamples.lessonId, lessonId),
+    ),
     columns: { imageId: true },
   });
 
-  await db.delete(lessons).where(eq(lessons.id, lessonId));
+  await db
+    .delete(lessons)
+    .where(
+      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
+    );
   const imageStore = getImageStore();
   for (const { imageId } of sampleRows) {
     await imageStore.deleteImage(imageId);
@@ -549,6 +668,7 @@ export async function getUpcomingPlannedLessons(
   date: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const rows = await db
     .select({
       lessonId: lessons.id,
@@ -563,6 +683,7 @@ export async function getUpcomingPlannedLessons(
     .innerJoin(subjects, eq(resources.subjectId, subjects.id))
     .where(
       and(
+        eq(lessons.organizationId, organizationId),
         eq(subjects.studentId, studentId),
         eq(lessons.status, "planned"),
         gt(lessons.scheduledDate, date),

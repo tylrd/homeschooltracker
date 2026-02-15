@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { SharedCurriculumDetailView } from "@/components/shelf/shared-curriculum-detail-view";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getFirstOpenDateOnOrAfter, toDateString } from "@/lib/dates";
 import { getDefaultLessonCount, getSchoolDays } from "@/lib/queries/settings";
 import {
@@ -14,6 +15,8 @@ export default async function SharedCurriculumDetailPage({
 }: {
   params: Promise<{ sharedCurriculumId: string }>;
 }) {
+  await requireAppRouteAccess();
+
   const { sharedCurriculumId } = await params;
   const [curriculum, schoolDays, defaultLessonCount] = await Promise.all([
     getSharedCurriculumWithLessons(sharedCurriculumId),

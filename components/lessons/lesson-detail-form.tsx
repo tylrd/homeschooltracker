@@ -342,6 +342,7 @@ export function LessonDetailForm({
                     alt="Work sample"
                     width={320}
                     height={240}
+                    unoptimized
                     className="h-20 w-full rounded-md border object-cover"
                   />
                 </button>
@@ -369,6 +370,7 @@ export function LessonDetailForm({
               alt="Work sample"
               width={1280}
               height={960}
+              unoptimized
               className="mx-auto block h-auto w-full max-w-none"
             />
           </div>

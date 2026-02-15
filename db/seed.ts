@@ -1,11 +1,18 @@
+import { eq } from "drizzle-orm";
 import { getDb, getSql } from "@/db";
 import {
+  BOOTSTRAP_ORGANIZATION_ID,
   dailyNotes,
   lessons,
+  members,
+  organizations,
   resources,
   students,
   subjects,
+  userDefaultOrganizations,
+  users,
 } from "@/db/schema";
+import { auth } from "@/lib/auth";
 import { generateLessonDates, toDateString } from "@/lib/dates";
 
 // ── Seed Data ───────────────────────────────────────────────────────────────
@@ -69,6 +76,9 @@ const DAILY_NOTES_TEMPLATES = [
 ];
 
 const MON_FRI = [1, 2, 3, 4, 5];
+const SEED_USER_EMAIL = "test@test.me";
+const SEED_USER_PASSWORD = "password";
+const SEED_USER_NAME = "test";
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
@@ -85,16 +95,71 @@ async function seed() {
   await db.delete(students);
   console.log("Cleared existing data.");
 
-  const today = new Date();
-  const todayStr = toDateString(today);
+  await db
+    .insert(organizations)
+    .values({
+      id: BOOTSTRAP_ORGANIZATION_ID,
+      name: "My Homeschool",
+      slug: "bootstrap-organization",
+    })
+    .onConflictDoUpdate({
+      target: organizations.id,
+      set: {
+        name: "My Homeschool",
+      },
+    });
 
-  // Start date: ~4 weeks ago on a Monday
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - 28);
-  // Rewind to Monday
-  while (startDate.getDay() !== 1) {
-    startDate.setDate(startDate.getDate() - 1);
+  // Reset and recreate deterministic test auth user.
+  const existingSeedUser = await db.query.users.findFirst({
+    where: eq(users.email, SEED_USER_EMAIL),
+  });
+
+  if (existingSeedUser) {
+    await db.delete(users).where(eq(users.id, existingSeedUser.id));
   }
+
+  await auth.api.signUpEmail({
+    body: {
+      email: SEED_USER_EMAIL,
+      password: SEED_USER_PASSWORD,
+      name: SEED_USER_NAME,
+    },
+  });
+
+  const seededUser = await db.query.users.findFirst({
+    where: eq(users.email, SEED_USER_EMAIL),
+  });
+
+  if (!seededUser) {
+    throw new Error("Failed to create seeded auth user.");
+  }
+
+  await db
+    .insert(members)
+    .values({
+      userId: seededUser.id,
+      organizationId: BOOTSTRAP_ORGANIZATION_ID,
+      role: "owner",
+    })
+    .onConflictDoNothing({ target: [members.organizationId, members.userId] });
+
+  await db
+    .insert(userDefaultOrganizations)
+    .values({
+      userId: seededUser.id,
+      organizationId: BOOTSTRAP_ORGANIZATION_ID,
+    })
+    .onConflictDoUpdate({
+      target: userDefaultOrganizations.userId,
+      set: {
+        organizationId: BOOTSTRAP_ORGANIZATION_ID,
+        updatedAt: new Date(),
+      },
+    });
+
+  const today = new Date();
+  // Start all generated dates from today onward.
+  const startDate = new Date(today);
 
   let studentCount = 0;
   let subjectCount = 0;
@@ -107,6 +172,7 @@ async function seed() {
     const [student] = await db
       .insert(students)
       .values({
+        organizationId: BOOTSTRAP_ORGANIZATION_ID,
         name: studentData.name,
         color: studentData.color,
         gradeLevel: studentData.gradeLevel,
@@ -121,6 +187,7 @@ async function seed() {
       const [subject] = await db
         .insert(subjects)
         .values({
+          organizationId: BOOTSTRAP_ORGANIZATION_ID,
           name: subjectData.name,
           studentId: student.id,
         })
@@ -132,6 +199,7 @@ async function seed() {
         const [resource] = await db
           .insert(resources)
           .values({
+            organizationId: BOOTSTRAP_ORGANIZATION_ID,
             name: resourceName,
             subjectId: subject.id,
           })
@@ -143,16 +211,14 @@ async function seed() {
 
         const lessonValues = lessonDates.map((date, i) => {
           const dateStr = toDateString(date);
-          const isPast = dateStr < todayStr;
-          const isCompleted = isPast && Math.random() < 0.8;
-
           return {
+            organizationId: BOOTSTRAP_ORGANIZATION_ID,
             resourceId: resource.id,
             lessonNumber: i + 1,
             title: `Lesson ${i + 1}`,
-            status: isCompleted ? ("completed" as const) : ("planned" as const),
+            status: "planned" as const,
             scheduledDate: dateStr,
-            completionDate: isCompleted ? dateStr : null,
+            completionDate: null,
           };
         });
 
@@ -161,16 +227,14 @@ async function seed() {
       }
     }
 
-    // Insert a few daily notes for past school days
+    // Insert a few daily notes from today onward
     const noteDates = generateLessonDates(startDate, 5, MON_FRI);
-    const noteValues = noteDates
-      .filter((d) => toDateString(d) < todayStr)
-      .slice(0, 3)
-      .map((date, i) => ({
-        studentId: student.id,
-        date: toDateString(date),
-        content: DAILY_NOTES_TEMPLATES[i % DAILY_NOTES_TEMPLATES.length],
-      }));
+    const noteValues = noteDates.slice(0, 3).map((date, i) => ({
+      organizationId: BOOTSTRAP_ORGANIZATION_ID,
+      studentId: student.id,
+      date: toDateString(date),
+      content: DAILY_NOTES_TEMPLATES[i % DAILY_NOTES_TEMPLATES.length],
+    }));
 
     if (noteValues.length > 0) {
       await db.insert(dailyNotes).values(noteValues);
@@ -184,6 +248,7 @@ async function seed() {
   console.log(`  Resources:   ${resourceCount}`);
   console.log(`  Lessons:     ${lessonCount}`);
   console.log(`  Daily Notes: ${noteCount}`);
+  console.log(`  Auth User:   ${SEED_USER_EMAIL} / ${SEED_USER_PASSWORD}`);
 
   await sql.end();
 }

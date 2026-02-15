@@ -35,6 +35,7 @@ export function SharedCurriculumCard({
                 alt={`${curriculum.sharedCurriculumName} cover`}
                 width={40}
                 height={48}
+                unoptimized
                 className="h-12 w-10 rounded object-cover"
               />
             ) : (

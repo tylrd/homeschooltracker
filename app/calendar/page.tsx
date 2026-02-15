@@ -5,6 +5,7 @@ import { MonthNav } from "@/components/attendance/month-nav";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { StudentFilter } from "@/components/dashboard/student-filter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getCalendarData } from "@/lib/queries/calendar";
 import { getStudentsForFilter } from "@/lib/queries/dashboard";
 
@@ -13,6 +14,8 @@ export default async function CalendarPage({
 }: {
   searchParams: Promise<{ year?: string; month?: string; student?: string }>;
 }) {
+  await requireAppRouteAccess("/calendar");
+
   const params = await searchParams;
   const now = new Date();
   const year = params.year ? Number(params.year) : now.getFullYear();

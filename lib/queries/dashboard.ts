@@ -15,6 +15,7 @@ import {
   students,
   subjects,
 } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 type DashboardAbsenceRow = {
   absenceId: string | null;
@@ -27,7 +28,11 @@ type DashboardAbsenceRow = {
 
 export async function getTodayLessons(date: string, studentId?: string) {
   const db = getDb();
-  const conditions = [eq(lessons.scheduledDate, date)];
+  const { organizationId } = await getTenantContext();
+  const conditions = [
+    eq(lessons.organizationId, organizationId),
+    eq(lessons.scheduledDate, date),
+  ];
 
   if (studentId) {
     conditions.push(eq(students.id, studentId));
@@ -65,7 +70,10 @@ export async function getTodayLessons(date: string, studentId?: string) {
   }
 
   const sampleRows = await db.query.lessonWorkSamples.findMany({
-    where: inArray(lessonWorkSamples.lessonId, lessonIds),
+    where: and(
+      eq(lessonWorkSamples.organizationId, organizationId),
+      inArray(lessonWorkSamples.lessonId, lessonIds),
+    ),
     columns: { lessonId: true, imageId: true },
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
@@ -89,7 +97,11 @@ export async function getTodayLessons(date: string, studentId?: string) {
 
 export async function getTodaySharedLessons(date: string, studentId?: string) {
   const db = getDb();
-  const conditions = [eq(sharedLessons.scheduledDate, date)];
+  const { organizationId } = await getTenantContext();
+  const conditions = [
+    eq(sharedLessons.organizationId, organizationId),
+    eq(sharedLessons.scheduledDate, date),
+  ];
 
   if (studentId) {
     conditions.push(eq(students.id, studentId));
@@ -132,7 +144,10 @@ export async function getTodaySharedLessons(date: string, studentId?: string) {
   }
 
   const sampleRows = await db.query.sharedLessonWorkSamples.findMany({
-    where: inArray(sharedLessonWorkSamples.sharedLessonId, sharedLessonIds),
+    where: and(
+      eq(sharedLessonWorkSamples.organizationId, organizationId),
+      inArray(sharedLessonWorkSamples.sharedLessonId, sharedLessonIds),
+    ),
     columns: { sharedLessonId: true, imageId: true },
     orderBy: (table, { desc }) => [desc(table.createdAt)],
   });
@@ -159,6 +174,7 @@ export async function getSharedCurriculaForDashboardAdd(
   studentId?: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const rows = await db
     .select({
       sharedCurriculumId: sharedCurricula.id,
@@ -178,10 +194,16 @@ export async function getSharedCurriculaForDashboardAdd(
       sharedLessons,
       and(
         eq(sharedLessons.sharedCurriculumId, sharedCurricula.id),
+        eq(sharedLessons.organizationId, organizationId),
         eq(sharedLessons.scheduledDate, date),
       ),
     )
-    .where(studentId ? eq(students.id, studentId) : undefined)
+    .where(
+      and(
+        eq(sharedCurricula.organizationId, organizationId),
+        studentId ? eq(students.id, studentId) : undefined,
+      ),
+    )
     .orderBy(asc(sharedCurricula.name), asc(students.name));
 
   const byCurriculum = new Map<
@@ -225,6 +247,7 @@ export async function getSharedCurriculaForDashboardAdd(
 
 export async function getTodayNotes(date: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   return db
     .select({
       noteId: dailyNotes.id,
@@ -235,19 +258,27 @@ export async function getTodayNotes(date: string) {
     })
     .from(dailyNotes)
     .innerJoin(students, eq(dailyNotes.studentId, students.id))
-    .where(eq(dailyNotes.date, date))
+    .where(
+      and(
+        eq(dailyNotes.organizationId, organizationId),
+        eq(dailyNotes.date, date),
+      ),
+    )
     .orderBy(students.name);
 }
 
 export async function getStudentsForFilter() {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   return db.query.students.findMany({
+    where: eq(students.organizationId, organizationId),
     orderBy: (students, { asc }) => [asc(students.name)],
   });
 }
 
 export async function getAbsencesForDate(date: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const explicitRows = await db
     .select({
       absenceId: absences.id,
@@ -258,7 +289,9 @@ export async function getAbsencesForDate(date: string) {
     })
     .from(absences)
     .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
-    .where(eq(absences.date, date));
+    .where(
+      and(eq(absences.organizationId, organizationId), eq(absences.date, date)),
+    );
 
   const globalRows = await db
     .select({
@@ -269,7 +302,12 @@ export async function getAbsencesForDate(date: string) {
     })
     .from(globalAbsences)
     .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
-    .where(eq(globalAbsences.date, date))
+    .where(
+      and(
+        eq(globalAbsences.organizationId, organizationId),
+        eq(globalAbsences.date, date),
+      ),
+    )
     .limit(1);
 
   const rows: DashboardAbsenceRow[] = explicitRows.map((row) => ({
@@ -291,14 +329,19 @@ export async function getAbsencesForDate(date: string) {
     .innerJoin(subjects, eq(resources.subjectId, subjects.id))
     .innerJoin(students, eq(subjects.studentId, students.id))
     .where(
-      and(eq(lessons.status, "completed"), eq(lessons.completionDate, date)),
+      and(
+        eq(lessons.organizationId, organizationId),
+        eq(lessons.status, "completed"),
+        eq(lessons.completionDate, date),
+      ),
     );
 
   const explicitStudentIds = new Set(explicitRows.map((r) => r.studentId));
   const completedStudentIds = new Set(completedRows.map((r) => r.studentId));
   const allStudentRows = await db
     .select({ studentId: students.id })
-    .from(students);
+    .from(students)
+    .where(eq(students.organizationId, organizationId));
 
   for (const { studentId } of allStudentRows) {
     if (explicitStudentIds.has(studentId)) continue;
@@ -318,6 +361,7 @@ export async function getAbsencesForDate(date: string) {
 
 export async function getGlobalAbsenceForDate(date: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const rows = await db
     .select({
       globalAbsenceId: globalAbsences.id,
@@ -327,7 +371,12 @@ export async function getGlobalAbsenceForDate(date: string) {
     })
     .from(globalAbsences)
     .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
-    .where(eq(globalAbsences.date, date))
+    .where(
+      and(
+        eq(globalAbsences.organizationId, organizationId),
+        eq(globalAbsences.date, date),
+      ),
+    )
     .limit(1);
 
   return rows[0] ?? null;
@@ -335,6 +384,7 @@ export async function getGlobalAbsenceForDate(date: string) {
 
 export async function getStudentResourceMap() {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const rows = await db
     .select({
       studentId: students.id,
@@ -345,6 +395,7 @@ export async function getStudentResourceMap() {
     .from(resources)
     .innerJoin(subjects, eq(resources.subjectId, subjects.id))
     .innerJoin(students, eq(subjects.studentId, students.id))
+    .where(eq(resources.organizationId, organizationId))
     .orderBy(asc(students.name), asc(subjects.name), asc(resources.name));
 
   return rows;

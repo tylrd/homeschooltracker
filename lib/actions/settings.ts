@@ -3,13 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { appSettings } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 export async function setSetting(key: string, value: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .insert(appSettings)
-    .values({ key, value })
-    .onConflictDoUpdate({ target: appSettings.key, set: { value } });
+    .values({ organizationId, key, value })
+    .onConflictDoUpdate({
+      target: [appSettings.organizationId, appSettings.key],
+      set: { value },
+    });
 
   revalidatePath("/");
   revalidatePath("/settings");

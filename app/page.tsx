@@ -9,6 +9,7 @@ import { SickDayButton } from "@/components/dashboard/sick-day-button";
 import { StudentFilter } from "@/components/dashboard/student-filter";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getTodayDate } from "@/lib/dates";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
@@ -33,6 +34,8 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ student?: string; date?: string }>;
 }) {
+  await requireAppRouteAccess("/");
+
   const { student: studentId, date: dateParam } = await searchParams;
   const today = getTodayDate();
   const date = dateParam ?? today;

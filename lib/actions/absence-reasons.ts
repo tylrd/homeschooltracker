@@ -1,20 +1,26 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { absenceReasons } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 export async function createAbsenceReason(name: string, color: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
 
   // Get the next sort order
-  const existing = await db.select().from(absenceReasons);
+  const existing = await db
+    .select()
+    .from(absenceReasons)
+    .where(eq(absenceReasons.organizationId, organizationId));
   const maxSort = existing.reduce((max, r) => Math.max(max, r.sortOrder), -1);
 
   const [createdReason] = await db
     .insert(absenceReasons)
     .values({
+      organizationId,
       name: name.trim(),
       color,
       sortOrder: maxSort + 1,
@@ -29,7 +35,15 @@ export async function createAbsenceReason(name: string, color: string) {
 
 export async function deleteAbsenceReason(reasonId: string) {
   const db = getDb();
-  await db.delete(absenceReasons).where(eq(absenceReasons.id, reasonId));
+  const { organizationId } = await getTenantContext();
+  await db
+    .delete(absenceReasons)
+    .where(
+      and(
+        eq(absenceReasons.id, reasonId),
+        eq(absenceReasons.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath("/settings");
   revalidatePath("/");
@@ -38,12 +52,18 @@ export async function deleteAbsenceReason(reasonId: string) {
 
 export async function reorderAbsenceReasons(orderedIds: string[]) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db.transaction(async (tx) => {
     for (let i = 0; i < orderedIds.length; i++) {
       await tx
         .update(absenceReasons)
         .set({ sortOrder: i })
-        .where(eq(absenceReasons.id, orderedIds[i]));
+        .where(
+          and(
+            eq(absenceReasons.id, orderedIds[i]),
+            eq(absenceReasons.organizationId, organizationId),
+          ),
+        );
     }
   });
 

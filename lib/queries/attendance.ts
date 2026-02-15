@@ -13,6 +13,7 @@ import {
   students,
   subjects,
 } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 type EffectiveAbsenceRow = {
   studentId: string;
@@ -24,6 +25,7 @@ type EffectiveAbsenceRow = {
 };
 
 async function getEffectiveAbsenceRows(
+  organizationId: string,
   startDate: string,
   endDate: string,
   completedByDate: Map<string, Set<string>>,
@@ -42,7 +44,13 @@ async function getEffectiveAbsenceRows(
     .from(absences)
     .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
     .innerJoin(students, eq(absences.studentId, students.id))
-    .where(and(gte(absences.date, startDate), lte(absences.date, endDate)));
+    .where(
+      and(
+        eq(absences.organizationId, organizationId),
+        gte(absences.date, startDate),
+        lte(absences.date, endDate),
+      ),
+    );
 
   const globalRows = await db
     .select({
@@ -54,6 +62,7 @@ async function getEffectiveAbsenceRows(
     .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
     .where(
       and(
+        eq(globalAbsences.organizationId, organizationId),
         gte(globalAbsences.date, startDate),
         lte(globalAbsences.date, endDate),
       ),
@@ -68,6 +77,7 @@ async function getEffectiveAbsenceRows(
       studentColor: students.color,
     })
     .from(students)
+    .where(eq(students.organizationId, organizationId))
     .orderBy(asc(students.name));
 
   const explicitKeys = new Set(
@@ -97,6 +107,7 @@ async function getEffectiveAbsenceRows(
 
 export async function getAttendanceForMonth(year: number, month: number) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   // month is 1-indexed (1 = January)
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
@@ -116,6 +127,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
     .innerJoin(students, eq(subjects.studentId, students.id))
     .where(
       and(
+        eq(lessons.organizationId, organizationId),
         eq(lessons.status, "completed"),
         gte(lessons.completionDate, startDate),
         lte(lessons.completionDate, endDate),
@@ -140,6 +152,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
     .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
     .where(
       and(
+        eq(sharedLessons.organizationId, organizationId),
         eq(sharedLessons.status, "completed"),
         gte(sharedLessons.completionDate, startDate),
         lte(sharedLessons.completionDate, endDate),
@@ -175,6 +188,7 @@ export async function getAttendanceForMonth(year: number, month: number) {
   }
 
   const absenceRows = await getEffectiveAbsenceRows(
+    organizationId,
     startDate,
     endDate,
     completedByDate,
@@ -230,6 +244,7 @@ export type DailyLogNoteEntry = {
 
 export async function getCompletionLogForMonth(year: number, month: number) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
@@ -253,6 +268,7 @@ export async function getCompletionLogForMonth(year: number, month: number) {
     .innerJoin(students, eq(subjects.studentId, students.id))
     .where(
       and(
+        eq(lessons.organizationId, organizationId),
         eq(lessons.status, "completed"),
         gte(lessons.completionDate, startDate),
         lte(lessons.completionDate, endDate),
@@ -287,6 +303,7 @@ export async function getCompletionLogForMonth(year: number, month: number) {
     .innerJoin(students, eq(sharedCurriculumStudents.studentId, students.id))
     .where(
       and(
+        eq(sharedLessons.organizationId, organizationId),
         eq(sharedLessons.status, "completed"),
         gte(sharedLessons.completionDate, startDate),
         lte(sharedLessons.completionDate, endDate),
@@ -315,6 +332,7 @@ export async function getCompletionLogForMonth(year: number, month: number) {
   }
 
   const absenceRows = await getEffectiveAbsenceRows(
+    organizationId,
     startDate,
     endDate,
     completedByDate,
@@ -330,7 +348,13 @@ export async function getCompletionLogForMonth(year: number, month: number) {
     })
     .from(dailyNotes)
     .innerJoin(students, eq(dailyNotes.studentId, students.id))
-    .where(and(gte(dailyNotes.date, startDate), lte(dailyNotes.date, endDate)))
+    .where(
+      and(
+        eq(dailyNotes.organizationId, organizationId),
+        gte(dailyNotes.date, startDate),
+        lte(dailyNotes.date, endDate),
+      ),
+    )
     .orderBy(asc(dailyNotes.date), asc(students.name));
 
   return {
@@ -342,7 +366,9 @@ export async function getCompletionLogForMonth(year: number, month: number) {
 
 export async function getAllStudents() {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   return db.query.students.findMany({
+    where: eq(students.organizationId, organizationId),
     orderBy: (students, { asc }) => [asc(students.name)],
   });
 }

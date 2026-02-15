@@ -7,6 +7,7 @@ import { AttendanceView } from "@/components/attendance/attendance-view";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import {
   getAttendanceForMonth,
   getCompletionLogForMonth,
@@ -18,6 +19,8 @@ export default async function AttendancePage({
 }: {
   searchParams: Promise<{ year?: string; month?: string }>;
 }) {
+  await requireAppRouteAccess("/attendance");
+
   const params = await searchParams;
   const now = new Date();
   const year = params.year ? Number(params.year) : now.getFullYear();

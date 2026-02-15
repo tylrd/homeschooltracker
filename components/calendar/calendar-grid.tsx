@@ -105,7 +105,7 @@ export function CalendarGrid({
             disabled={cell.isPadding}
             onClick={() => !cell.isPadding && handleDayClick(cell.dateStr)}
             className={cn(
-              "flex flex-col items-center justify-start gap-0.5 bg-background p-1.5 text-sm transition-colors min-h-[52px]",
+              "flex min-h-[52px] flex-col items-center justify-start gap-0.5 bg-background p-1.5 text-sm transition-colors lg:min-h-[96px]",
               cell.isPadding && "bg-muted/50 text-muted-foreground/40",
               !cell.isPadding && "hover:bg-accent cursor-pointer",
               isToday && "ring-2 ring-primary ring-inset",

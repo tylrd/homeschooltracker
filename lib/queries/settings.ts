@@ -1,13 +1,20 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { appSettings } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 export async function getSetting(key: string): Promise<string | null> {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const rows = await db
     .select()
     .from(appSettings)
-    .where(eq(appSettings.key, key))
+    .where(
+      and(
+        eq(appSettings.organizationId, organizationId),
+        eq(appSettings.key, key),
+      ),
+    )
     .limit(1);
   return rows[0]?.value ?? null;
 }

@@ -3,7 +3,12 @@
 import { and, asc, eq, gt, gte, inArray, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { sharedLessons, sharedLessonWorkSamples } from "@/db/schema";
+import {
+  curriculumImages,
+  sharedLessons,
+  sharedLessonWorkSamples,
+} from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 import {
   generateLessonDates,
   getNextBumpDate,
@@ -22,11 +27,13 @@ export async function batchCreateSharedLessons(
   schoolDays: number[],
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const count = endLesson - startLesson + 1;
   if (count <= 0) throw new Error("Invalid lesson range");
 
   const existing = await db.query.sharedLessons.findMany({
     where: and(
+      eq(sharedLessons.organizationId, organizationId),
       eq(sharedLessons.sharedCurriculumId, sharedCurriculumId),
       gte(sharedLessons.lessonNumber, startLesson),
     ),
@@ -41,6 +48,7 @@ export async function batchCreateSharedLessons(
   for (let num = startLesson; num <= endLesson; num++) {
     if (!existingNumbers.has(num)) {
       newLessons.push({
+        organizationId,
         sharedCurriculumId,
         lessonNumber: num,
         title: `Lesson ${num}`,
@@ -68,7 +76,9 @@ export async function createSharedLesson(
   plan?: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db.insert(sharedLessons).values({
+    organizationId,
     sharedCurriculumId,
     lessonNumber,
     title: title.trim() || `Lesson ${lessonNumber}`,
@@ -84,11 +94,17 @@ export async function createSharedLesson(
 
 export async function completeSharedLesson(sharedLessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const today = toDateString(new Date());
   await db
     .update(sharedLessons)
     .set({ status: "completed", completionDate: today })
-    .where(eq(sharedLessons.id, sharedLessonId));
+    .where(
+      and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -98,10 +114,16 @@ export async function completeSharedLesson(sharedLessonId: string) {
 
 export async function uncompleteSharedLesson(sharedLessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .update(sharedLessons)
     .set({ status: "planned", completionDate: null })
-    .where(eq(sharedLessons.id, sharedLessonId));
+    .where(
+      and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -111,9 +133,13 @@ export async function uncompleteSharedLesson(sharedLessonId: string) {
 
 export async function bumpSharedLesson(sharedLessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const [lesson, schoolDays, bumpBehavior] = await Promise.all([
     db.query.sharedLessons.findFirst({
-      where: eq(sharedLessons.id, sharedLessonId),
+      where: and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
     }),
     getSchoolDays(),
     getBumpBehavior(),
@@ -126,6 +152,7 @@ export async function bumpSharedLesson(sharedLessonId: string) {
     .from(sharedLessons)
     .where(
       and(
+        eq(sharedLessons.organizationId, organizationId),
         eq(sharedLessons.sharedCurriculumId, lesson.sharedCurriculumId),
         eq(sharedLessons.status, "planned"),
         gte(sharedLessons.scheduledDate, lesson.scheduledDate),
@@ -146,7 +173,12 @@ export async function bumpSharedLesson(sharedLessonId: string) {
       await tx
         .update(sharedLessons)
         .set({ scheduledDate: currentDate })
-        .where(eq(sharedLessons.id, futureLessons[i].id));
+        .where(
+          and(
+            eq(sharedLessons.id, futureLessons[i].id),
+            eq(sharedLessons.organizationId, organizationId),
+          ),
+        );
       currentDate = nextSchoolDayStr(currentDate, schoolDays);
     }
   });
@@ -162,10 +194,16 @@ export async function updateSharedLessonScheduledDate(
   newDate: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .update(sharedLessons)
     .set({ scheduledDate: newDate || null })
-    .where(eq(sharedLessons.id, sharedLessonId));
+    .where(
+      and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -177,12 +215,18 @@ export async function bulkCompleteSharedLessons(sharedLessonIds: string[]) {
   const ids = Array.from(new Set(sharedLessonIds)).filter(Boolean);
   if (ids.length === 0) return;
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const today = toDateString(new Date());
 
   await db
     .update(sharedLessons)
     .set({ status: "completed", completionDate: today })
-    .where(inArray(sharedLessons.id, ids));
+    .where(
+      and(
+        eq(sharedLessons.organizationId, organizationId),
+        inArray(sharedLessons.id, ids),
+      ),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -193,11 +237,22 @@ export async function bulkDeleteSharedLessons(sharedLessonIds: string[]) {
   const ids = Array.from(new Set(sharedLessonIds)).filter(Boolean);
   if (ids.length === 0) return;
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const sampleRows = await db.query.sharedLessonWorkSamples.findMany({
-    where: inArray(sharedLessonWorkSamples.sharedLessonId, ids),
+    where: and(
+      eq(sharedLessonWorkSamples.organizationId, organizationId),
+      inArray(sharedLessonWorkSamples.sharedLessonId, ids),
+    ),
     columns: { imageId: true },
   });
-  await db.delete(sharedLessons).where(inArray(sharedLessons.id, ids));
+  await db
+    .delete(sharedLessons)
+    .where(
+      and(
+        eq(sharedLessons.organizationId, organizationId),
+        inArray(sharedLessons.id, ids),
+      ),
+    );
   const imageStore = getImageStore();
   for (const { imageId } of sampleRows) {
     await imageStore.deleteImage(imageId);
@@ -210,11 +265,22 @@ export async function bulkDeleteSharedLessons(sharedLessonIds: string[]) {
 
 export async function deleteSharedLesson(sharedLessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const sampleRows = await db.query.sharedLessonWorkSamples.findMany({
-    where: eq(sharedLessonWorkSamples.sharedLessonId, sharedLessonId),
+    where: and(
+      eq(sharedLessonWorkSamples.organizationId, organizationId),
+      eq(sharedLessonWorkSamples.sharedLessonId, sharedLessonId),
+    ),
     columns: { imageId: true },
   });
-  await db.delete(sharedLessons).where(eq(sharedLessons.id, sharedLessonId));
+  await db
+    .delete(sharedLessons)
+    .where(
+      and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
+    );
   const imageStore = getImageStore();
   for (const { imageId } of sampleRows) {
     await imageStore.deleteImage(imageId);
@@ -230,10 +296,16 @@ export async function updateSharedLessonPlan(
   plan: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .update(sharedLessons)
     .set({ plan: plan.trim() || null })
-    .where(eq(sharedLessons.id, sharedLessonId));
+    .where(
+      and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -247,6 +319,7 @@ export async function updateSharedLessonContent(
   notes: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .update(sharedLessons)
     .set({
@@ -254,7 +327,12 @@ export async function updateSharedLessonContent(
       plan: plan.trim() || null,
       notes: notes.trim() || null,
     })
-    .where(eq(sharedLessons.id, sharedLessonId));
+    .where(
+      and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -267,8 +345,12 @@ export async function uploadSharedLessonWorkSamples(
   formData: FormData,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const lesson = await db.query.sharedLessons.findFirst({
-    where: eq(sharedLessons.id, sharedLessonId),
+    where: and(
+      eq(sharedLessons.id, sharedLessonId),
+      eq(sharedLessons.organizationId, organizationId),
+    ),
     columns: { id: true },
   });
 
@@ -296,8 +378,13 @@ export async function uploadSharedLessonWorkSamples(
       byteSize: file.size,
       imageData: Buffer.from(await file.arrayBuffer()),
     });
+    await db
+      .update(curriculumImages)
+      .set({ organizationId })
+      .where(eq(curriculumImages.id, savedImage.id));
 
     await db.insert(sharedLessonWorkSamples).values({
+      organizationId,
       sharedLessonId,
       imageId: savedImage.id,
     });
@@ -314,8 +401,10 @@ export async function deleteSharedLessonWorkSample(
   workSampleId: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const sample = await db.query.sharedLessonWorkSamples.findFirst({
     where: and(
+      eq(sharedLessonWorkSamples.organizationId, organizationId),
       eq(sharedLessonWorkSamples.id, workSampleId),
       eq(sharedLessonWorkSamples.sharedLessonId, sharedLessonId),
     ),
@@ -330,6 +419,7 @@ export async function deleteSharedLessonWorkSample(
     .delete(sharedLessonWorkSamples)
     .where(
       and(
+        eq(sharedLessonWorkSamples.organizationId, organizationId),
         eq(sharedLessonWorkSamples.id, workSampleId),
         eq(sharedLessonWorkSamples.sharedLessonId, sharedLessonId),
       ),
@@ -350,8 +440,10 @@ export async function scheduleMakeupSharedLesson(
   options?: { title?: string; notes?: string },
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const nextLesson = await db.query.sharedLessons.findFirst({
     where: and(
+      eq(sharedLessons.organizationId, organizationId),
       eq(sharedLessons.sharedCurriculumId, sharedCurriculumId),
       eq(sharedLessons.status, "planned"),
       gt(sharedLessons.scheduledDate, date),
@@ -370,15 +462,26 @@ export async function scheduleMakeupSharedLesson(
     await db
       .update(sharedLessons)
       .set(updates)
-      .where(eq(sharedLessons.id, nextLesson.id));
+      .where(
+        and(
+          eq(sharedLessons.id, nextLesson.id),
+          eq(sharedLessons.organizationId, organizationId),
+        ),
+      );
   } else {
     const result = await db
       .select({ maxNum: max(sharedLessons.lessonNumber) })
       .from(sharedLessons)
-      .where(eq(sharedLessons.sharedCurriculumId, sharedCurriculumId));
+      .where(
+        and(
+          eq(sharedLessons.organizationId, organizationId),
+          eq(sharedLessons.sharedCurriculumId, sharedCurriculumId),
+        ),
+      );
     const nextNum = (result[0]?.maxNum ?? 0) + 1;
 
     await db.insert(sharedLessons).values({
+      organizationId,
       sharedCurriculumId,
       lessonNumber: nextNum,
       title: options?.title?.trim() || `Lesson ${nextNum}`,
