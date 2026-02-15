@@ -27,7 +27,16 @@ const betterAuthSchema = {
   teamMember: teamMembers,
 };
 
-const databaseAdapter = process.env.DATABASE_URL
+const isDevelopment = process.env.NODE_ENV === "development";
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+
+if (isDevelopment && !hasDatabaseUrl) {
+  throw new Error(
+    "DATABASE_URL must be defined in development. Add it to your .env.local before starting the app.",
+  );
+}
+
+const databaseAdapter = hasDatabaseUrl
   ? drizzleAdapter(getDb(), {
       provider: "pg",
       schema: betterAuthSchema,
