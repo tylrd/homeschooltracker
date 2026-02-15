@@ -1,9 +1,10 @@
 "use client";
 
-import { PanelLeft, Settings } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/components/navigation/nav-items";
+import { SidebarAccountMenu } from "@/components/sidebar-account-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -73,18 +74,16 @@ export function DesktopSidebar({
           );
         })}
       </nav>
-      <div className="mt-4 flex items-center justify-between border-t px-3 pt-3">
-        <Link
-          href="/settings"
+      <div className="mt-4 border-t px-3 pt-3 pb-3">
+        <div
           className={cn(
-            "inline-flex h-8 items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-            collapsed && "justify-center px-0",
+            "flex items-center gap-2",
+            collapsed ? "justify-center" : "justify-between",
           )}
         >
-          <Settings className="h-4 w-4" />
-          <span className={cn(collapsed && "hidden")}>Settings</span>
-        </Link>
-        <ThemeToggle />
+          <SidebarAccountMenu collapsed={collapsed} />
+          {!collapsed ? <ThemeToggle /> : null}
+        </div>
       </div>
     </aside>
   );

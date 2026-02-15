@@ -3,11 +3,17 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { sharedCurricula, sharedCurriculumStudents } from "@/db/schema";
+import {
+  curriculumImages,
+  sharedCurricula,
+  sharedCurriculumStudents,
+} from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 import { validateImageFile } from "@/lib/images/validation";
 import { getImageStore } from "@/lib/storage/image-store";
 
 export async function createSharedCurriculum(formData: FormData) {
+  const { organizationId } = await getTenantContext();
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const description = formData.get("description") as string | null;
   const coverImage = formData.get("coverImage");
@@ -34,6 +40,11 @@ export async function createSharedCurriculum(formData: FormData) {
       byteSize: coverImage.size,
       imageData: Buffer.from(await coverImage.arrayBuffer()),
     });
+    const db = getDb();
+    await db
+      .update(curriculumImages)
+      .set({ organizationId })
+      .where(eq(curriculumImages.id, savedImage.id));
     coverImageId = savedImage.id;
   }
 
@@ -41,6 +52,7 @@ export async function createSharedCurriculum(formData: FormData) {
   const [created] = await db
     .insert(sharedCurricula)
     .values({
+      organizationId,
       name: trimmed,
       description: description?.trim() || null,
       coverImageId,
@@ -52,6 +64,7 @@ export async function createSharedCurriculum(formData: FormData) {
       .insert(sharedCurriculumStudents)
       .values(
         studentIds.map((studentId) => ({
+          organizationId,
           sharedCurriculumId: created.id,
           studentId,
         })),
@@ -74,9 +87,10 @@ export async function addStudentToSharedCurriculum(
   studentId: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .insert(sharedCurriculumStudents)
-    .values({ sharedCurriculumId, studentId })
+    .values({ organizationId, sharedCurriculumId, studentId })
     .onConflictDoNothing();
 
   revalidatePath("/shelf");
@@ -90,10 +104,12 @@ export async function removeStudentFromSharedCurriculum(
   studentId: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   await db
     .delete(sharedCurriculumStudents)
     .where(
       and(
+        eq(sharedCurriculumStudents.organizationId, organizationId),
         eq(sharedCurriculumStudents.sharedCurriculumId, sharedCurriculumId),
         eq(sharedCurriculumStudents.studentId, studentId),
       ),
@@ -109,6 +125,7 @@ export async function updateSharedCurriculum(
   sharedCurriculumId: string,
   formData: FormData,
 ) {
+  const { organizationId } = await getTenantContext();
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const description = (formData.get("description") as string | null)?.trim();
   const coverImage = formData.get("coverImage");
@@ -120,7 +137,10 @@ export async function updateSharedCurriculum(
   const db = getDb();
   const imageStore = getImageStore();
   const existing = await db.query.sharedCurricula.findFirst({
-    where: eq(sharedCurricula.id, sharedCurriculumId),
+    where: and(
+      eq(sharedCurricula.id, sharedCurriculumId),
+      eq(sharedCurricula.organizationId, organizationId),
+    ),
     columns: { id: true, coverImageId: true },
   });
 
@@ -140,6 +160,10 @@ export async function updateSharedCurriculum(
       byteSize: coverImage.size,
       imageData: Buffer.from(await coverImage.arrayBuffer()),
     });
+    await db
+      .update(curriculumImages)
+      .set({ organizationId })
+      .where(eq(curriculumImages.id, nextCover.id));
     nextCoverImageId = nextCover.id;
   }
 
@@ -150,7 +174,12 @@ export async function updateSharedCurriculum(
       description: description || null,
       coverImageId: nextCoverImageId,
     })
-    .where(eq(sharedCurricula.id, sharedCurriculumId));
+    .where(
+      and(
+        eq(sharedCurricula.id, sharedCurriculumId),
+        eq(sharedCurricula.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath("/shelf");
   revalidatePath("/");

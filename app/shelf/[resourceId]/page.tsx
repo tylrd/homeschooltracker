@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { ResourceDetailView } from "@/components/shelf/resource-detail-view";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getFirstOpenDateOnOrAfter, toDateString } from "@/lib/dates";
 import { getDefaultLessonCount, getSchoolDays } from "@/lib/queries/settings";
 import {
@@ -14,6 +15,8 @@ export default async function ResourceDetailPage({
 }: {
   params: Promise<{ resourceId: string }>;
 }) {
+  await requireAppRouteAccess();
+
   const { resourceId } = await params;
   const [resource, schoolDays, defaultLessonCount] = await Promise.all([
     getResourceWithLessons(resourceId),

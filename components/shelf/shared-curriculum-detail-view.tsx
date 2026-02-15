@@ -74,6 +74,7 @@ export function SharedCurriculumDetailView({
               alt={`${name} cover`}
               width={48}
               height={64}
+              unoptimized
               className="h-16 w-12 rounded object-cover"
             />
           ) : null}

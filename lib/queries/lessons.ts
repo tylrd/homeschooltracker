@@ -1,11 +1,16 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { lessons, sharedLessons } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 export async function getLessonWithContext(lessonId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const personalLesson = await db.query.lessons.findFirst({
-    where: eq(lessons.id, lessonId),
+    where: and(
+      eq(lessons.id, lessonId),
+      eq(lessons.organizationId, organizationId),
+    ),
     with: {
       workSamples: {
         columns: { id: true, imageId: true, createdAt: true },
@@ -30,7 +35,10 @@ export async function getLessonWithContext(lessonId: string) {
   }
 
   const sharedLesson = await db.query.sharedLessons.findFirst({
-    where: eq(sharedLessons.id, lessonId),
+    where: and(
+      eq(sharedLessons.id, lessonId),
+      eq(sharedLessons.organizationId, organizationId),
+    ),
     with: {
       workSamples: {
         columns: { id: true, imageId: true, createdAt: true },

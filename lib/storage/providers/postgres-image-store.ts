@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { curriculumImages } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 import type {
   ImageInput,
   ImageStore,
@@ -33,9 +34,11 @@ function toStoredImage(row: typeof curriculumImages.$inferSelect): StoredImage {
 export class PostgresImageStore implements ImageStore {
   async saveImage(input: ImageInput): Promise<StoredImageRef> {
     const db = getDb();
+    const { organizationId } = await getTenantContext();
     const [row] = await db
       .insert(curriculumImages)
       .values({
+        organizationId,
         provider: "postgres",
         contentType: input.contentType,
         byteSize: input.byteSize,
@@ -63,8 +66,12 @@ export class PostgresImageStore implements ImageStore {
 
   async getImageById(imageId: string): Promise<StoredImage | null> {
     const db = getDb();
+    const { organizationId } = await getTenantContext();
     const row = await db.query.curriculumImages.findFirst({
-      where: eq(curriculumImages.id, imageId),
+      where: and(
+        eq(curriculumImages.id, imageId),
+        eq(curriculumImages.organizationId, organizationId),
+      ),
     });
 
     if (!row) {
@@ -76,6 +83,14 @@ export class PostgresImageStore implements ImageStore {
 
   async deleteImage(imageId: string): Promise<void> {
     const db = getDb();
-    await db.delete(curriculumImages).where(eq(curriculumImages.id, imageId));
+    const { organizationId } = await getTenantContext();
+    await db
+      .delete(curriculumImages)
+      .where(
+        and(
+          eq(curriculumImages.id, imageId),
+          eq(curriculumImages.organizationId, organizationId),
+        ),
+      );
   }
 }

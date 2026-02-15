@@ -285,6 +285,7 @@ export function LessonCard({
                 alt="Work sample"
                 width={1280}
                 height={960}
+                unoptimized
                 className="mx-auto block h-auto w-full max-w-none"
               />
             )}
@@ -328,6 +329,7 @@ export function LessonCard({
                     alt="Work sample"
                     width={640}
                     height={480}
+                    unoptimized
                     className={cn(
                       "h-20 w-20 rounded-md border object-cover",
                       selectedSampleImageId === imageId

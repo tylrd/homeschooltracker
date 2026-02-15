@@ -5,9 +5,12 @@ import { EmptyState } from "@/components/empty-state";
 import { StudentCard } from "@/components/students/student-card";
 import { StudentForm } from "@/components/students/student-form";
 import { Button } from "@/components/ui/button";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getStudents } from "@/lib/queries/students";
 
 export default async function StudentsPage() {
+  await requireAppRouteAccess("/students");
+
   const students = await getStudents();
 
   return (

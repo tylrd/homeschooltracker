@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { PrintButton } from "@/components/export/print-button";
 import { StudentColorDot } from "@/components/student-color-dot";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getExportData } from "@/lib/queries/export";
 
@@ -10,6 +11,8 @@ export default async function PrintPage({
 }: {
   searchParams: Promise<{ start?: string; end?: string; students?: string }>;
 }) {
+  await requireAppRouteAccess("/export/print");
+
   const params = await searchParams;
   const startDate = params.start ?? "";
   const endDate = params.end ?? "";

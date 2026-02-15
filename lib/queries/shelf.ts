@@ -12,9 +12,11 @@ import {
   students,
   subjects,
 } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 export async function getAllResourcesWithProgress() {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const rows = await db
     .select({
       resourceId: resources.id,
@@ -34,6 +36,7 @@ export async function getAllResourcesWithProgress() {
     .innerJoin(subjects, eq(resources.subjectId, subjects.id))
     .innerJoin(students, eq(subjects.studentId, students.id))
     .leftJoin(lessons, eq(lessons.resourceId, resources.id))
+    .where(eq(resources.organizationId, organizationId))
     .groupBy(
       resources.id,
       resources.name,
@@ -50,8 +53,12 @@ export async function getAllResourcesWithProgress() {
 
 export async function getResourceWithLessons(resourceId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const resource = await db.query.resources.findFirst({
-    where: eq(resources.id, resourceId),
+    where: and(
+      eq(resources.id, resourceId),
+      eq(resources.organizationId, organizationId),
+    ),
     with: {
       lessons: {
         orderBy: (lessons, { asc }) => [asc(lessons.lessonNumber)],
@@ -69,6 +76,7 @@ export async function getResourceWithLessons(resourceId: string) {
 
 export async function getAllSharedCurriculaWithProgress() {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const rows = await db
     .select({
       sharedCurriculumId: sharedCurricula.id,
@@ -96,6 +104,7 @@ export async function getAllSharedCurriculaWithProgress() {
       sharedLessons,
       eq(sharedLessons.sharedCurriculumId, sharedCurricula.id),
     )
+    .where(eq(sharedCurricula.organizationId, organizationId))
     .groupBy(
       sharedCurricula.id,
       sharedCurricula.name,
@@ -111,8 +120,12 @@ export async function getSharedCurriculumWithLessons(
   sharedCurriculumId: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   return db.query.sharedCurricula.findFirst({
-    where: eq(sharedCurricula.id, sharedCurriculumId),
+    where: and(
+      eq(sharedCurricula.id, sharedCurriculumId),
+      eq(sharedCurricula.organizationId, organizationId),
+    ),
     with: {
       lessons: {
         orderBy: (sharedLessons, { asc }) => [asc(sharedLessons.lessonNumber)],
@@ -128,6 +141,7 @@ export async function getSharedCurriculumWithLessons(
 
 export async function getEffectiveAbsencesForStudent(studentId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
 
   const [explicitRows, globalRows, completedRows] = await Promise.all([
     db
@@ -138,7 +152,12 @@ export async function getEffectiveAbsencesForStudent(studentId: string) {
       })
       .from(absences)
       .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
-      .where(eq(absences.studentId, studentId)),
+      .where(
+        and(
+          eq(absences.organizationId, organizationId),
+          eq(absences.studentId, studentId),
+        ),
+      ),
     db
       .select({
         date: globalAbsences.date,
@@ -146,10 +165,8 @@ export async function getEffectiveAbsencesForStudent(studentId: string) {
         reasonColor: absenceReasons.color,
       })
       .from(globalAbsences)
-      .innerJoin(
-        absenceReasons,
-        eq(globalAbsences.reasonId, absenceReasons.id),
-      ),
+      .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
+      .where(eq(globalAbsences.organizationId, organizationId)),
     db
       .select({
         completionDate: lessons.completionDate,
@@ -158,7 +175,11 @@ export async function getEffectiveAbsencesForStudent(studentId: string) {
       .innerJoin(resources, eq(lessons.resourceId, resources.id))
       .innerJoin(subjects, eq(resources.subjectId, subjects.id))
       .where(
-        and(eq(subjects.studentId, studentId), eq(lessons.status, "completed")),
+        and(
+          eq(lessons.organizationId, organizationId),
+          eq(subjects.studentId, studentId),
+          eq(lessons.status, "completed"),
+        ),
       ),
   ]);
 

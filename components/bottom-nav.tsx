@@ -12,11 +12,11 @@ export function BottomNav({ className }: { className?: string }) {
     <nav
       data-testid="bottom-nav"
       className={cn(
-        "fixed right-0 bottom-0 left-0 z-50 border-t bg-background",
+        "fixed right-0 bottom-0 left-0 z-50 border-t bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] backdrop-blur supports-[backdrop-filter]:bg-background/80",
         className,
       )}
     >
-      <div className="mx-auto flex max-w-lg">
+      <div className="mx-auto flex max-w-lg pt-1">
         {NAV_ITEMS.map((tab) => {
           const isActive =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);

@@ -14,6 +14,7 @@ import { SchoolDaysToggle } from "@/components/settings/school-days-toggle";
 import { ShowCompletedToggle } from "@/components/settings/show-completed-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
   getAbsenceAutoBump,
@@ -28,6 +29,8 @@ import {
 } from "@/lib/queries/settings";
 
 export default async function SettingsPage() {
+  await requireAppRouteAccess("/settings");
+
   const [
     reasons,
     showCompleted,

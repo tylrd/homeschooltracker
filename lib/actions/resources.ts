@@ -3,12 +3,14 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { resources, subjects } from "@/db/schema";
+import { curriculumImages, resources, subjects } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 import { validateImageFile } from "@/lib/images/validation";
 import { getImageStore } from "@/lib/storage/image-store";
 
 export async function createResource(formData: FormData) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const name = formData.get("name") as string;
   const subjectId = formData.get("subjectId") as string;
   const studentId = formData.get("studentId") as string;
@@ -16,6 +18,17 @@ export async function createResource(formData: FormData) {
 
   if (!name || !subjectId) {
     throw new Error("Name and subject are required");
+  }
+
+  const subject = await db.query.subjects.findFirst({
+    where: and(
+      eq(subjects.id, subjectId),
+      eq(subjects.organizationId, organizationId),
+    ),
+    columns: { id: true },
+  });
+  if (!subject) {
+    throw new Error("Subject not found in active organization");
   }
 
   let coverImageId: string | null = null;
@@ -31,16 +44,23 @@ export async function createResource(formData: FormData) {
       byteSize: coverImage.size,
       imageData: Buffer.from(await coverImage.arrayBuffer()),
     });
+    await db
+      .update(curriculumImages)
+      .set({ organizationId })
+      .where(eq(curriculumImages.id, savedImage.id));
     coverImageId = savedImage.id;
   }
 
-  await db.insert(resources).values({ name, subjectId, coverImageId });
+  await db
+    .insert(resources)
+    .values({ organizationId, name, subjectId, coverImageId });
   revalidatePath(`/students/${studentId}`);
   revalidatePath("/shelf");
 }
 
 export async function createPersonalCurriculumFromShelf(formData: FormData) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const imageStore = getImageStore();
 
   const studentId = ((formData.get("studentId") as string | null) ?? "").trim();
@@ -61,7 +81,7 @@ export async function createPersonalCurriculumFromShelf(formData: FormData) {
   if (newSubjectName) {
     const [created] = await db
       .insert(subjects)
-      .values({ name: newSubjectName, studentId })
+      .values({ organizationId, name: newSubjectName, studentId })
       .returning({ id: subjects.id });
     subjectId = created.id;
   }
@@ -71,7 +91,11 @@ export async function createPersonalCurriculumFromShelf(formData: FormData) {
   }
 
   const subject = await db.query.subjects.findFirst({
-    where: and(eq(subjects.id, subjectId), eq(subjects.studentId, studentId)),
+    where: and(
+      eq(subjects.id, subjectId),
+      eq(subjects.studentId, studentId),
+      eq(subjects.organizationId, organizationId),
+    ),
     columns: { id: true },
   });
   if (!subject) {
@@ -90,12 +114,16 @@ export async function createPersonalCurriculumFromShelf(formData: FormData) {
       byteSize: coverImage.size,
       imageData: Buffer.from(await coverImage.arrayBuffer()),
     });
+    await db
+      .update(curriculumImages)
+      .set({ organizationId })
+      .where(eq(curriculumImages.id, savedImage.id));
     coverImageId = savedImage.id;
   }
 
   const [createdResource] = await db
     .insert(resources)
-    .values({ name: resourceName, subjectId, coverImageId })
+    .values({ organizationId, name: resourceName, subjectId, coverImageId })
     .returning({ id: resources.id });
 
   revalidatePath("/shelf");
@@ -109,13 +137,21 @@ export async function createPersonalCurriculumFromShelf(formData: FormData) {
 
 export async function deleteResource(id: string, studentId: string) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const imageStore = getImageStore();
   const existing = await db.query.resources.findFirst({
-    where: eq(resources.id, id),
+    where: and(
+      eq(resources.id, id),
+      eq(resources.organizationId, organizationId),
+    ),
     columns: { coverImageId: true },
   });
 
-  await db.delete(resources).where(eq(resources.id, id));
+  await db
+    .delete(resources)
+    .where(
+      and(eq(resources.id, id), eq(resources.organizationId, organizationId)),
+    );
   if (existing?.coverImageId) {
     await imageStore.deleteImage(existing.coverImageId);
   }
@@ -137,9 +173,13 @@ export async function updateResource(
   }
 
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const imageStore = getImageStore();
   const existing = await db.query.resources.findFirst({
-    where: eq(resources.id, resourceId),
+    where: and(
+      eq(resources.id, resourceId),
+      eq(resources.organizationId, organizationId),
+    ),
     columns: { id: true, coverImageId: true },
   });
 
@@ -159,13 +199,22 @@ export async function updateResource(
       byteSize: coverImage.size,
       imageData: Buffer.from(await coverImage.arrayBuffer()),
     });
+    await db
+      .update(curriculumImages)
+      .set({ organizationId })
+      .where(eq(curriculumImages.id, nextCover.id));
     nextCoverImageId = nextCover.id;
   }
 
   await db
     .update(resources)
     .set({ name, coverImageId: nextCoverImageId })
-    .where(eq(resources.id, resourceId));
+    .where(
+      and(
+        eq(resources.id, resourceId),
+        eq(resources.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath(`/students/${studentId}`);
   revalidatePath("/shelf");

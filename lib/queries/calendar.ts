@@ -8,6 +8,7 @@ import {
   students,
   subjects,
 } from "@/db/schema";
+import { getTenantContext } from "@/lib/auth/session";
 
 export type CalendarDay = {
   total: number;
@@ -20,11 +21,13 @@ export async function getCalendarData(
   studentId?: string,
 ) {
   const db = getDb();
+  const { organizationId } = await getTenantContext();
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   const personalConditions = [
+    eq(lessons.organizationId, organizationId),
     gte(lessons.scheduledDate, startDate),
     lte(lessons.scheduledDate, endDate),
   ];
@@ -45,6 +48,7 @@ export async function getCalendarData(
     .where(and(...personalConditions));
 
   const sharedConditions = [
+    eq(sharedLessons.organizationId, organizationId),
     gte(sharedLessons.scheduledDate, startDate),
     lte(sharedLessons.scheduledDate, endDate),
   ];

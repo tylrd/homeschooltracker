@@ -19,6 +19,7 @@
     "docker:down": "docker compose down",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:tenancy": "node --test tests/multi-tenancy.integration.test.ts",
     "prepare": "husky"
   },
   "dependencies": {
