@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { members, userDefaultOrganizations } from "@/db/schema";
+import { members } from "@/db/schema";
 import { auth } from "@/lib/auth";
 
 export type TenantContext = {
@@ -129,27 +129,6 @@ export async function requireAppRouteAccess(nextPath?: string) {
     }
   }
 
-  const defaultRow = await db.query.userDefaultOrganizations.findFirst({
-    where: eq(userDefaultOrganizations.userId, userId),
-  });
-
-  if (defaultRow) {
-    const membership = await db.query.members.findFirst({
-      where: and(
-        eq(members.userId, userId),
-        eq(members.organizationId, defaultRow.organizationId),
-      ),
-    });
-
-    if (membership) {
-      await auth.api.setActiveOrganization({
-        headers: requestHeaders,
-        body: { organizationId: defaultRow.organizationId },
-      });
-      return { userId, organizationId: defaultRow.organizationId };
-    }
-  }
-
   console.warn("[auth] app_route_missing_active_organization", { nextPath });
-  redirect(withNext("/org/select", nextPath));
+  redirect(withNext("/sign-in", nextPath));
 }

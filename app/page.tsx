@@ -22,7 +22,7 @@ export default async function LandingPage() {
   }
 
   if (userId) {
-    redirect("/org/select");
+    redirect("/dashboard");
   }
 
   return (

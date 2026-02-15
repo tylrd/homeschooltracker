@@ -11,6 +11,7 @@ import {
   sessions,
   teamMembers,
   teams,
+  userDefaultOrganizations,
   users,
   verifications,
 } from "@/db/schema";
@@ -54,9 +55,47 @@ export const auth = betterAuth({
       generateId: () => crypto.randomUUID(),
     },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        async after(user) {
+          const db = getDb();
+          const organizationId = crypto.randomUUID();
+
+          await db.transaction(async (tx) => {
+            await tx.insert(organizations).values({
+              id: organizationId,
+              name: "default",
+              slug: `default-${organizationId.slice(0, 8)}`,
+            });
+
+            await tx.insert(members).values({
+              organizationId,
+              userId: user.id,
+              role: "owner",
+            });
+
+            await tx
+              .insert(userDefaultOrganizations)
+              .values({
+                userId: user.id,
+                organizationId,
+              })
+              .onConflictDoUpdate({
+                target: userDefaultOrganizations.userId,
+                set: {
+                  organizationId,
+                  updatedAt: new Date(),
+                },
+              });
+          });
+        },
+      },
+    },
+  },
   plugins: [
     organization({
-      allowUserToCreateOrganization: true,
+      allowUserToCreateOrganization: false,
     }),
   ],
 });
