@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { memoryAdapter } from "better-auth/adapters/memory";
 import { organization } from "better-auth/plugins/organization";
 import { getDb } from "@/db";
 import {
@@ -26,12 +27,16 @@ const betterAuthSchema = {
   teamMember: teamMembers,
 };
 
+const databaseAdapter = process.env.DATABASE_URL
+  ? drizzleAdapter(getDb(), {
+      provider: "pg",
+      schema: betterAuthSchema,
+    })
+  : memoryAdapter({});
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_BASE_URL ?? process.env.BETTER_AUTH_URL,
-  database: drizzleAdapter(getDb(), {
-    provider: "pg",
-    schema: betterAuthSchema,
-  }),
+  database: databaseAdapter,
   emailAndPassword: {
     enabled: true,
   },
