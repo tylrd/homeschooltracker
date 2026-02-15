@@ -50,11 +50,21 @@ export function SidebarAccountMenu({
   >(null);
 
   const { data: session } = authClient.useSession();
+  const activeOrgQuery = authClient.useActiveOrganization();
+
+  const sessionActiveOrganizationId =
+    session?.session?.activeOrganizationId ?? null;
+  const effectiveActiveOrganizationId =
+    activeOrgQuery.data?.id ??
+    activeOrganizationId ??
+    sessionActiveOrganizationId;
 
   const userName = session?.user?.name ?? "Unknown user";
   const userEmail = session?.user?.email ?? "";
   const organizationName =
-    organizations.find((org) => org.id === activeOrganizationId)?.name ??
+    activeOrgQuery.data?.name ??
+    organizations.find((org) => org.id === effectiveActiveOrganizationId)
+      ?.name ??
     "No active organization";
 
   const initials = useMemo(() => getInitials(userName), [userName]);
@@ -177,7 +187,7 @@ export function SidebarAccountMenu({
             Organizations
           </p>
           {organizations.map((organization) => {
-            const isActive = organization.id === activeOrganizationId;
+            const isActive = organization.id === effectiveActiveOrganizationId;
             const isDefault = defaultOrganizationId
               ? organization.id === defaultOrganizationId
               : organizations.length === 1;
