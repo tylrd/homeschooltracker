@@ -249,7 +249,7 @@
 @media print {
   nav,
   .no-print {
-    display: none !important;
+    display: none;
   }
   body {
     font-size: 12px;
