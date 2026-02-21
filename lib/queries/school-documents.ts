@@ -1,10 +1,15 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
+  lessons,
+  lessonWorkSamples,
   resources,
   schoolDocumentFiles,
   schoolDocumentStudents,
   schoolDocuments,
+  sharedCurricula,
+  sharedLessons,
+  sharedLessonWorkSamples,
   students,
   subjects,
 } from "@/db/schema";
@@ -33,6 +38,20 @@ export type SchoolDocumentView = {
     rotationDegrees: number;
   }[];
   students: { id: string; name: string; color: string }[];
+};
+
+export type WorkSampleView = {
+  workSampleId: string;
+  imageId: string;
+  lessonId: string;
+  lessonKind: "personal" | "shared";
+  lessonTitle: string | null;
+  lessonNumber: number;
+  resourceName: string;
+  subjectName: string;
+  studentName: string;
+  studentColor: string;
+  createdAt: Date;
 };
 
 export async function getSchoolDocuments() {
@@ -170,4 +189,59 @@ export async function getResourceOptionsForSchoolDocuments() {
     .innerJoin(students, eq(subjects.studentId, students.id))
     .where(eq(resources.organizationId, organizationId))
     .orderBy(asc(students.name), asc(resources.name));
+}
+
+export async function getWorkSamplesForDocs() {
+  const db = getDb();
+  const { organizationId } = await getTenantContext();
+
+  const personalRows = await db
+    .select({
+      workSampleId: lessonWorkSamples.id,
+      imageId: lessonWorkSamples.imageId,
+      lessonId: lessons.id,
+      lessonKind: sql<"personal">`'personal'`,
+      lessonTitle: lessons.title,
+      lessonNumber: lessons.lessonNumber,
+      resourceName: resources.name,
+      subjectName: subjects.name,
+      studentName: students.name,
+      studentColor: students.color,
+      createdAt: lessonWorkSamples.createdAt,
+    })
+    .from(lessonWorkSamples)
+    .innerJoin(lessons, eq(lessonWorkSamples.lessonId, lessons.id))
+    .innerJoin(resources, eq(lessons.resourceId, resources.id))
+    .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+    .innerJoin(students, eq(subjects.studentId, students.id))
+    .where(eq(lessonWorkSamples.organizationId, organizationId));
+
+  const sharedRows = await db
+    .select({
+      workSampleId: sharedLessonWorkSamples.id,
+      imageId: sharedLessonWorkSamples.imageId,
+      lessonId: sharedLessons.id,
+      lessonKind: sql<"shared">`'shared'`,
+      lessonTitle: sharedLessons.title,
+      lessonNumber: sharedLessons.lessonNumber,
+      resourceName: sharedCurricula.name,
+      subjectName: sql<string>`'Shared Curriculum'`,
+      studentName: sql<string>`'Shared'`,
+      studentColor: sql<string>`'blue'`,
+      createdAt: sharedLessonWorkSamples.createdAt,
+    })
+    .from(sharedLessonWorkSamples)
+    .innerJoin(
+      sharedLessons,
+      eq(sharedLessonWorkSamples.sharedLessonId, sharedLessons.id),
+    )
+    .innerJoin(
+      sharedCurricula,
+      eq(sharedLessons.sharedCurriculumId, sharedCurricula.id),
+    )
+    .where(eq(sharedLessonWorkSamples.organizationId, organizationId));
+
+  return [...personalRows, ...sharedRows].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+  ) as WorkSampleView[];
 }

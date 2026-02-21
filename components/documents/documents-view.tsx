@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,10 @@ import {
   rotateSchoolDocumentFile,
   uploadSchoolDocumentFiles,
 } from "@/lib/actions/school-documents";
-import type { SchoolDocumentView } from "@/lib/queries/school-documents";
+import type {
+  SchoolDocumentView,
+  WorkSampleView,
+} from "@/lib/queries/school-documents";
 import { cn } from "@/lib/utils";
 
 type DocType = "weekly_plan" | "curriculum_outline" | "pacing_calendar";
@@ -115,16 +119,25 @@ function FileRow({
 
   return (
     <div className="rounded-md border p-2">
-      <button type="button" className="w-full" onClick={() => onOpen(file.id)}>
-        <Image
-          src={`/api/curriculum-images/${file.imageId}`}
-          alt="Document page"
-          width={320}
-          height={240}
-          unoptimized
-          className="h-24 w-full rounded object-cover"
-          style={{ transform: `rotate(${file.rotationDegrees}deg)` }}
-        />
+      <button
+        type="button"
+        className="block w-full"
+        onClick={() => onOpen(file.id)}
+      >
+        <span className="block aspect-[3/4] w-full overflow-hidden rounded border bg-muted">
+          <Image
+            src={`/api/curriculum-images/${file.imageId}`}
+            alt="Document page"
+            width={320}
+            height={480}
+            unoptimized
+            className="h-full w-full object-cover"
+            style={{
+              transform: `rotate(${file.rotationDegrees}deg)`,
+              transformOrigin: "center",
+            }}
+          />
+        </span>
       </button>
       <div className="mt-2 flex items-center justify-between gap-1">
         <Button
@@ -317,6 +330,7 @@ export function DocumentsView({
   documents,
   students,
   resources,
+  workSamples,
 }: {
   documents: SchoolDocumentView[];
   students: { id: string; name: string; color: string }[];
@@ -325,10 +339,14 @@ export function DocumentsView({
     resourceName: string;
     studentName: string;
   }[];
+  workSamples: WorkSampleView[];
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [activeDocType, setActiveDocType] = useState<DocType>("weekly_plan");
+  const [activeView, setActiveView] = useState<
+    "weekly_plan" | "curriculum_outline" | "pacing_calendar" | "work_samples"
+  >("weekly_plan");
   const weekWindow = useMemo(() => getNextWeekWindow(), []);
   const [weekStartDate, setWeekStartDate] = useState(weekWindow.start);
   const [weekEndDate, setWeekEndDate] = useState(weekWindow.end);
@@ -336,9 +354,7 @@ export function DocumentsView({
     getDefaultSchoolYearLabel(),
   );
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [activeFile, setActiveFile] = useState<{
-    docId: string;
-    fileId: string;
+  const [activePreview, setActivePreview] = useState<{
     imageId: string;
     rotationDegrees: number;
   } | null>(null);
@@ -355,11 +371,16 @@ export function DocumentsView({
     const doc = documents.find((item) => item.id === docId);
     const file = doc?.files.find((item) => item.id === fileId);
     if (!file) return;
-    setActiveFile({
-      docId,
-      fileId,
+    setActivePreview({
       imageId: file.imageId,
       rotationDegrees: file.rotationDegrees,
+    });
+  }
+
+  function openWorkSample(imageId: string) {
+    setActivePreview({
+      imageId,
+      rotationDegrees: 0,
     });
   }
 
@@ -380,25 +401,48 @@ export function DocumentsView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FolderOpen className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-2xl font-bold">School Docs</h1>
+          <h1 className="text-2xl font-bold">Docs</h1>
         </div>
         <Button onClick={() => setCreateOpen(true)}>Add Document</Button>
       </div>
 
-      <Tabs defaultValue="weekly_plan" className="space-y-3">
-        <TabsList>
-          <TabsTrigger value="weekly_plan">Weekly Plans</TabsTrigger>
-          <TabsTrigger value="curriculum_outline">
-            Curriculum Outlines
-          </TabsTrigger>
-          <TabsTrigger value="pacing_calendar">Pacing Calendars</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-wrap gap-2">
+        {[
+          { key: "weekly_plan", label: "Weekly Plans" },
+          { key: "curriculum_outline", label: "Curriculum Outlines" },
+          { key: "pacing_calendar", label: "Pacing Calendars" },
+          { key: "work_samples", label: "Work Samples" },
+        ].map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() =>
+              setActiveView(
+                item.key as
+                  | "weekly_plan"
+                  | "curriculum_outline"
+                  | "pacing_calendar"
+                  | "work_samples",
+              )
+            }
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-sm transition-colors",
+              activeView === item.key
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-border bg-muted/40 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="weekly_plan" className="space-y-3">
+      {activeView === "weekly_plan" && (
+        <div className="space-y-3">
           {grouped.weekly_plan.length === 0 ? (
             <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
               No weekly plans yet.
@@ -408,9 +452,11 @@ export function DocumentsView({
               <DocumentCard key={doc.id} doc={doc} onOpenFile={openFile} />
             ))
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="curriculum_outline" className="space-y-3">
+      {activeView === "curriculum_outline" && (
+        <div className="space-y-3">
           {grouped.curriculum_outline.length === 0 ? (
             <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
               No curriculum outlines yet.
@@ -420,9 +466,11 @@ export function DocumentsView({
               <DocumentCard key={doc.id} doc={doc} onOpenFile={openFile} />
             ))
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="pacing_calendar" className="space-y-3">
+      {activeView === "pacing_calendar" && (
+        <div className="space-y-3">
           {grouped.pacing_calendar.length === 0 ? (
             <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
               No pacing calendars yet.
@@ -432,8 +480,65 @@ export function DocumentsView({
               <DocumentCard key={doc.id} doc={doc} onOpenFile={openFile} />
             ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
+
+      {activeView === "work_samples" && (
+        <div className="space-y-3">
+          {workSamples.length === 0 ? (
+            <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+              No work samples yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {workSamples.map((sample) => (
+                <div
+                  key={sample.workSampleId}
+                  className="rounded-md border p-2"
+                >
+                  <button
+                    type="button"
+                    className="block w-full"
+                    onClick={() => openWorkSample(sample.imageId)}
+                  >
+                    <span className="block aspect-[3/4] w-full overflow-hidden rounded border bg-muted">
+                      <Image
+                        src={`/api/curriculum-images/${sample.imageId}`}
+                        alt="Work sample"
+                        width={360}
+                        height={480}
+                        unoptimized
+                        className="h-full w-full object-cover"
+                      />
+                    </span>
+                  </button>
+                  <div className="mt-2 space-y-1">
+                    <p className="truncate text-xs font-medium">
+                      {sample.lessonTitle ?? `Lesson ${sample.lessonNumber}`}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {sample.subjectName} · {sample.resourceName}
+                    </p>
+                    <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <StudentColorDot
+                        color={sample.studentColor}
+                        className="h-2.5 w-2.5"
+                      />
+                      {sample.studentName}
+                    </p>
+                    <Link
+                      href={`/lessons/${sample.lessonId}`}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Open lesson
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <Dialog
         open={createOpen}
@@ -607,22 +712,24 @@ export function DocumentsView({
         </DialogContent>
       </Dialog>
 
-      {activeFile && (
+      {activePreview && (
         <div className="fixed inset-0 z-50 bg-black">
           <div className="absolute inset-0 overflow-auto pb-4 pt-16">
             <Image
-              src={`/api/curriculum-images/${activeFile.imageId}`}
+              src={`/api/curriculum-images/${activePreview.imageId}`}
               alt="Document page"
               width={1600}
               height={1200}
               unoptimized
               className="mx-auto block h-auto w-full max-w-none"
-              style={{ transform: `rotate(${activeFile.rotationDegrees}deg)` }}
+              style={{
+                transform: `rotate(${activePreview.rotationDegrees}deg)`,
+              }}
             />
           </div>
           <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-3">
             <a
-              href={`/api/curriculum-images/${activeFile.imageId}`}
+              href={`/api/curriculum-images/${activePreview.imageId}`}
               download
               className="pointer-events-auto inline-flex h-9 items-center rounded-md border border-white/30 bg-black/50 px-3 text-sm text-white"
             >
@@ -634,7 +741,7 @@ export function DocumentsView({
               variant="outline"
               size="icon"
               className="pointer-events-auto border-white/30 bg-black/50 text-white hover:bg-black/70"
-              onClick={() => setActiveFile(null)}
+              onClick={() => setActivePreview(null)}
             >
               <X className="h-4 w-4" />
             </Button>
