@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { members } from "@/db/schema";
+import { members, userDefaultOrganizations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 
 export type TenantContext = {
@@ -109,20 +109,44 @@ export async function requireAppRouteAccess(nextPath?: string) {
   }
 
   const db = getDb();
-  const memberships = await db
-    .select({ organizationId: members.organizationId })
-    .from(members)
-    .where(eq(members.userId, userId));
+  const defaultOrganization = await db.query.userDefaultOrganizations.findFirst(
+    {
+      columns: { organizationId: true },
+      where: eq(userDefaultOrganizations.userId, userId),
+    },
+  );
 
-  if (memberships.length === 1) {
-    const onlyOrganizationId = memberships[0]?.organizationId;
-    if (onlyOrganizationId) {
+  const defaultOrganizationId = defaultOrganization?.organizationId ?? null;
+  if (defaultOrganizationId) {
+    const hasMembershipInDefault = await db.query.members.findFirst({
+      columns: { organizationId: true },
+      where: and(
+        eq(members.userId, userId),
+        eq(members.organizationId, defaultOrganizationId),
+      ),
+    });
+
+    if (hasMembershipInDefault) {
       await auth.api.setActiveOrganization({
         headers: requestHeaders,
-        body: { organizationId: onlyOrganizationId },
+        body: { organizationId: defaultOrganizationId },
       });
-      return { userId, organizationId: onlyOrganizationId };
+      return { userId, organizationId: defaultOrganizationId };
     }
+  }
+
+  const firstMembership = await db.query.members.findFirst({
+    columns: { organizationId: true },
+    where: eq(members.userId, userId),
+    orderBy: asc(members.createdAt),
+  });
+
+  if (firstMembership?.organizationId) {
+    await auth.api.setActiveOrganization({
+      headers: requestHeaders,
+      body: { organizationId: firstMembership.organizationId },
+    });
+    return { userId, organizationId: firstMembership.organizationId };
   }
 
   console.warn("[auth] app_route_missing_active_organization", { nextPath });
