@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,6 @@ import { authClient } from "@/lib/auth-client";
 type AuthMode = "sign-in" | "sign-up";
 
 export function SignInForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const modeParam =
     searchParams.get("mode") === "sign-up" ? "sign-up" : "sign-in";
@@ -61,8 +60,17 @@ export function SignInForm() {
       return;
     }
 
-    router.push(nextPath);
-    router.refresh();
+    const { data: session, error: sessionError } = await authClient.getSession();
+
+    if (sessionError || !session?.user?.id) {
+      setError(
+        "Sign-in succeeded but session cookie was not established. Check auth env config.",
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    window.location.assign(nextPath);
   }
 
   return (

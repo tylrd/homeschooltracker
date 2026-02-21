@@ -9,7 +9,6 @@ import { getSessionOrNull } from "@/lib/auth/session";
 
 export default async function LandingPage() {
   const session = await getSessionOrNull();
-  const userId = session?.user?.id ?? null;
   const activeOrganizationId =
     session?.session?.activeOrganizationId ??
     session?.session?.activeOrganization?.id ??
@@ -17,11 +16,7 @@ export default async function LandingPage() {
     session?.activeOrganization?.id ??
     null;
 
-  if (userId && activeOrganizationId) {
-    redirect("/dashboard");
-  }
-
-  if (userId) {
+  if (activeOrganizationId) {
     redirect("/dashboard");
   }
 
