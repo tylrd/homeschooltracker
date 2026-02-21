@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { requireAppRouteAccess } from "@/lib/auth/session";
 import { formatDate } from "@/lib/dates";
 import { getLessonWithContext } from "@/lib/queries/lessons";
+import { getCustomMoods } from "@/lib/queries/settings";
 
 export default async function LessonDetailPage({
   params,
@@ -18,7 +19,10 @@ export default async function LessonDetailPage({
   await requireAppRouteAccess();
 
   const { lessonId } = await params;
-  const lesson = await getLessonWithContext(lessonId);
+  const [lesson, moodOptions] = await Promise.all([
+    getLessonWithContext(lessonId),
+    getCustomMoods(),
+  ]);
 
   if (!lesson) {
     notFound();
@@ -78,6 +82,7 @@ export default async function LessonDetailPage({
             id: s.id,
             imageId: s.imageId,
           }))}
+          moodOptions={moodOptions}
         />
       </div>
     );
@@ -141,6 +146,7 @@ export default async function LessonDetailPage({
           id: s.id,
           imageId: s.imageId,
         }))}
+        moodOptions={moodOptions}
       />
     </div>
   );

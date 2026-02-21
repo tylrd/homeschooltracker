@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
+import type { LessonMoodOption } from "@/lib/lesson-moods";
 import { cn } from "@/lib/utils";
 
 type DashboardLesson = {
@@ -109,6 +110,7 @@ export function LessonList({
   grouping = "student",
   defaultSharedLessonView = "group",
   showNoteButtons = true,
+  moodOptions,
   studentResourceMap = {},
   allStudents = [],
   isStudentFiltered = false,
@@ -123,6 +125,7 @@ export function LessonList({
   grouping?: "student" | "subject";
   defaultSharedLessonView?: "group" | "student";
   showNoteButtons?: boolean;
+  moodOptions?: LessonMoodOption[];
   studentResourceMap?: Record<string, StudentResource[]>;
   allStudents?: StudentSummary[];
   isStudentFiltered?: boolean;
@@ -316,6 +319,7 @@ export function LessonList({
                     workSampleCount={lesson.workSampleCount}
                     workSampleImageIds={lesson.workSampleImageIds}
                     showNoteButton={false}
+                    moodOptions={moodOptions}
                     onNoteClick={() => {}}
                   />
                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -377,6 +381,7 @@ export function LessonList({
                         workSampleCount={lesson.workSampleCount}
                         workSampleImageIds={lesson.workSampleImageIds}
                         showNoteButton={showNoteButtons}
+                        moodOptions={moodOptions}
                         showStudentName
                         onNoteClick={(target) => {
                           setNoteTarget(target);
@@ -540,6 +545,7 @@ export function LessonList({
                             lesson.lessonStatus === "completed"
                           }
                           showNoteButton={showNoteButtons}
+                          moodOptions={moodOptions}
                           onNoteClick={(target) => {
                             setNoteTarget(target);
                             setDraftPlan(target.lessonPlan ?? "");

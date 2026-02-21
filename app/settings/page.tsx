@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AbsenceAutoBumpToggle } from "@/components/settings/absence-auto-bump-toggle";
 import { AbsenceReasonForm } from "@/components/settings/absence-reason-form";
 import { BumpBehaviorSelect } from "@/components/settings/bump-behavior-select";
+import { CustomMoodsInput } from "@/components/settings/custom-moods-input";
 import { DailyLogNotesToggle } from "@/components/settings/daily-log-notes-toggle";
 import { DashboardGroupingSelect } from "@/components/settings/dashboard-grouping-select";
 import { DashboardSharedLessonViewSelect } from "@/components/settings/dashboard-shared-lesson-view-select";
@@ -19,6 +20,7 @@ import { getOrCreateDefaultReasons } from "@/lib/queries/absence-reasons";
 import {
   getAbsenceAutoBump,
   getBumpBehavior,
+  getCustomMoods,
   getDashboardGrouping,
   getDashboardSharedLessonView,
   getDefaultLessonCount,
@@ -42,6 +44,7 @@ export default async function SettingsPage() {
     dashboardGrouping,
     dashboardSharedLessonView,
     bumpBehavior,
+    customMoods,
   ] = await Promise.all([
     getOrCreateDefaultReasons(),
     getShowCompletedLessons(),
@@ -53,6 +56,7 @@ export default async function SettingsPage() {
     getDashboardGrouping(),
     getDashboardSharedLessonView(),
     getBumpBehavior(),
+    getCustomMoods(),
   ]);
 
   return (
@@ -99,6 +103,7 @@ export default async function SettingsPage() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Attendance</h2>
         <DailyLogNotesToggle defaultValue={showDailyLogNotes} />
+        <CustomMoodsInput defaultMoods={customMoods} />
       </div>
 
       <Separator />

@@ -441,10 +441,7 @@ export async function updateLessonPlan(lessonId: string, plan: string) {
   revalidatePath("/shelf");
 }
 
-export async function updateLessonMood(
-  lessonId: string,
-  mood: "loved_it" | "tears" | "meltdown" | "pulling_teeth" | null,
-) {
+export async function updateLessonMood(lessonId: string, mood: string | null) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
   await db

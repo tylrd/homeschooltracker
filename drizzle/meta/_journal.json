@@ -78,6 +78,13 @@
       "when": 1775001600000,
       "tag": "0010_school_docs_and_mood",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775005200000,
+      "tag": "0011_custom_lesson_moods",
+      "breakpoints": true
     }
   ]
 }

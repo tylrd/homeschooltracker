@@ -22,13 +22,6 @@ export const lessonStatusEnum = pgEnum("lesson_status", [
   "bumped",
 ]);
 
-export const lessonMoodEnum = pgEnum("lesson_mood", [
-  "loved_it",
-  "tears",
-  "meltdown",
-  "pulling_teeth",
-]);
-
 export const schoolDocumentTypeEnum = pgEnum("school_document_type", [
   "weekly_plan",
   "curriculum_outline",
@@ -469,7 +462,7 @@ export const lessons = pgTable(
     status: lessonStatusEnum().notNull().default("planned"),
     scheduledDate: date("scheduled_date"),
     completionDate: date("completion_date"),
-    mood: lessonMoodEnum("mood"),
+    mood: text("mood"),
     plan: text(),
     notes: text(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -511,7 +504,7 @@ export const sharedLessons = pgTable(
     status: lessonStatusEnum().notNull().default("planned"),
     scheduledDate: date("scheduled_date"),
     completionDate: date("completion_date"),
-    mood: lessonMoodEnum("mood"),
+    mood: text("mood"),
     plan: text(),
     notes: text(),
     createdAt: timestamp("created_at", { withTimezone: true })

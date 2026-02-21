@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { appSettings } from "@/db/schema";
 import { getTenantContext } from "@/lib/auth/session";
+import {
+  type LessonMoodOption,
+  normalizeLessonMoodOptions,
+} from "@/lib/lesson-moods";
 
 export async function setSetting(key: string, value: string) {
   const db = getDb();
@@ -57,4 +61,9 @@ export async function setBumpBehavior(
 
 export async function setShowDailyLogNotes(show: boolean) {
   await setSetting("showDailyLogNotes", String(show));
+}
+
+export async function setCustomMoods(moods: LessonMoodOption[]) {
+  const sanitized = normalizeLessonMoodOptions(moods);
+  await setSetting("customMoods", JSON.stringify(sanitized));
 }
