@@ -6,7 +6,11 @@ import { getDb } from "@/db";
 import { absenceReasons } from "@/db/schema";
 import { getTenantContext } from "@/lib/auth/session";
 
-export async function createAbsenceReason(name: string, color: string) {
+export async function createAbsenceReason(
+  name: string,
+  color: string,
+  countsAsPresent = false,
+) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
 
@@ -23,6 +27,7 @@ export async function createAbsenceReason(name: string, color: string) {
       organizationId,
       name: name.trim(),
       color,
+      countsAsPresent,
       sortOrder: maxSort + 1,
     })
     .returning();
@@ -69,4 +74,25 @@ export async function reorderAbsenceReasons(orderedIds: string[]) {
 
   revalidatePath("/settings");
   revalidatePath("/");
+}
+
+export async function updateAbsenceReasonCountsAsPresent(
+  reasonId: string,
+  countsAsPresent: boolean,
+) {
+  const db = getDb();
+  const { organizationId } = await getTenantContext();
+  await db
+    .update(absenceReasons)
+    .set({ countsAsPresent })
+    .where(
+      and(
+        eq(absenceReasons.id, reasonId),
+        eq(absenceReasons.organizationId, organizationId),
+      ),
+    );
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+  revalidatePath("/attendance");
 }

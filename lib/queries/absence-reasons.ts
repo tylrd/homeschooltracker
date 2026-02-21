@@ -4,9 +4,10 @@ import { absenceReasons } from "@/db/schema";
 import { getTenantContext } from "@/lib/auth/session";
 
 const DEFAULT_REASONS = [
-  { name: "Sick", color: "red", sortOrder: 0 },
-  { name: "Vacation", color: "blue", sortOrder: 1 },
-  { name: "Appointment", color: "amber", sortOrder: 2 },
+  { name: "Sick", color: "red", sortOrder: 0, countsAsPresent: false },
+  { name: "Vacation", color: "blue", sortOrder: 1, countsAsPresent: false },
+  { name: "Appointment", color: "amber", sortOrder: 2, countsAsPresent: false },
+  { name: "Field Trip", color: "emerald", sortOrder: 3, countsAsPresent: true },
 ];
 
 export async function getAbsenceReasons() {

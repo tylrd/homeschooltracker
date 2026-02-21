@@ -9,6 +9,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   completeLesson,
@@ -16,6 +23,7 @@ import {
   deleteLessonWorkSample,
   uncompleteLesson,
   updateLessonContent,
+  updateLessonMood,
   updateLessonScheduledDate,
   uploadLessonWorkSamples,
 } from "@/lib/actions/lessons";
@@ -25,16 +33,19 @@ import {
   deleteSharedLessonWorkSample,
   uncompleteSharedLesson,
   updateSharedLessonContent,
+  updateSharedLessonMood,
   updateSharedLessonScheduledDate,
   uploadSharedLessonWorkSamples,
 } from "@/lib/actions/shared-lessons";
 import { validateImageFile } from "@/lib/images/validation";
+import { LESSON_MOODS } from "@/lib/lesson-moods";
 
 type LessonDetailFormProps = {
   lessonId: string;
   title: string | null;
   status: string;
   plan: string | null;
+  mood: string | null;
   notes: string | null;
   scheduledDate: string | null;
   lessonKind?: "personal" | "shared";
@@ -46,6 +57,7 @@ export function LessonDetailForm({
   title,
   status,
   plan,
+  mood,
   notes,
   scheduledDate,
   lessonKind = "personal",
@@ -53,6 +65,7 @@ export function LessonDetailForm({
 }: LessonDetailFormProps) {
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
+  const [moodValue, setMoodValue] = useState(mood ?? "none");
   const [titleText, setTitleText] = useState(title ?? "");
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [failedFiles, setFailedFiles] = useState<File[] | null>(null);
@@ -69,11 +82,13 @@ export function LessonDetailForm({
   const isCompleted = status === "completed";
   const savedPlan = plan ?? "";
   const savedNotes = notes ?? "";
+  const savedMood = mood ?? "none";
   const savedTitle = title ?? "";
   const hasChanges =
     titleText !== savedTitle ||
     planText !== savedPlan ||
-    notesText !== savedNotes;
+    notesText !== savedNotes ||
+    moodValue !== savedMood;
 
   function handleToggle() {
     startTransition(async () => {
@@ -114,8 +129,28 @@ export function LessonDetailForm({
           planText,
           notesText,
         );
+        await updateSharedLessonMood(
+          lessonId,
+          moodValue === "none"
+            ? null
+            : (moodValue as
+                | "loved_it"
+                | "tears"
+                | "meltdown"
+                | "pulling_teeth"),
+        );
       } else {
         await updateLessonContent(lessonId, titleText, planText, notesText);
+        await updateLessonMood(
+          lessonId,
+          moodValue === "none"
+            ? null
+            : (moodValue as
+                | "loved_it"
+                | "tears"
+                | "meltdown"
+                | "pulling_teeth"),
+        );
       }
       toast.success("Lesson saved");
     });
@@ -239,6 +274,27 @@ export function LessonDetailForm({
           onChange={(e) => setTitleText(e.target.value)}
           disabled={isPending}
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Lesson Mood</Label>
+        <Select
+          value={moodValue}
+          onValueChange={setMoodValue}
+          disabled={isPending}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="No mood" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No mood</SelectItem>
+            {LESSON_MOODS.map((m) => (
+              <SelectItem key={m.value} value={m.value}>
+                {m.emoji} {m.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">

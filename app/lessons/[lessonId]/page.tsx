@@ -71,6 +71,7 @@ export default async function LessonDetailPage({
           title={lesson.lesson.title}
           status={lesson.lesson.status}
           plan={lesson.lesson.plan}
+          mood={lesson.lesson.mood}
           notes={lesson.lesson.notes}
           scheduledDate={lesson.lesson.scheduledDate}
           workSamples={lesson.lesson.workSamples.map((s) => ({
@@ -132,6 +133,7 @@ export default async function LessonDetailPage({
         title={lesson.lesson.title}
         status={lesson.lesson.status}
         plan={lesson.lesson.plan}
+        mood={lesson.lesson.mood}
         notes={lesson.lesson.notes}
         scheduledDate={lesson.lesson.scheduledDate}
         lessonKind="shared"

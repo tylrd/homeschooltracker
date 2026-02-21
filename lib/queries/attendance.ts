@@ -24,6 +24,89 @@ type EffectiveAbsenceRow = {
   studentColor: string;
 };
 
+type PresentReasonRow = EffectiveAbsenceRow;
+
+async function getPresentReasonRows(
+  organizationId: string,
+  startDate: string,
+  endDate: string,
+) {
+  const db = getDb();
+  const explicitRows = await db
+    .select({
+      studentId: absences.studentId,
+      date: absences.date,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(absences)
+    .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
+    .innerJoin(students, eq(absences.studentId, students.id))
+    .where(
+      and(
+        eq(absences.organizationId, organizationId),
+        eq(absenceReasons.countsAsPresent, true),
+        gte(absences.date, startDate),
+        lte(absences.date, endDate),
+      ),
+    );
+
+  const globalRows = await db
+    .select({
+      date: globalAbsences.date,
+      reasonName: absenceReasons.name,
+      reasonColor: absenceReasons.color,
+    })
+    .from(globalAbsences)
+    .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
+    .where(
+      and(
+        eq(globalAbsences.organizationId, organizationId),
+        eq(absenceReasons.countsAsPresent, true),
+        gte(globalAbsences.date, startDate),
+        lte(globalAbsences.date, endDate),
+      ),
+    );
+
+  if (globalRows.length === 0) {
+    return explicitRows;
+  }
+
+  const allStudents = await db
+    .select({
+      studentId: students.id,
+      studentName: students.name,
+      studentColor: students.color,
+    })
+    .from(students)
+    .where(eq(students.organizationId, organizationId))
+    .orderBy(asc(students.name));
+
+  const explicitKeys = new Set(
+    explicitRows.map((row) => `${row.studentId}|${row.date}`),
+  );
+  const rows: PresentReasonRow[] = [...explicitRows];
+
+  for (const globalRow of globalRows) {
+    for (const student of allStudents) {
+      const key = `${student.studentId}|${globalRow.date}`;
+      if (explicitKeys.has(key)) continue;
+      rows.push({
+        studentId: student.studentId,
+        date: globalRow.date,
+        reasonName: globalRow.reasonName,
+        reasonColor: globalRow.reasonColor,
+        studentName: student.studentName,
+        studentColor: student.studentColor,
+      });
+    }
+  }
+
+  return rows;
+}
+
 async function getEffectiveAbsenceRows(
   organizationId: string,
   startDate: string,
@@ -38,6 +121,7 @@ async function getEffectiveAbsenceRows(
       date: absences.date,
       reasonName: absenceReasons.name,
       reasonColor: absenceReasons.color,
+      countsAsPresent: absenceReasons.countsAsPresent,
       studentName: students.name,
       studentColor: students.color,
     })
@@ -57,6 +141,7 @@ async function getEffectiveAbsenceRows(
       date: globalAbsences.date,
       reasonName: absenceReasons.name,
       reasonColor: absenceReasons.color,
+      countsAsPresent: absenceReasons.countsAsPresent,
     })
     .from(globalAbsences)
     .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
@@ -68,7 +153,17 @@ async function getEffectiveAbsenceRows(
       ),
     );
 
-  if (globalRows.length === 0) return explicitRows;
+  const filteredExplicit = explicitRows.filter((row) => !row.countsAsPresent);
+  if (globalRows.length === 0) {
+    return filteredExplicit.map((row) => ({
+      studentId: row.studentId,
+      date: row.date,
+      reasonName: row.reasonName,
+      reasonColor: row.reasonColor,
+      studentName: row.studentName,
+      studentColor: row.studentColor,
+    }));
+  }
 
   const allStudents = await db
     .select({
@@ -81,11 +176,19 @@ async function getEffectiveAbsenceRows(
     .orderBy(asc(students.name));
 
   const explicitKeys = new Set(
-    explicitRows.map((row) => `${row.studentId}|${row.date}`),
+    filteredExplicit.map((row) => `${row.studentId}|${row.date}`),
   );
-  const rows: EffectiveAbsenceRow[] = [...explicitRows];
+  const rows: EffectiveAbsenceRow[] = filteredExplicit.map((row) => ({
+    studentId: row.studentId,
+    date: row.date,
+    reasonName: row.reasonName,
+    reasonColor: row.reasonColor,
+    studentName: row.studentName,
+    studentColor: row.studentColor,
+  }));
 
   for (const globalRow of globalRows) {
+    if (globalRow.countsAsPresent) continue;
     const completedForDate = completedByDate.get(globalRow.date) ?? new Set();
     for (const student of allStudents) {
       if (completedForDate.has(student.studentId)) continue;
@@ -160,6 +263,11 @@ export async function getAttendanceForMonth(year: number, month: number) {
     );
 
   const rows = [...personalRows, ...sharedRows];
+  const presentRows = await getPresentReasonRows(
+    organizationId,
+    startDate,
+    endDate,
+  );
 
   // Build set of unique (studentId, date) pairs
   const attendanceMap = new Map<string, Set<string>>();
@@ -178,6 +286,25 @@ export async function getAttendanceForMonth(year: number, month: number) {
       completedByDate.set(row.completionDate, new Set());
     }
     completedByDate.get(row.completionDate)?.add(row.studentId);
+
+    if (!studentInfo.has(row.studentId)) {
+      studentInfo.set(row.studentId, {
+        name: row.studentName,
+        color: row.studentColor,
+      });
+    }
+  }
+
+  for (const row of presentRows) {
+    if (!attendanceMap.has(row.studentId)) {
+      attendanceMap.set(row.studentId, new Set());
+    }
+    attendanceMap.get(row.studentId)?.add(row.date);
+
+    if (!completedByDate.has(row.date)) {
+      completedByDate.set(row.date, new Set());
+    }
+    completedByDate.get(row.date)?.add(row.studentId);
 
     if (!studentInfo.has(row.studentId)) {
       studentInfo.set(row.studentId, {
@@ -331,6 +458,18 @@ export async function getCompletionLogForMonth(year: number, month: number) {
     completedByDate.get(row.completionDate)?.add(row.studentId);
   }
 
+  const presentReasons = await getPresentReasonRows(
+    organizationId,
+    startDate,
+    endDate,
+  );
+  for (const row of presentReasons) {
+    if (!completedByDate.has(row.date)) {
+      completedByDate.set(row.date, new Set());
+    }
+    completedByDate.get(row.date)?.add(row.studentId);
+  }
+
   const absenceRows = await getEffectiveAbsenceRows(
     organizationId,
     startDate,
@@ -360,6 +499,7 @@ export async function getCompletionLogForMonth(year: number, month: number) {
   return {
     completions: rows as CompletionLogEntry[],
     absences: absenceRows,
+    presentReasons,
     notes: noteRows as DailyLogNoteEntry[],
   };
 }

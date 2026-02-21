@@ -2,6 +2,8 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/heic",
+  "image/heif",
 ] as const;
 
 export type AcceptedImageType = (typeof ACCEPTED_IMAGE_TYPES)[number];
@@ -32,7 +34,7 @@ export function validateImageFile(
     return {
       ok: false,
       code: "invalid_type",
-      message: "Only JPG, PNG, or WEBP images are supported.",
+      message: "Only JPG, PNG, WEBP, HEIC, or HEIF images are supported.",
     };
   }
 

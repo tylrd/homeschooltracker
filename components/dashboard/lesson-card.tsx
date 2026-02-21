@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Paperclip,
   RotateCcw,
+  SmilePlus,
   Trash2,
   X,
 } from "lucide-react";
@@ -27,14 +28,17 @@ import {
   completeLesson,
   deleteLesson,
   uncompleteLesson,
+  updateLessonMood,
 } from "@/lib/actions/lessons";
 import {
   bumpSharedLesson,
   completeSharedLesson,
   deleteSharedLesson,
   uncompleteSharedLesson,
+  updateSharedLessonMood,
 } from "@/lib/actions/shared-lessons";
 import { getColorClasses } from "@/lib/constants";
+import { getLessonMoodMeta, LESSON_MOODS } from "@/lib/lesson-moods";
 import { cn } from "@/lib/utils";
 
 type LessonCardProps = {
@@ -50,6 +54,7 @@ type LessonCardProps = {
   studentColor: string;
   studentId: string;
   lessonPlan: string | null;
+  lessonMood: string | null;
   date: string;
   workSampleCount: number;
   workSampleImageIds: string[];
@@ -78,6 +83,7 @@ export function LessonCard({
   studentColor,
   studentId,
   lessonPlan,
+  lessonMood,
   date: _date,
   workSampleCount,
   workSampleImageIds,
@@ -97,6 +103,7 @@ export function LessonCard({
   >(null);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
+  const moodMeta = getLessonMoodMeta(lessonMood);
 
   function handleToggle() {
     startTransition(async () => {
@@ -145,6 +152,18 @@ export function LessonCard({
     });
   }
 
+  function handleMoodChange(
+    mood: "loved_it" | "tears" | "meltdown" | "pulling_teeth" | null,
+  ) {
+    startTransition(async () => {
+      if (lessonKind === "shared") {
+        await updateSharedLessonMood(lessonId, mood);
+      } else {
+        await updateLessonMood(lessonId, mood);
+      }
+    });
+  }
+
   return (
     <div className="relative overflow-hidden rounded-lg">
       <div
@@ -176,6 +195,15 @@ export function LessonCard({
               >
                 {lessonTitle ?? `Lesson ${lessonNumber}`}
               </p>
+              {moodMeta && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                  title={moodMeta.label}
+                >
+                  <span aria-hidden="true">{moodMeta.emoji}</span>
+                  {moodMeta.label}
+                </span>
+              )}
               {workSampleCount > 0 && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] text-muted-foreground"
@@ -239,6 +267,47 @@ export function LessonCard({
               <Images className="h-4 w-4" />
             </Button>
           )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                title="Set mood"
+                disabled={deleting}
+              >
+                {moodMeta ? (
+                  <span className="text-base leading-none" aria-hidden="true">
+                    {moodMeta.emoji}
+                  </span>
+                ) : (
+                  <SmilePlus className="h-4 w-4" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-44 p-1">
+              {LESSON_MOODS.map((mood) => (
+                <Button
+                  key={mood.value}
+                  variant="ghost"
+                  className="h-8 w-full justify-start"
+                  onClick={() => handleMoodChange(mood.value)}
+                >
+                  <span className="mr-2" aria-hidden="true">
+                    {mood.emoji}
+                  </span>
+                  {mood.label}
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                className="h-8 w-full justify-start text-muted-foreground"
+                onClick={() => handleMoodChange(null)}
+              >
+                Clear mood
+              </Button>
+            </PopoverContent>
+          </Popover>
           <Popover open={menuOpen} onOpenChange={setMenuOpen}>
             <PopoverTrigger asChild>
               <Button

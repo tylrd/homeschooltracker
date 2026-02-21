@@ -44,6 +44,7 @@ export async function getTodayLessons(date: string, studentId?: string) {
       lessonNumber: lessons.lessonNumber,
       lessonTitle: lessons.title,
       lessonPlan: lessons.plan,
+      lessonMood: lessons.mood,
       lessonStatus: lessons.status,
       scheduledDate: lessons.scheduledDate,
       resourceId: resources.id,
@@ -113,6 +114,7 @@ export async function getTodaySharedLessons(date: string, studentId?: string) {
       lessonNumber: sharedLessons.lessonNumber,
       lessonTitle: sharedLessons.title,
       lessonPlan: sharedLessons.plan,
+      lessonMood: sharedLessons.mood,
       lessonStatus: sharedLessons.status,
       scheduledDate: sharedLessons.scheduledDate,
       sharedCurriculumId: sharedCurricula.id,
@@ -286,6 +288,7 @@ export async function getAbsencesForDate(date: string) {
       reasonId: absenceReasons.id,
       reasonName: absenceReasons.name,
       reasonColor: absenceReasons.color,
+      countsAsPresent: absenceReasons.countsAsPresent,
     })
     .from(absences)
     .innerJoin(absenceReasons, eq(absences.reasonId, absenceReasons.id))
@@ -299,6 +302,7 @@ export async function getAbsencesForDate(date: string) {
       reasonId: absenceReasons.id,
       reasonName: absenceReasons.name,
       reasonColor: absenceReasons.color,
+      countsAsPresent: absenceReasons.countsAsPresent,
     })
     .from(globalAbsences)
     .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
@@ -310,17 +314,20 @@ export async function getAbsencesForDate(date: string) {
     )
     .limit(1);
 
-  const rows: DashboardAbsenceRow[] = explicitRows.map((row) => ({
-    absenceId: row.absenceId,
-    studentId: row.studentId,
-    reasonId: row.reasonId,
-    reasonName: row.reasonName,
-    reasonColor: row.reasonColor,
-    source: "individual",
-  }));
+  const rows: DashboardAbsenceRow[] = explicitRows
+    .filter((row) => !row.countsAsPresent)
+    .map((row) => ({
+      absenceId: row.absenceId,
+      studentId: row.studentId,
+      reasonId: row.reasonId,
+      reasonName: row.reasonName,
+      reasonColor: row.reasonColor,
+      source: "individual",
+    }));
 
   const global = globalRows[0];
   if (!global) return rows;
+  if (global.countsAsPresent) return rows;
 
   const completedRows = await db
     .select({ studentId: students.id })
@@ -368,6 +375,7 @@ export async function getGlobalAbsenceForDate(date: string) {
       reasonId: absenceReasons.id,
       reasonName: absenceReasons.name,
       reasonColor: absenceReasons.color,
+      countsAsPresent: absenceReasons.countsAsPresent,
     })
     .from(globalAbsences)
     .innerJoin(absenceReasons, eq(globalAbsences.reasonId, absenceReasons.id))
@@ -379,7 +387,9 @@ export async function getGlobalAbsenceForDate(date: string) {
     )
     .limit(1);
 
-  return rows[0] ?? null;
+  const row = rows[0] ?? null;
+  if (!row || row.countsAsPresent) return null;
+  return row;
 }
 
 export async function getStudentResourceMap() {

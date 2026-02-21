@@ -22,6 +22,7 @@ type DashboardLesson = {
   lessonNumber: number;
   lessonTitle: string | null;
   lessonPlan: string | null;
+  lessonMood: string | null;
   lessonStatus: string;
   resourceId: string;
   resourceName: string;
@@ -38,6 +39,7 @@ type DashboardSharedLesson = {
   lessonNumber: number;
   lessonTitle: string | null;
   lessonPlan: string | null;
+  lessonMood: string | null;
   lessonStatus: string;
   sharedCurriculumId: string;
   sharedCurriculumName: string;
@@ -54,6 +56,7 @@ type UnifiedLesson = {
   lessonNumber: number;
   lessonTitle: string | null;
   lessonPlan: string | null;
+  lessonMood: string | null;
   lessonStatus: string;
   resourceId: string;
   resourceName: string;
@@ -151,6 +154,7 @@ export function LessonList({
       lessonNumber: lesson.lessonNumber,
       lessonTitle: lesson.lessonTitle,
       lessonPlan: lesson.lessonPlan,
+      lessonMood: lesson.lessonMood,
       lessonStatus: lesson.lessonStatus,
       resourceId: lesson.resourceId,
       resourceName: lesson.resourceName,
@@ -168,6 +172,7 @@ export function LessonList({
       lessonNumber: lesson.lessonNumber,
       lessonTitle: lesson.lessonTitle,
       lessonPlan: lesson.lessonPlan,
+      lessonMood: lesson.lessonMood,
       lessonStatus: lesson.lessonStatus,
       resourceId: lesson.sharedCurriculumId,
       resourceName: lesson.sharedCurriculumName,
@@ -190,6 +195,7 @@ export function LessonList({
         lessonNumber: number;
         lessonTitle: string | null;
         lessonPlan: string | null;
+        lessonMood: string | null;
         lessonStatus: string;
         sharedCurriculumName: string;
         workSampleCount: number;
@@ -213,6 +219,7 @@ export function LessonList({
           lessonNumber: row.lessonNumber,
           lessonTitle: row.lessonTitle,
           lessonPlan: row.lessonPlan,
+          lessonMood: row.lessonMood,
           lessonStatus: row.lessonStatus,
           sharedCurriculumName: row.sharedCurriculumName,
           workSampleCount: row.workSampleCount,
@@ -297,6 +304,7 @@ export function LessonList({
                     lessonNumber={lesson.lessonNumber}
                     lessonTitle={lesson.lessonTitle}
                     lessonPlan={lesson.lessonPlan}
+                    lessonMood={lesson.lessonMood}
                     status={lesson.lessonStatus}
                     resourceId={lesson.lessonId}
                     resourceName={lesson.sharedCurriculumName}
@@ -357,6 +365,7 @@ export function LessonList({
                         lessonNumber={lesson.lessonNumber}
                         lessonTitle={lesson.lessonTitle}
                         lessonPlan={lesson.lessonPlan}
+                        lessonMood={lesson.lessonMood}
                         status={lesson.lessonStatus}
                         resourceId={lesson.resourceId}
                         resourceName={lesson.resourceName}
@@ -515,6 +524,7 @@ export function LessonList({
                           lessonNumber={lesson.lessonNumber}
                           lessonTitle={lesson.lessonTitle}
                           lessonPlan={lesson.lessonPlan}
+                          lessonMood={lesson.lessonMood}
                           status={lesson.lessonStatus}
                           resourceId={lesson.resourceId}
                           resourceName={lesson.resourceName}
