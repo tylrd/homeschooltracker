@@ -5,16 +5,11 @@ import { LandingScreenshot } from "@/components/landing/landing-screenshot";
 import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getSessionOrNull } from "@/lib/auth/session";
+import { getActiveOrganizationId, getSessionOrNull } from "@/lib/auth/session";
 
 export default async function LandingPage() {
   const session = await getSessionOrNull();
-  const activeOrganizationId =
-    session?.session?.activeOrganizationId ??
-    session?.session?.activeOrganization?.id ??
-    session?.activeOrganizationId ??
-    session?.activeOrganization?.id ??
-    null;
+  const activeOrganizationId = getActiveOrganizationId(session);
 
   if (activeOrganizationId) {
     redirect("/dashboard");

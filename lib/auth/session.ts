@@ -15,18 +15,14 @@ type BetterAuthSessionLike = {
   session?: {
     userId?: string | null;
     activeOrganizationId?: string | null;
-    activeOrganization?: { id?: string | null } | null;
   } | null;
   activeOrganizationId?: string | null;
-  activeOrganization?: { id?: string | null } | null;
 } | null;
 
-function getActiveOrganizationId(session: BetterAuthSessionLike) {
+export function getActiveOrganizationId(session: BetterAuthSessionLike) {
   return (
     session?.session?.activeOrganizationId ??
-    session?.session?.activeOrganization?.id ??
     session?.activeOrganizationId ??
-    session?.activeOrganization?.id ??
     null
   );
 }

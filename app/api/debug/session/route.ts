@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getActiveOrganizationId } from "@/lib/auth/session";
 
 export async function GET(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -8,12 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json(null, { status: 200 });
   }
 
-  const activeOrganizationId =
-    session.session?.activeOrganizationId ??
-    session.session?.activeOrganization?.id ??
-    session.activeOrganizationId ??
-    session.activeOrganization?.id ??
-    null;
+  const activeOrganizationId = getActiveOrganizationId(session);
 
   return NextResponse.json(
     {

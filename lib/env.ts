@@ -6,6 +6,9 @@ function requireEnv(name: string): string {
   return value;
 }
 
+const isNextProductionBuild =
+  process.env.NEXT_PHASE === "phase-production-build";
+
 function requireUrl(name: string): string {
   const value = requireEnv(name);
 
@@ -16,15 +19,23 @@ function requireUrl(name: string): string {
     }
   } catch {
     throw new Error(
-      `[env] Invalid URL for ${name}: expected absolute URL, received \"${value}\"`,
+      `[env] Invalid URL for ${name}: expected absolute URL, received "${value}"`,
     );
   }
 
   return value;
 }
 
-function requireSecret(name: string, minLength = 32): string {
-  const value = requireEnv(name);
+function requireSecretAtRuntime(name: string, minLength = 32): string {
+  const value = process.env[name];
+
+  if (!value || value.trim().length === 0) {
+    if (isNextProductionBuild) {
+      // Allows route module evaluation during `next build` without leaking a real secret.
+      return `build-time-placeholder-${name}`.padEnd(minLength, "_");
+    }
+    throw new Error(`[env] Missing required environment variable: ${name}`);
+  }
 
   if (value.length < minLength) {
     throw new Error(
@@ -37,6 +48,6 @@ function requireSecret(name: string, minLength = 32): string {
 
 export const env = {
   DATABASE_URL: requireEnv("DATABASE_URL"),
-  BETTER_AUTH_SECRET: requireSecret("BETTER_AUTH_SECRET"),
+  BETTER_AUTH_SECRET: requireSecretAtRuntime("BETTER_AUTH_SECRET"),
   BETTER_AUTH_BASE_URL: requireUrl("BETTER_AUTH_BASE_URL"),
 } as const;
