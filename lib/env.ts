@@ -18,8 +18,15 @@ function optionalEnv(name: string): string | undefined {
 const isNextProductionBuild =
   process.env.NEXT_PHASE === "phase-production-build";
 
-function requireUrl(name: string): string {
-  const value = requireEnv(name);
+function requireUrlAtRuntime(name: string): string {
+  const value = optionalEnv(name);
+  if (!value) {
+    if (isNextProductionBuild) {
+      // Allows route module evaluation during `next build`.
+      return "http://localhost";
+    }
+    throw new Error(`[env] Missing required environment variable: ${name}`);
+  }
 
   try {
     const parsed = new URL(value);
@@ -58,5 +65,5 @@ function requireSecretAtRuntime(name: string, minLength = 32): string {
 export const env = {
   DATABASE_URL: optionalEnv("DATABASE_URL"),
   BETTER_AUTH_SECRET: requireSecretAtRuntime("BETTER_AUTH_SECRET"),
-  BETTER_AUTH_BASE_URL: requireUrl("BETTER_AUTH_BASE_URL"),
+  BETTER_AUTH_BASE_URL: requireUrlAtRuntime("BETTER_AUTH_BASE_URL"),
 } as const;
