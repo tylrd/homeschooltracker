@@ -10,7 +10,14 @@ const globalForDb = globalThis as unknown as {
 
 export function getSql() {
   if (!globalForDb.sql) {
-    globalForDb.sql = postgres(env.DATABASE_URL, {
+    const databaseUrl = env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error(
+        "[env] Missing required environment variable: DATABASE_URL",
+      );
+    }
+
+    globalForDb.sql = postgres(databaseUrl, {
       max: 10,
       idle_timeout: 20,
     });

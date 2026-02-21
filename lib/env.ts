@@ -6,6 +6,15 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function optionalEnv(name: string): string | undefined {
+  const value = process.env[name];
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 const isNextProductionBuild =
   process.env.NEXT_PHASE === "phase-production-build";
 
@@ -47,7 +56,7 @@ function requireSecretAtRuntime(name: string, minLength = 32): string {
 }
 
 export const env = {
-  DATABASE_URL: requireEnv("DATABASE_URL"),
+  DATABASE_URL: optionalEnv("DATABASE_URL"),
   BETTER_AUTH_SECRET: requireSecretAtRuntime("BETTER_AUTH_SECRET"),
   BETTER_AUTH_BASE_URL: requireUrl("BETTER_AUTH_BASE_URL"),
 } as const;
