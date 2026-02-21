@@ -33,6 +33,7 @@ export function ResourceDetailView({
   schoolDays,
   defaultLessonCount,
   absenceByDate,
+  yearDocs,
 }: {
   resourceId: string;
   studentId: string;
@@ -49,6 +50,14 @@ export function ResourceDetailView({
     string,
     { reasonName: string; reasonColor: string; source: "individual" | "global" }
   >;
+  yearDocs: {
+    id: string;
+    type: "weekly_plan" | "curriculum_outline" | "pacing_calendar";
+    title: string;
+    notes: string | null;
+    schoolYearLabel: string | null;
+    files: { id: string; imageId: string; rotationDegrees: number }[];
+  }[];
 }) {
   const [showPlanningTools, setShowPlanningTools] = useState(false);
   const total = lessons.length;
@@ -130,6 +139,65 @@ export function ResourceDetailView({
         </Badge>
       </div>
 
+      {yearDocs.length > 0 && (
+        <section className="space-y-2 rounded-md border p-3">
+          <h2 className="text-sm font-semibold">Year Docs</h2>
+          <div className="space-y-2">
+            {yearDocs.map((doc) => (
+              <div key={doc.id} className="rounded-md border p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium">{doc.title}</p>
+                  {doc.type === "curriculum_outline" && (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] text-violet-700">
+                      Outline
+                    </span>
+                  )}
+                  {doc.type === "pacing_calendar" && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700">
+                      Pacing
+                    </span>
+                  )}
+                  {doc.schoolYearLabel && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                      {doc.schoolYearLabel}
+                    </span>
+                  )}
+                </div>
+                {doc.notes && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {doc.notes}
+                  </p>
+                )}
+                {doc.files.length > 0 && (
+                  <div className="mt-2 grid grid-cols-4 gap-2">
+                    {doc.files.slice(0, 4).map((file) => (
+                      <a
+                        key={file.id}
+                        href={`/api/curriculum-images/${file.imageId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block"
+                      >
+                        <Image
+                          src={`/api/curriculum-images/${file.imageId}`}
+                          alt="Year doc page"
+                          width={200}
+                          height={160}
+                          unoptimized
+                          className="h-16 w-full rounded border object-cover"
+                          style={{
+                            transform: `rotate(${file.rotationDegrees}deg)`,
+                          }}
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       <LessonTable
         lessons={lessons}
         showPlanningTools={showPlanningTools}

@@ -239,19 +239,23 @@ export async function createLesson(
 ) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
-  await db.insert(lessons).values({
-    organizationId,
-    resourceId,
-    lessonNumber,
-    title: title.trim() || `Lesson ${lessonNumber}`,
-    scheduledDate: scheduledDate || null,
-    plan: plan?.trim() ? plan.trim() : null,
-    status: "planned",
-  });
+  const [created] = await db
+    .insert(lessons)
+    .values({
+      organizationId,
+      resourceId,
+      lessonNumber,
+      title: title.trim() || `Lesson ${lessonNumber}`,
+      scheduledDate: scheduledDate || null,
+      plan: plan?.trim() ? plan.trim() : null,
+      status: "planned",
+    })
+    .returning({ id: lessons.id });
 
   revalidatePath("/shelf");
   revalidatePath(`/shelf/${resourceId}`);
   revalidatePath("/");
+  return created?.id ?? null;
 }
 
 export async function updateLessonScheduledDate(
@@ -435,6 +439,25 @@ export async function updateLessonPlan(lessonId: string, plan: string) {
   revalidatePath(`/lessons/${lessonId}`);
   revalidatePath("/");
   revalidatePath("/shelf");
+}
+
+export async function updateLessonMood(
+  lessonId: string,
+  mood: "loved_it" | "tears" | "meltdown" | "pulling_teeth" | null,
+) {
+  const db = getDb();
+  const { organizationId } = await getTenantContext();
+  await db
+    .update(lessons)
+    .set({ mood })
+    .where(
+      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
+    );
+
+  revalidatePath(`/lessons/${lessonId}`);
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath("/attendance");
 }
 
 export async function updateLessonContent(

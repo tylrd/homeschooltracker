@@ -149,7 +149,11 @@ export default async function DashboardPage({
 
         {students.length > 0 && (
           <Suspense fallback={<Skeleton className="h-8 w-full" />}>
-            <StudentFilter students={students} activeStudentId={studentId} />
+            <StudentFilter
+              students={students}
+              activeStudentId={studentId}
+              basePath="/dashboard"
+            />
           </Suspense>
         )}
       </section>

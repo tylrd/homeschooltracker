@@ -13,7 +13,7 @@ type FilterStudent = {
 export function StudentFilter({
   students,
   activeStudentId,
-  basePath = "/",
+  basePath = "/dashboard",
 }: {
   students: FilterStudent[];
   activeStudentId?: string;

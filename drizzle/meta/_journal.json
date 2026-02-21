@@ -71,6 +71,13 @@
       "when": 1772682000000,
       "tag": "0009_user_default_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775001600000,
+      "tag": "0010_school_docs_and_mood",
+      "breakpoints": true
     }
   ]
 }

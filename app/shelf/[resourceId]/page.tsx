@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ResourceDetailView } from "@/components/shelf/resource-detail-view";
 import { requireAppRouteAccess } from "@/lib/auth/session";
 import { getFirstOpenDateOnOrAfter, toDateString } from "@/lib/dates";
+import { getSchoolDocumentsForResource } from "@/lib/queries/school-documents";
 import { getDefaultLessonCount, getSchoolDays } from "@/lib/queries/settings";
 import {
   getEffectiveAbsencesForStudent,
@@ -18,11 +19,13 @@ export default async function ResourceDetailPage({
   await requireAppRouteAccess();
 
   const { resourceId } = await params;
-  const [resource, schoolDays, defaultLessonCount] = await Promise.all([
-    getResourceWithLessons(resourceId),
-    getSchoolDays(),
-    getDefaultLessonCount(),
-  ]);
+  const [resource, schoolDays, defaultLessonCount, yearDocs] =
+    await Promise.all([
+      getResourceWithLessons(resourceId),
+      getSchoolDays(),
+      getDefaultLessonCount(),
+      getSchoolDocumentsForResource(resourceId),
+    ]);
 
   if (!resource) {
     notFound();
@@ -52,6 +55,7 @@ export default async function ResourceDetailPage({
       schoolDays={schoolDays}
       defaultLessonCount={defaultLessonCount}
       absenceByDate={absenceByDate}
+      yearDocs={yearDocs}
     />
   );
 }

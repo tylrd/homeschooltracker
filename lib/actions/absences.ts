@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import {
+  absenceReasons,
   absences,
   globalAbsences,
   lessons,
@@ -53,8 +54,17 @@ export async function logAbsence(
   }
 
   // Bump this student's planned lessons for the day (if auto-bump is enabled)
-  const autoBump = await getAbsenceAutoBump();
-  if (autoBump) {
+  const [autoBump, reason] = await Promise.all([
+    getAbsenceAutoBump(),
+    db.query.absenceReasons.findFirst({
+      where: and(
+        eq(absenceReasons.organizationId, organizationId),
+        eq(absenceReasons.id, reasonId),
+      ),
+      columns: { countsAsPresent: true },
+    }),
+  ]);
+  if (autoBump && !reason?.countsAsPresent) {
     await bumpStudentLessons(studentId, date);
   }
 
@@ -91,8 +101,17 @@ export async function logAbsenceForAll(date: string, reasonId: string) {
     await db.insert(globalAbsences).values({ organizationId, date, reasonId });
   }
 
-  const autoBump = await getAbsenceAutoBump();
-  if (!autoBump) {
+  const [autoBump, reason] = await Promise.all([
+    getAbsenceAutoBump(),
+    db.query.absenceReasons.findFirst({
+      where: and(
+        eq(absenceReasons.organizationId, organizationId),
+        eq(absenceReasons.id, reasonId),
+      ),
+      columns: { countsAsPresent: true },
+    }),
+  ]);
+  if (!autoBump || reason?.countsAsPresent) {
     revalidatePath("/");
     revalidatePath("/attendance");
     return;

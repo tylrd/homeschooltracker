@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { AbsenceReason } from "@/db/schema";
@@ -27,16 +28,19 @@ import {
   createAbsenceReason,
   deleteAbsenceReason,
   reorderAbsenceReasons,
+  updateAbsenceReasonCountsAsPresent,
 } from "@/lib/actions/absence-reasons";
 import { cn } from "@/lib/utils";
 
 function SortableReasonItem({
   reason,
   onDelete,
+  onToggleCountsAsPresent,
   disabled,
 }: {
   reason: AbsenceReason;
   onDelete: (id: string) => void;
+  onToggleCountsAsPresent: (id: string, next: boolean) => void;
   disabled: boolean;
 }) {
   const {
@@ -75,6 +79,20 @@ function SortableReasonItem({
         </button>
         <div className={cn("h-3 w-3 rounded-full", colorClasses.dot)} />
         <span className="text-sm font-medium">{reason.name}</span>
+        <label
+          htmlFor={`counts-present-${reason.id}`}
+          className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground"
+        >
+          <Checkbox
+            id={`counts-present-${reason.id}`}
+            checked={reason.countsAsPresent}
+            onCheckedChange={(checked) =>
+              onToggleCountsAsPresent(reason.id, Boolean(checked))
+            }
+            disabled={disabled}
+          />
+          Counts present
+        </label>
       </div>
       <Button
         variant="ghost"
@@ -96,6 +114,7 @@ export function AbsenceReasonForm({ reasons }: { reasons: AbsenceReason[] }) {
   const [selectedColor, setSelectedColor] = useState<string>(
     ABSENCE_COLORS[0].value,
   );
+  const [countsAsPresent, setCountsAsPresent] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const sensors = useSensors(
@@ -126,12 +145,17 @@ export function AbsenceReasonForm({ reasons }: { reasons: AbsenceReason[] }) {
   function handleAdd() {
     if (!name.trim()) return;
     startTransition(async () => {
-      const createdReason = await createAbsenceReason(name, selectedColor);
+      const createdReason = await createAbsenceReason(
+        name,
+        selectedColor,
+        countsAsPresent,
+      );
       if (createdReason) {
         setItems((prev) => [...prev, createdReason]);
       }
       setName("");
       setSelectedColor(ABSENCE_COLORS[0].value);
+      setCountsAsPresent(false);
       setShowAdd(false);
     });
   }
@@ -146,6 +170,17 @@ export function AbsenceReasonForm({ reasons }: { reasons: AbsenceReason[] }) {
     startTransition(async () => {
       await deleteAbsenceReason(reasonId);
       setItems((prev) => prev.filter((i) => i.id !== reasonId));
+    });
+  }
+
+  function handleToggleCountsAsPresent(reasonId: string, next: boolean) {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === reasonId ? { ...item, countsAsPresent: next } : item,
+      ),
+    );
+    startTransition(async () => {
+      await updateAbsenceReasonCountsAsPresent(reasonId, next);
     });
   }
 
@@ -176,6 +211,7 @@ export function AbsenceReasonForm({ reasons }: { reasons: AbsenceReason[] }) {
                 key={reason.id}
                 reason={reason}
                 onDelete={handleDelete}
+                onToggleCountsAsPresent={handleToggleCountsAsPresent}
                 disabled={isPending}
               />
             ))}
@@ -220,6 +256,19 @@ export function AbsenceReasonForm({ reasons }: { reasons: AbsenceReason[] }) {
               ))}
             </div>
           </div>
+          <label
+            htmlFor="new-reason-counts-present"
+            className="inline-flex items-center gap-2 text-sm"
+          >
+            <Checkbox
+              id="new-reason-counts-present"
+              checked={countsAsPresent}
+              onCheckedChange={(checked) =>
+                setCountsAsPresent(Boolean(checked))
+              }
+            />
+            Count this reason as present attendance
+          </label>
 
           <div className="flex gap-2">
             <Button
@@ -234,6 +283,7 @@ export function AbsenceReasonForm({ reasons }: { reasons: AbsenceReason[] }) {
               onClick={() => {
                 setShowAdd(false);
                 setName("");
+                setCountsAsPresent(false);
               }}
             >
               Cancel

@@ -20,11 +20,13 @@ type AbsenceRow = {
 export function AttendanceLog({
   completions,
   absences,
+  presentReasons,
   notes,
   showNotes,
 }: {
   completions: CompletionLogEntry[];
   absences: AbsenceRow[];
+  presentReasons: AbsenceRow[];
   notes: DailyLogNoteEntry[];
   showNotes: boolean;
 }) {
@@ -52,14 +54,26 @@ export function AttendanceLog({
     notesByDate.set(note.date, list);
   }
 
+  const presentByDate = new Map<string, AbsenceRow[]>();
+  for (const present of presentReasons) {
+    const list = presentByDate.get(present.date) ?? [];
+    list.push(present);
+    presentByDate.set(present.date, list);
+  }
+
   // Merge all dates and sort descending (most recent first)
   const allDates = showNotes
     ? new Set([
         ...byDate.keys(),
         ...absencesByDate.keys(),
+        ...presentByDate.keys(),
         ...notesByDate.keys(),
       ])
-    : new Set([...byDate.keys(), ...absencesByDate.keys()]);
+    : new Set([
+        ...byDate.keys(),
+        ...absencesByDate.keys(),
+        ...presentByDate.keys(),
+      ]);
   const sortedDates = Array.from(allDates).sort((a, b) => b.localeCompare(a));
 
   if (sortedDates.length === 0) {
@@ -75,6 +89,7 @@ export function AttendanceLog({
       {sortedDates.map((dateStr) => {
         const dayCompletions = byDate.get(dateStr) ?? [];
         const dayAbsences = absencesByDate.get(dateStr) ?? [];
+        const dayPresentReasons = presentByDate.get(dateStr) ?? [];
         const dayNotes = notesByDate.get(dateStr) ?? [];
 
         // Group completions by student
@@ -127,6 +142,9 @@ export function AttendanceLog({
                 const absence = dayAbsences.find(
                   (a) => a.studentId === studentId,
                 );
+                const presentReason = dayPresentReasons.find(
+                  (a) => a.studentId === studentId,
+                );
                 const note = dayNotes.find((n) => n.studentId === studentId);
 
                 return (
@@ -153,6 +171,16 @@ export function AttendanceLog({
                           )}
                         >
                           {absence.reasonName}
+                        </span>
+                      )}
+                      {presentReason && (
+                        <span
+                          className={cn(
+                            "text-xs px-1.5 py-0.5 rounded-full",
+                            "bg-emerald-100 text-emerald-700",
+                          )}
+                        >
+                          Present: {presentReason.reasonName}
                         </span>
                       )}
                     </div>
@@ -227,6 +255,28 @@ export function AttendanceLog({
                   </div>
                 );
               })}
+
+              {dayPresentReasons
+                .filter((a) => !byStudent.has(a.studentId))
+                .map((present) => (
+                  <div
+                    key={present.studentId}
+                    className="rounded-md border px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <StudentColorDot
+                        color={present.studentColor}
+                        className="h-2.5 w-2.5"
+                      />
+                      <span className="text-sm font-medium">
+                        {present.studentName}
+                      </span>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        Present: {present.reasonName}
+                      </span>
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         );

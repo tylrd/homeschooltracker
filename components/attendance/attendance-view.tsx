@@ -29,6 +29,8 @@ type AbsenceRow = {
   studentColor: string;
 };
 
+type PresentReasonRow = AbsenceRow;
+
 export function AttendanceView({
   gridData,
   logData,
@@ -38,6 +40,7 @@ export function AttendanceView({
   logData: {
     completions: CompletionLogEntry[];
     absences: AbsenceRow[];
+    presentReasons: PresentReasonRow[];
     notes: DailyLogNoteEntry[];
   };
   showDailyLogNotes: boolean;
@@ -55,6 +58,7 @@ export function AttendanceView({
         <AttendanceLog
           completions={logData.completions}
           absences={logData.absences}
+          presentReasons={logData.presentReasons}
           notes={logData.notes}
           showNotes={showDailyLogNotes}
         />

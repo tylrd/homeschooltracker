@@ -77,19 +77,23 @@ export async function createSharedLesson(
 ) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
-  await db.insert(sharedLessons).values({
-    organizationId,
-    sharedCurriculumId,
-    lessonNumber,
-    title: title.trim() || `Lesson ${lessonNumber}`,
-    scheduledDate: scheduledDate || null,
-    plan: plan?.trim() ? plan.trim() : null,
-    status: "planned",
-  });
+  const [created] = await db
+    .insert(sharedLessons)
+    .values({
+      organizationId,
+      sharedCurriculumId,
+      lessonNumber,
+      title: title.trim() || `Lesson ${lessonNumber}`,
+      scheduledDate: scheduledDate || null,
+      plan: plan?.trim() ? plan.trim() : null,
+      status: "planned",
+    })
+    .returning({ id: sharedLessons.id });
 
   revalidatePath("/");
   revalidatePath("/shelf");
   revalidatePath("/attendance");
+  return created?.id ?? null;
 }
 
 export async function completeSharedLesson(sharedLessonId: string) {
@@ -327,6 +331,28 @@ export async function updateSharedLessonContent(
       plan: plan.trim() || null,
       notes: notes.trim() || null,
     })
+    .where(
+      and(
+        eq(sharedLessons.id, sharedLessonId),
+        eq(sharedLessons.organizationId, organizationId),
+      ),
+    );
+
+  revalidatePath("/");
+  revalidatePath("/shelf");
+  revalidatePath("/attendance");
+  revalidatePath(`/lessons/${sharedLessonId}`);
+}
+
+export async function updateSharedLessonMood(
+  sharedLessonId: string,
+  mood: "loved_it" | "tears" | "meltdown" | "pulling_teeth" | null,
+) {
+  const db = getDb();
+  const { organizationId } = await getTenantContext();
+  await db
+    .update(sharedLessons)
+    .set({ mood })
     .where(
       and(
         eq(sharedLessons.id, sharedLessonId),

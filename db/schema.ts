@@ -22,6 +22,19 @@ export const lessonStatusEnum = pgEnum("lesson_status", [
   "bumped",
 ]);
 
+export const lessonMoodEnum = pgEnum("lesson_mood", [
+  "loved_it",
+  "tears",
+  "meltdown",
+  "pulling_teeth",
+]);
+
+export const schoolDocumentTypeEnum = pgEnum("school_document_type", [
+  "weekly_plan",
+  "curriculum_outline",
+  "pacing_calendar",
+]);
+
 export const BOOTSTRAP_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001";
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -456,6 +469,7 @@ export const lessons = pgTable(
     status: lessonStatusEnum().notNull().default("planned"),
     scheduledDate: date("scheduled_date"),
     completionDate: date("completion_date"),
+    mood: lessonMoodEnum("mood"),
     plan: text(),
     notes: text(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -497,6 +511,7 @@ export const sharedLessons = pgTable(
     status: lessonStatusEnum().notNull().default("planned"),
     scheduledDate: date("scheduled_date"),
     completionDate: date("completion_date"),
+    mood: lessonMoodEnum("mood"),
     plan: text(),
     notes: text(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -577,6 +592,106 @@ export const sharedLessonWorkSamples = pgTable(
   ],
 );
 
+export const schoolDocuments = pgTable(
+  "school_documents",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    type: schoolDocumentTypeEnum("type").notNull(),
+    title: text().notNull(),
+    notes: text(),
+    resourceId: uuid("resource_id").references(() => resources.id, {
+      onDelete: "set null",
+    }),
+    weekStartDate: date("week_start_date"),
+    weekEndDate: date("week_end_date"),
+    schoolYearLabel: text("school_year_label"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("school_documents_organization_id_idx").on(table.organizationId),
+    index("school_documents_resource_id_idx").on(table.resourceId),
+    index("school_documents_type_idx").on(table.type),
+    index("school_documents_week_start_date_idx").on(table.weekStartDate),
+  ],
+);
+
+export const schoolDocumentFiles = pgTable(
+  "school_document_files",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    schoolDocumentId: uuid("school_document_id")
+      .notNull()
+      .references(() => schoolDocuments.id, { onDelete: "cascade" }),
+    imageId: uuid("image_id")
+      .notNull()
+      .references(() => curriculumImages.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    rotationDegrees: integer("rotation_degrees").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("school_document_files_organization_id_idx").on(table.organizationId),
+    index("school_document_files_school_document_id_idx").on(
+      table.schoolDocumentId,
+    ),
+    index("school_document_files_image_id_idx").on(table.imageId),
+    uniqueIndex("school_document_files_doc_sort_unique_idx").on(
+      table.schoolDocumentId,
+      table.sortOrder,
+    ),
+  ],
+);
+
+export const schoolDocumentStudents = pgTable(
+  "school_document_students",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    schoolDocumentId: uuid("school_document_id")
+      .notNull()
+      .references(() => schoolDocuments.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("school_document_students_organization_id_idx").on(
+      table.organizationId,
+    ),
+    index("school_document_students_school_document_id_idx").on(
+      table.schoolDocumentId,
+    ),
+    index("school_document_students_student_id_idx").on(table.studentId),
+    uniqueIndex("school_document_students_unique_idx").on(
+      table.schoolDocumentId,
+      table.studentId,
+    ),
+  ],
+);
+
 export const dailyNotes = pgTable(
   "daily_notes",
   {
@@ -617,6 +732,7 @@ export const absenceReasons = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: text().notNull(),
     color: text().notNull(),
+    countsAsPresent: boolean("counts_as_present").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -731,6 +847,9 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   sharedLessons: many(sharedLessons),
   lessonWorkSamples: many(lessonWorkSamples),
   sharedLessonWorkSamples: many(sharedLessonWorkSamples),
+  schoolDocuments: many(schoolDocuments),
+  schoolDocumentFiles: many(schoolDocumentFiles),
+  schoolDocumentStudents: many(schoolDocumentStudents),
   dailyNotes: many(dailyNotes),
   absenceReasons: many(absenceReasons),
   absences: many(absences),
@@ -821,6 +940,7 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   dailyNotes: many(dailyNotes),
   absences: many(absences),
   sharedCurriculumMemberships: many(sharedCurriculumStudents),
+  schoolDocumentMemberships: many(schoolDocumentStudents),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -849,6 +969,7 @@ export const resourcesRelations = relations(resources, ({ one, many }) => ({
     references: [curriculumImages.id],
   }),
   lessons: many(lessons),
+  schoolDocuments: many(schoolDocuments),
 }));
 
 export const lessonsRelations = relations(lessons, ({ one, many }) => ({
@@ -890,6 +1011,59 @@ export const curriculumImagesRelations = relations(
     sharedCurricula: many(sharedCurricula),
     lessonWorkSamples: many(lessonWorkSamples),
     sharedLessonWorkSamples: many(sharedLessonWorkSamples),
+    schoolDocumentFiles: many(schoolDocumentFiles),
+  }),
+);
+
+export const schoolDocumentsRelations = relations(
+  schoolDocuments,
+  ({ one, many }) => ({
+    organization: one(organizations, {
+      fields: [schoolDocuments.organizationId],
+      references: [organizations.id],
+    }),
+    resource: one(resources, {
+      fields: [schoolDocuments.resourceId],
+      references: [resources.id],
+    }),
+    files: many(schoolDocumentFiles),
+    students: many(schoolDocumentStudents),
+  }),
+);
+
+export const schoolDocumentFilesRelations = relations(
+  schoolDocumentFiles,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [schoolDocumentFiles.organizationId],
+      references: [organizations.id],
+    }),
+    schoolDocument: one(schoolDocuments, {
+      fields: [schoolDocumentFiles.schoolDocumentId],
+      references: [schoolDocuments.id],
+    }),
+    image: one(curriculumImages, {
+      fields: [schoolDocumentFiles.imageId],
+      references: [curriculumImages.id],
+    }),
+  }),
+);
+
+export const schoolDocumentStudentsRelations = relations(
+  schoolDocumentStudents,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [schoolDocumentStudents.organizationId],
+      references: [organizations.id],
+    }),
+    schoolDocument: one(schoolDocuments, {
+      fields: [schoolDocumentStudents.schoolDocumentId],
+      references: [schoolDocuments.id],
+    }),
+    student: one(students, {
+      fields: [schoolDocumentStudents.studentId],
+      references: [students.id],
+    }),
   }),
 );
 
@@ -1085,6 +1259,16 @@ export type SharedLessonWorkSample =
   typeof sharedLessonWorkSamples.$inferSelect;
 export type NewSharedLessonWorkSample =
   typeof sharedLessonWorkSamples.$inferInsert;
+
+export type SchoolDocument = typeof schoolDocuments.$inferSelect;
+export type NewSchoolDocument = typeof schoolDocuments.$inferInsert;
+
+export type SchoolDocumentFile = typeof schoolDocumentFiles.$inferSelect;
+export type NewSchoolDocumentFile = typeof schoolDocumentFiles.$inferInsert;
+
+export type SchoolDocumentStudent = typeof schoolDocumentStudents.$inferSelect;
+export type NewSchoolDocumentStudent =
+  typeof schoolDocumentStudents.$inferInsert;
 
 export type DailyNote = typeof dailyNotes.$inferSelect;
 export type NewDailyNote = typeof dailyNotes.$inferInsert;

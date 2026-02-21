@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -21,7 +21,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { createSharedLesson } from "@/lib/actions/shared-lessons";
+import {
+  createSharedLesson,
+  uploadSharedLessonWorkSamples,
+} from "@/lib/actions/shared-lessons";
+import { validateImageFile } from "@/lib/images/validation";
 
 export function AddSharedLessonForm({
   sharedCurriculumId,
@@ -38,7 +42,9 @@ export function AddSharedLessonForm({
   const [title, setTitle] = useState(`Lesson ${nextLessonNumber}`);
   const [scheduledDate, setScheduledDate] = useState(defaultDate);
   const [plan, setPlan] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [isPending, startTransition] = useTransition();
+  const libraryInputRef = useRef<HTMLInputElement | null>(null);
 
   function handleOpen(isOpen: boolean) {
     if (isOpen) {
@@ -46,19 +52,36 @@ export function AddSharedLessonForm({
       setTitle(`Lesson ${nextLessonNumber}`);
       setScheduledDate(defaultDate);
       setPlan("");
+      setFiles([]);
     }
     setOpen(isOpen);
   }
 
   function handleSubmit() {
+    for (const file of files) {
+      const validation = validateImageFile(file);
+      if (!validation.ok) {
+        alert(validation.message);
+        return;
+      }
+    }
+
     startTransition(async () => {
-      await createSharedLesson(
+      const lessonId = await createSharedLesson(
         sharedCurriculumId,
         lessonNumber,
         title,
         scheduledDate,
         plan,
       );
+
+      if (lessonId && files.length > 0) {
+        const formData = new FormData();
+        for (const file of files) {
+          formData.append("files", file);
+        }
+        await uploadSharedLessonWorkSamples(lessonId, formData);
+      }
       router.refresh();
       setOpen(false);
     });
@@ -121,6 +144,37 @@ export function AddSharedLessonForm({
               placeholder="What should be covered in this lesson?"
               rows={4}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Plan Images</Label>
+            <input
+              ref={libraryInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              multiple
+              className="sr-only"
+              onChange={(e) => {
+                const nextFiles = Array.from(e.target.files ?? []).filter(
+                  (file) => file.size > 0,
+                );
+                setFiles(nextFiles);
+                e.currentTarget.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => libraryInputRef.current?.click()}
+              disabled={isPending}
+            >
+              Select Images
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              {files.length > 0
+                ? `${files.length} image${files.length === 1 ? "" : "s"} selected`
+                : "Optional: attach plan photos to this lesson"}
+            </p>
           </div>
 
           <Button
