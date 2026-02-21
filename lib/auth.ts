@@ -15,6 +15,7 @@ import {
   users,
   verifications,
 } from "@/db/schema";
+import { env } from "@/lib/env";
 
 const betterAuthSchema = {
   user: users,
@@ -28,14 +29,8 @@ const betterAuthSchema = {
   teamMember: teamMembers,
 };
 
-const isDevelopment = process.env.NODE_ENV === "development";
-const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
-
-if (isDevelopment && !hasDatabaseUrl) {
-  throw new Error(
-    "DATABASE_URL must be defined in development. Add it to your .env.local before starting the app.",
-  );
-}
+const hasDatabaseUrl = Boolean(env.DATABASE_URL);
+const betterAuthOrigin = new URL(env.BETTER_AUTH_BASE_URL).origin;
 
 const databaseAdapter = hasDatabaseUrl
   ? drizzleAdapter(getDb(), {
@@ -45,7 +40,9 @@ const databaseAdapter = hasDatabaseUrl
   : memoryAdapter({});
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_BASE_URL ?? process.env.BETTER_AUTH_URL,
+  baseURL: env.BETTER_AUTH_BASE_URL,
+  secret: env.BETTER_AUTH_SECRET,
+  trustedOrigins: [betterAuthOrigin],
   database: databaseAdapter,
   emailAndPassword: {
     enabled: true,

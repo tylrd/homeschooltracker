@@ -77,6 +77,10 @@ For contributors and those who like to live on the edge:
 # Install dependencies
 pnpm install
 
+# Configure local environment variables (required)
+cp .env.example .env.local
+# Edit .env.local and set DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_BASE_URL
+
 # Start the database
 pnpm docker:up
 
@@ -91,6 +95,16 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and begin your journey.
+
+### Local Auth Debugging
+
+Use the debug endpoint to confirm whether the server sees your auth cookie:
+
+- Before login, `GET /api/debug/session` returns `null`.
+- After login, `GET /api/debug/session` returns JSON with `userId` and `activeOrganizationId`.
+
+If login succeeds but this endpoint stays `null`, verify that `.env.local` has valid
+`BETTER_AUTH_BASE_URL` and `BETTER_AUTH_SECRET` values and restart `pnpm dev`.
 
 ### Useful Commands
 
