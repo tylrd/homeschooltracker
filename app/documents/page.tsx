@@ -6,15 +6,17 @@ import { getStudentsForFilter } from "@/lib/queries/dashboard";
 import {
   getResourceOptionsForSchoolDocuments,
   getSchoolDocuments,
+  getWorkSamplesForDocs,
 } from "@/lib/queries/school-documents";
 
 export default async function DocumentsPage() {
   await requireAppRouteAccess("/documents");
 
-  const [documents, students, resources] = await Promise.all([
+  const [documents, students, resources, workSamples] = await Promise.all([
     getSchoolDocuments(),
     getStudentsForFilter(),
     getResourceOptionsForSchoolDocuments(),
+    getWorkSamplesForDocs(),
   ]);
 
   return (
@@ -30,6 +32,7 @@ export default async function DocumentsPage() {
         resourceName: resource.resourceName,
         studentName: resource.studentName,
       }))}
+      workSamples={workSamples}
     />
   );
 }
