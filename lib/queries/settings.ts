@@ -2,6 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { appSettings } from "@/db/schema";
 import { getTenantContext } from "@/lib/auth/session";
+import {
+  DEFAULT_LESSON_MOODS,
+  type LessonMoodOption,
+  normalizeLessonMoodOptions,
+} from "@/lib/lesson-moods";
 
 export async function getSetting(key: string): Promise<string | null> {
   const db = getDb();
@@ -75,4 +80,15 @@ export async function getBumpBehavior(): Promise<
   return value === "same_day_next_week"
     ? "same_day_next_week"
     : "next_school_day";
+}
+
+export async function getCustomMoods(): Promise<LessonMoodOption[]> {
+  const value = await getSetting("customMoods");
+  if (!value) return DEFAULT_LESSON_MOODS;
+  try {
+    const parsed = JSON.parse(value);
+    return normalizeLessonMoodOptions(parsed);
+  } catch {
+    return DEFAULT_LESSON_MOODS;
+  }
 }

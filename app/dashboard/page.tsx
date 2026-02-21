@@ -23,6 +23,7 @@ import {
   getTodaySharedLessons,
 } from "@/lib/queries/dashboard";
 import {
+  getCustomMoods,
   getDashboardGrouping,
   getDashboardSharedLessonView,
   getShowCompletedLessons,
@@ -51,6 +52,7 @@ export default async function DashboardPage({
     dashboardGrouping,
     dashboardSharedLessonView,
     showNoteButtons,
+    customMoods,
     resourceRows,
     sharedCurriculumRows,
   ] = await Promise.all([
@@ -65,6 +67,7 @@ export default async function DashboardPage({
     getDashboardGrouping(),
     getDashboardSharedLessonView(),
     getShowNoteButtons(),
+    getCustomMoods(),
     getStudentResourceMap(),
     getSharedCurriculaForDashboardAdd(date, studentId),
   ]);
@@ -195,6 +198,7 @@ export default async function DashboardPage({
           grouping={dashboardGrouping}
           defaultSharedLessonView={dashboardSharedLessonView}
           showNoteButtons={showNoteButtons}
+          moodOptions={customMoods}
           studentResourceMap={studentResourceMap}
         />
       )}

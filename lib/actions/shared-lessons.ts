@@ -346,7 +346,7 @@ export async function updateSharedLessonContent(
 
 export async function updateSharedLessonMood(
   sharedLessonId: string,
-  mood: "loved_it" | "tears" | "meltdown" | "pulling_teeth" | null,
+  mood: string | null,
 ) {
   const db = getDb();
   const { organizationId } = await getTenantContext();

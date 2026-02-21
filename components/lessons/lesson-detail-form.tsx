@@ -38,7 +38,7 @@ import {
   uploadSharedLessonWorkSamples,
 } from "@/lib/actions/shared-lessons";
 import { validateImageFile } from "@/lib/images/validation";
-import { LESSON_MOODS } from "@/lib/lesson-moods";
+import { LESSON_MOODS, type LessonMoodOption } from "@/lib/lesson-moods";
 
 type LessonDetailFormProps = {
   lessonId: string;
@@ -50,6 +50,7 @@ type LessonDetailFormProps = {
   scheduledDate: string | null;
   lessonKind?: "personal" | "shared";
   workSamples: { id: string; imageId: string }[];
+  moodOptions?: LessonMoodOption[];
 };
 
 export function LessonDetailForm({
@@ -62,6 +63,7 @@ export function LessonDetailForm({
   scheduledDate,
   lessonKind = "personal",
   workSamples,
+  moodOptions = LESSON_MOODS,
 }: LessonDetailFormProps) {
   const [planText, setPlanText] = useState(plan ?? "");
   const [notesText, setNotesText] = useState(notes ?? "");
@@ -131,25 +133,13 @@ export function LessonDetailForm({
         );
         await updateSharedLessonMood(
           lessonId,
-          moodValue === "none"
-            ? null
-            : (moodValue as
-                | "loved_it"
-                | "tears"
-                | "meltdown"
-                | "pulling_teeth"),
+          moodValue === "none" ? null : moodValue,
         );
       } else {
         await updateLessonContent(lessonId, titleText, planText, notesText);
         await updateLessonMood(
           lessonId,
-          moodValue === "none"
-            ? null
-            : (moodValue as
-                | "loved_it"
-                | "tears"
-                | "meltdown"
-                | "pulling_teeth"),
+          moodValue === "none" ? null : moodValue,
         );
       }
       toast.success("Lesson saved");
@@ -288,7 +278,7 @@ export function LessonDetailForm({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">No mood</SelectItem>
-            {LESSON_MOODS.map((m) => (
+            {moodOptions.map((m) => (
               <SelectItem key={m.value} value={m.value}>
                 {m.emoji} {m.label}
               </SelectItem>

@@ -38,7 +38,11 @@ import {
   updateSharedLessonMood,
 } from "@/lib/actions/shared-lessons";
 import { getColorClasses } from "@/lib/constants";
-import { getLessonMoodMeta, LESSON_MOODS } from "@/lib/lesson-moods";
+import {
+  getLessonMoodMeta,
+  LESSON_MOODS,
+  type LessonMoodOption,
+} from "@/lib/lesson-moods";
 import { cn } from "@/lib/utils";
 
 type LessonCardProps = {
@@ -62,6 +66,7 @@ type LessonCardProps = {
   exiting?: boolean;
   showNoteButton?: boolean;
   showStudentName?: boolean;
+  moodOptions?: LessonMoodOption[];
   onNoteClick: (target: {
     studentId: string;
     lessonId: string;
@@ -91,6 +96,7 @@ export function LessonCard({
   exiting,
   showNoteButton = true,
   showStudentName = false,
+  moodOptions = LESSON_MOODS,
   onNoteClick,
 }: LessonCardProps) {
   const [isPending, startTransition] = useTransition();
@@ -103,7 +109,7 @@ export function LessonCard({
   >(null);
   const colors = getColorClasses(studentColor);
   const isCompleted = status === "completed";
-  const moodMeta = getLessonMoodMeta(lessonMood);
+  const moodMeta = getLessonMoodMeta(lessonMood, moodOptions);
 
   function handleToggle() {
     startTransition(async () => {
@@ -152,9 +158,7 @@ export function LessonCard({
     });
   }
 
-  function handleMoodChange(
-    mood: "loved_it" | "tears" | "meltdown" | "pulling_teeth" | null,
-  ) {
+  function handleMoodChange(mood: string | null) {
     startTransition(async () => {
       if (lessonKind === "shared") {
         await updateSharedLessonMood(lessonId, mood);
@@ -286,7 +290,7 @@ export function LessonCard({
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-44 p-1">
-              {LESSON_MOODS.map((mood) => (
+              {moodOptions.map((mood) => (
                 <Button
                   key={mood.value}
                   variant="ghost"
