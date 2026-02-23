@@ -1,6 +1,6 @@
 "use client";
 
-import { Gamepad2, Sparkles, Trophy } from "lucide-react";
+import { Gamepad2, Sparkles, Trophy, X } from "lucide-react";
 import Link from "next/link";
 import {
   type CSSProperties,
@@ -13,6 +13,7 @@ import { StudentColorDot } from "@/components/student-color-dot";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -48,7 +49,10 @@ type ConfettiPiece = {
   durationMs: number;
   width: number;
   height: number;
+  layer: "front" | "back";
 };
+
+type WinnerRevealStage = "idle" | "flash" | "title" | "badge";
 
 function normalizeDegrees(value: number) {
   return ((value % 360) + 360) % 360;
@@ -67,18 +71,34 @@ export function SpinSubjectWheelDialog({
     "all",
   );
   const [open, setOpen] = useState(false);
+  const [isCharging, setIsCharging] = useState(false);
   const [spinning, setSpinning] = useState(false);
+  const [isNearStop, setIsNearStop] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [spinDurationMs, setSpinDurationMs] = useState(3800);
   const [burstActive, setBurstActive] = useState(false);
   const [burstCycle, setBurstCycle] = useState(0);
+  const [winnerRevealStage, setWinnerRevealStage] =
+    useState<WinnerRevealStage>("idle");
+  const [winnerSparkleActive, setWinnerSparkleActive] = useState(false);
+  const [ctaBurstActive, setCtaBurstActive] = useState(false);
+  const [ctaBurstCycle, setCtaBurstCycle] = useState(0);
+  const [rewindFlashActive, setRewindFlashActive] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([]);
   const [winnerIndex, setWinnerIndex] = useState<number | null>(null);
   const [winner, setWinner] = useState<WheelSubjectCandidate | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
   const spinTimeoutRef = useRef<number | null>(null);
+  const chargeTimeoutRef = useRef<number | null>(null);
+  const nearStopTimeoutRef = useRef<number | null>(null);
   const burstTimeoutRef = useRef<number | null>(null);
   const confettiTimeoutRef = useRef<number | null>(null);
+  const revealFlashTimeoutRef = useRef<number | null>(null);
+  const revealTitleTimeoutRef = useRef<number | null>(null);
+  const sparkleTimeoutRef = useRef<number | null>(null);
+  const ctaBurstTimeoutRef = useRef<number | null>(null);
+  const rewindFlashTimeoutRef = useRef<number | null>(null);
+  const spinRunIdRef = useRef(0);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -93,31 +113,106 @@ export function SpinSubjectWheelDialog({
       if (spinTimeoutRef.current !== null) {
         window.clearTimeout(spinTimeoutRef.current);
       }
+      if (chargeTimeoutRef.current !== null) {
+        window.clearTimeout(chargeTimeoutRef.current);
+      }
+      if (nearStopTimeoutRef.current !== null) {
+        window.clearTimeout(nearStopTimeoutRef.current);
+      }
       if (burstTimeoutRef.current !== null) {
         window.clearTimeout(burstTimeoutRef.current);
       }
       if (confettiTimeoutRef.current !== null) {
         window.clearTimeout(confettiTimeoutRef.current);
       }
+      if (revealFlashTimeoutRef.current !== null) {
+        window.clearTimeout(revealFlashTimeoutRef.current);
+      }
+      if (revealTitleTimeoutRef.current !== null) {
+        window.clearTimeout(revealTitleTimeoutRef.current);
+      }
+      if (sparkleTimeoutRef.current !== null) {
+        window.clearTimeout(sparkleTimeoutRef.current);
+      }
+      if (ctaBurstTimeoutRef.current !== null) {
+        window.clearTimeout(ctaBurstTimeoutRef.current);
+      }
+      if (rewindFlashTimeoutRef.current !== null) {
+        window.clearTimeout(rewindFlashTimeoutRef.current);
+      }
     };
   }, []);
 
-  function handleOpenChange(nextOpen: boolean) {
-    setOpen(nextOpen);
-    setSpinning(false);
-    setWinnerIndex(null);
-    setWinner(null);
-    setBurstActive(false);
-    setConfettiPieces([]);
-    setSelectedStudentId("all");
+  function clearSpinTimers() {
+    spinRunIdRef.current += 1;
+    if (chargeTimeoutRef.current !== null) {
+      window.clearTimeout(chargeTimeoutRef.current);
+    }
+    if (nearStopTimeoutRef.current !== null) {
+      window.clearTimeout(nearStopTimeoutRef.current);
+    }
     if (spinTimeoutRef.current !== null) {
       window.clearTimeout(spinTimeoutRef.current);
     }
+    if (revealFlashTimeoutRef.current !== null) {
+      window.clearTimeout(revealFlashTimeoutRef.current);
+    }
+    if (revealTitleTimeoutRef.current !== null) {
+      window.clearTimeout(revealTitleTimeoutRef.current);
+    }
+    if (sparkleTimeoutRef.current !== null) {
+      window.clearTimeout(sparkleTimeoutRef.current);
+    }
+  }
+
+  function startWinnerReveal() {
+    if (reduceMotion) {
+      setWinnerRevealStage("badge");
+      setWinnerSparkleActive(false);
+      return;
+    }
+
+    setWinnerRevealStage("flash");
+    setWinnerSparkleActive(true);
+
+    revealFlashTimeoutRef.current = window.setTimeout(() => {
+      setWinnerRevealStage("title");
+      revealTitleTimeoutRef.current = window.setTimeout(() => {
+        setWinnerRevealStage("badge");
+      }, 150);
+    }, 120);
+
+    sparkleTimeoutRef.current = window.setTimeout(() => {
+      setWinnerSparkleActive(false);
+    }, 2500);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    clearSpinTimers();
+    setOpen(nextOpen);
+    setIsCharging(false);
+    setSpinning(false);
+    setIsNearStop(false);
+    setWinnerIndex(null);
+    setWinner(null);
+    setWinnerRevealStage("idle");
+    setWinnerSparkleActive(false);
+    setBurstActive(false);
+    setConfettiPieces([]);
+    setCtaBurstActive(false);
+    setRewindFlashActive(false);
+    setSelectedStudentId("all");
     if (burstTimeoutRef.current !== null) {
       window.clearTimeout(burstTimeoutRef.current);
     }
     if (confettiTimeoutRef.current !== null) {
       window.clearTimeout(confettiTimeoutRef.current);
+    }
+    if (ctaBurstTimeoutRef.current !== null) {
+      window.clearTimeout(ctaBurstTimeoutRef.current);
+    }
+    if (rewindFlashTimeoutRef.current !== null) {
+      window.clearTimeout(rewindFlashTimeoutRef.current);
     }
   }
 
@@ -131,11 +226,14 @@ export function SpinSubjectWheelDialog({
       window.clearTimeout(confettiTimeoutRef.current);
     }
 
-    const pieces = Array.from({ length: randomInt(16, 24) }, (_, index) => {
+    const isPhone = window.innerWidth < 640;
+    const pieceCount = isPhone ? randomInt(10, 14) : randomInt(16, 24);
+    const pieces = Array.from({ length: pieceCount }, (_, index) => {
       const angle = Math.random() * Math.PI * 2;
       const distance = randomInt(86, 168);
       const x = Math.cos(angle) * distance;
       const y = Math.sin(angle) * distance;
+      const layer: "front" | "back" = Math.random() > 0.55 ? "front" : "back";
       return {
         id: `${Date.now()}-${index}`,
         x,
@@ -144,8 +242,9 @@ export function SpinSubjectWheelDialog({
         color: BURST_COLORS[randomInt(0, BURST_COLORS.length - 1)],
         delayMs: randomInt(0, 120),
         durationMs: randomInt(700, 1200),
-        width: randomInt(5, 10),
-        height: randomInt(8, 16),
+        width: layer === "front" ? randomInt(6, 11) : randomInt(4, 8),
+        height: layer === "front" ? randomInt(9, 17) : randomInt(7, 13),
+        layer,
       };
     });
 
@@ -160,6 +259,18 @@ export function SpinSubjectWheelDialog({
     confettiTimeoutRef.current = window.setTimeout(() => {
       setConfettiPieces([]);
     }, 1400);
+  }
+
+  function triggerCtaBurst() {
+    if (reduceMotion) return;
+    if (ctaBurstTimeoutRef.current !== null) {
+      window.clearTimeout(ctaBurstTimeoutRef.current);
+    }
+    setCtaBurstCycle((prev) => prev + 1);
+    setCtaBurstActive(true);
+    ctaBurstTimeoutRef.current = window.setTimeout(() => {
+      setCtaBurstActive(false);
+    }, 420);
   }
 
   const studentOptions = useMemo(() => {
@@ -195,10 +306,15 @@ export function SpinSubjectWheelDialog({
   }, [candidates, selectedStudentId]);
 
   function selectStudent(studentId: "all" | string) {
-    if (spinning) return;
+    if (spinning || isCharging) return;
+    clearSpinTimers();
     setSelectedStudentId(studentId);
+    setIsCharging(false);
+    setIsNearStop(false);
     setWinner(null);
     setWinnerIndex(null);
+    setWinnerRevealStage("idle");
+    setWinnerSparkleActive(false);
   }
 
   const segmentAngle =
@@ -222,8 +338,14 @@ export function SpinSubjectWheelDialog({
   }, [segmentAngle, visibleCandidates]);
 
   function spinWheel() {
-    if (spinning || visibleCandidates.length === 0) return;
+    if (spinning || isCharging || visibleCandidates.length === 0) return;
+    clearSpinTimers();
     triggerSpinEffects();
+    setIsNearStop(false);
+    setWinnerRevealStage("idle");
+    setWinnerSparkleActive(false);
+    setWinner(null);
+    setWinnerIndex(null);
 
     const selectedIndex = Math.floor(Math.random() * visibleCandidates.length);
     const target = visibleCandidates[selectedIndex];
@@ -245,24 +367,54 @@ export function SpinSubjectWheelDialog({
     const fullTurns = reduceMotion ? 0 : randomInt(4, 8);
     const extraTurns = fullTurns * 360;
     const duration = reduceMotion ? 450 : 2600 + fullTurns * 380;
+    const chargeDuration = reduceMotion ? 0 : randomInt(180, 260);
     const nextRotation = rotation + extraTurns + correction;
+    const runId = spinRunIdRef.current;
 
-    setSpinning(true);
     setSpinDurationMs(duration);
-    setWinnerIndex(selectedIndex);
-    setWinner(null);
-    setRotation(nextRotation);
+    if (chargeDuration > 0) {
+      setIsCharging(true);
+    }
 
-    spinTimeoutRef.current = window.setTimeout(() => {
-      setSpinning(false);
-      setWinner(target);
-    }, duration);
+    chargeTimeoutRef.current = window.setTimeout(() => {
+      if (runId !== spinRunIdRef.current) return;
+      setIsCharging(false);
+      setSpinning(true);
+      setRotation(nextRotation);
+
+      nearStopTimeoutRef.current = window.setTimeout(
+        () => {
+          if (runId !== spinRunIdRef.current) return;
+          setIsNearStop(true);
+        },
+        Math.max(120, Math.floor(duration * 0.8)),
+      );
+
+      spinTimeoutRef.current = window.setTimeout(() => {
+        if (runId !== spinRunIdRef.current) return;
+        setSpinning(false);
+        setIsNearStop(false);
+        setWinnerIndex(selectedIndex);
+        setWinner(target);
+        startWinnerReveal();
+      }, duration);
+    }, chargeDuration);
   }
 
   function resetWinner() {
-    if (spinning) return;
+    if (spinning || isCharging) return;
+    clearSpinTimers();
+    if (!reduceMotion) {
+      setRewindFlashActive(true);
+      rewindFlashTimeoutRef.current = window.setTimeout(() => {
+        setRewindFlashActive(false);
+      }, 220);
+    }
     setWinner(null);
     setWinnerIndex(null);
+    setWinnerRevealStage("idle");
+    setWinnerSparkleActive(false);
+    setIsNearStop(false);
   }
 
   const winnerLabel = winner?.lessonTitle?.trim()
@@ -281,16 +433,39 @@ export function SpinSubjectWheelDialog({
         Spin Subject Wheel
       </Button>
 
-      <DialogContent className="max-w-2xl overflow-hidden border-0 bg-transparent p-0 shadow-none">
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[92dvh] max-w-2xl overflow-x-hidden overflow-y-auto border-0 bg-transparent p-0 shadow-none"
+      >
         <div
           className={cn(
             "spin-wheel-shell relative overflow-hidden rounded-3xl border bg-card px-4 py-5 shadow-2xl sm:px-6 sm:py-6",
             hasWinner && "px-3 py-4 sm:px-5 sm:py-5",
           )}
         >
+          <div className="absolute right-2 top-2 z-40 sm:right-3 sm:top-3">
+            <DialogClose asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="h-10 w-10 rounded-full border bg-background/90 backdrop-blur"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DialogClose>
+          </div>
+
           <div className="spin-wheel-halo spin-wheel-halo-1" />
           <div className="spin-wheel-halo spin-wheel-halo-2" />
           <div className="spin-wheel-particles" />
+          <div
+            className={cn(
+              "spin-wheel-charge-ring pointer-events-none absolute inset-0 z-20",
+              isCharging && "spin-wheel-charge-ring-active",
+            )}
+          />
           <div
             key={`burst-${burstCycle}`}
             className={cn(
@@ -304,6 +479,7 @@ export function SpinSubjectWheelDialog({
                 <span
                   key={piece.id}
                   className="spin-wheel-confetti-piece"
+                  data-layer={piece.layer}
                   style={
                     {
                       "--tx": `${piece.x}px`,
@@ -397,7 +573,26 @@ export function SpinSubjectWheelDialog({
               >
                 <div
                   className={cn(
+                    "spin-wheel-speed-lines pointer-events-none absolute inset-0 z-10 rounded-full",
+                    spinning && "spin-wheel-speed-lines-active",
+                  )}
+                />
+                <div
+                  className={cn(
+                    "spin-wheel-focus-vignette pointer-events-none absolute inset-0 z-20 rounded-full",
+                    isNearStop && "spin-wheel-focus-vignette-active",
+                  )}
+                />
+                <div
+                  className={cn(
+                    "spin-wheel-pointer-sparkles pointer-events-none absolute inset-0 z-30",
+                    isNearStop && "spin-wheel-pointer-sparkles-active",
+                  )}
+                />
+                <div
+                  className={cn(
                     "spin-wheel-pointer",
+                    isNearStop && "spin-wheel-pointer-anticipation",
                     burstActive && "spin-wheel-pointer-launch",
                   )}
                 />
@@ -406,6 +601,7 @@ export function SpinSubjectWheelDialog({
                     className={cn(
                       "spin-wheel-face relative h-full w-full rounded-full border-4 border-white/70",
                       spinning && "spin-wheel-face-spinning",
+                      rewindFlashActive && "spin-wheel-face-rewind",
                     )}
                     style={{
                       background: wheelGradient,
@@ -437,7 +633,12 @@ export function SpinSubjectWheelDialog({
                     })}
                   </div>
                   <div className="absolute inset-[33%] rounded-full border-4 border-white/70 bg-primary/10 backdrop-blur-sm">
-                    <div className="absolute inset-2 rounded-full border border-white/80 bg-card/80" />
+                    <div
+                      className={cn(
+                        "spin-wheel-energy-core absolute inset-2 rounded-full border border-white/80 bg-card/80",
+                        spinning && "spin-wheel-energy-core-active",
+                      )}
+                    />
                   </div>
                 </div>
               </div>
@@ -449,26 +650,64 @@ export function SpinSubjectWheelDialog({
                   className={cn(
                     "spin-wheel-spin-button h-12 rounded-full px-8 text-base font-black tracking-wide uppercase",
                     hasWinner && "h-10 px-6 text-sm",
+                    isCharging && "spin-wheel-spin-button-charging",
                     burstActive && "spin-wheel-spin-button-launch",
                   )}
-                  disabled={spinning || visibleCandidates.length === 0}
+                  disabled={
+                    spinning || isCharging || visibleCandidates.length === 0
+                  }
                   onClick={spinWheel}
                 >
-                  {spinning ? "Spinning..." : "SPIN!"}
+                  {isCharging
+                    ? "Charging..."
+                    : spinning
+                      ? "Spinning..."
+                      : "SPIN!"}
                 </Button>
               </div>
 
               {hasWinner && winner && (
-                <div className="spin-wheel-winner mt-3 rounded-2xl border bg-background/90 p-3 shadow-lg sm:mt-4 sm:p-4">
+                <div
+                  className={cn(
+                    "spin-wheel-winner spin-wheel-winner-stage relative mt-3 overflow-hidden rounded-2xl border bg-background/90 p-3 shadow-lg sm:mt-4 sm:p-4",
+                    winnerRevealStage !== "idle" &&
+                      `spin-wheel-winner-stage-${winnerRevealStage}`,
+                  )}
+                >
                   <div className="mb-1.5 flex items-center justify-center gap-2">
-                    <Trophy className="h-5 w-5 text-amber-500" />
+                    <Trophy
+                      className={cn(
+                        "h-5 w-5 text-amber-500",
+                        winnerSparkleActive && "spin-wheel-trophy-sparkle",
+                      )}
+                    />
                     <p className="text-sm font-semibold uppercase tracking-wide text-amber-600">
                       Winner
                     </p>
                   </div>
-                  <p className="text-center text-xl font-black tracking-tight sm:text-2xl">
+                  <p
+                    className={cn(
+                      "text-center text-xl font-black tracking-tight sm:text-2xl",
+                      winnerRevealStage === "title" ||
+                        winnerRevealStage === "badge"
+                        ? "spin-wheel-title-reveal"
+                        : "opacity-0",
+                    )}
+                  >
                     {winner.subjectName}
                   </p>
+                  <div
+                    className={cn(
+                      "mt-1 flex justify-center",
+                      winnerRevealStage === "badge"
+                        ? "spin-wheel-badge-reveal"
+                        : "opacity-0",
+                    )}
+                  >
+                    <span className="inline-flex items-center rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      Quest Chosen
+                    </span>
+                  </div>
                   <p className="text-muted-foreground mt-1 text-center text-xs sm:mt-2 sm:text-sm">
                     {winner.entryCount}{" "}
                     {winner.entryCount === 1 ? "lesson" : "lessons"} waiting
@@ -491,20 +730,35 @@ export function SpinSubjectWheelDialog({
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:mt-4 sm:flex sm:justify-center">
                     <Button
                       asChild
-                      className="h-9 rounded-full px-5 text-sm sm:h-10 sm:px-6"
+                      className={cn(
+                        "spin-wheel-cta-primary h-9 rounded-full px-5 text-sm sm:h-10 sm:px-6",
+                        ctaBurstActive && "spin-wheel-cta-primary-celebrate",
+                      )}
                     >
-                      <Link href={`/lessons/${winner.lessonId}`}>
+                      <Link
+                        href={`/lessons/${winner.lessonId}`}
+                        onMouseEnter={triggerCtaBurst}
+                        onFocus={triggerCtaBurst}
+                        onTouchStart={triggerCtaBurst}
+                      >
                         Start this lesson
                       </Link>
                     </Button>
                     <Button
                       variant="outline"
-                      className="h-9 rounded-full px-5 text-sm sm:h-10 sm:px-6"
+                      className="spin-wheel-cta-secondary h-9 rounded-full px-5 text-sm sm:h-10 sm:px-6"
                       onClick={resetWinner}
                     >
                       Spin again
                     </Button>
                   </div>
+                  <div
+                    key={`cta-burst-${ctaBurstCycle}`}
+                    className={cn(
+                      "spin-wheel-cta-burst pointer-events-none absolute inset-x-0 bottom-0 top-auto h-16",
+                      ctaBurstActive && "spin-wheel-cta-burst-active",
+                    )}
+                  />
                 </div>
               )}
             </div>

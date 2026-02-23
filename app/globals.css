@@ -365,6 +365,132 @@
   }
 }
 
+@keyframes spin-wheel-charge-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  45% {
+    opacity: 0.95;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes spin-wheel-speed-lines {
+  from {
+    transform: rotate(0deg);
+    opacity: 0.15;
+  }
+  to {
+    transform: rotate(360deg);
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin-wheel-energy-core {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.92;
+  }
+}
+
+@keyframes spin-wheel-pointer-anticipation {
+  0%,
+  100% {
+    transform: translate(-50%, -3px) rotate(0deg) scale(1);
+  }
+  30% {
+    transform: translate(-50%, 1px) rotate(-9deg) scale(1.06);
+  }
+  60% {
+    transform: translate(-50%, -2px) rotate(8deg) scale(1.03);
+  }
+}
+
+@keyframes spin-wheel-reveal-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.22);
+  }
+}
+
+@keyframes spin-wheel-title-bounce {
+  0% {
+    opacity: 0;
+    transform: translateY(9px) scale(0.92);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin-wheel-badge-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin-wheel-cta-sheen {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(220%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spin-wheel-rewind-shimmer {
+  from {
+    opacity: 0.65;
+    transform: translateX(40%);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-70%);
+  }
+}
+
+@keyframes spin-wheel-trophy-sparkle {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  40% {
+    filter: drop-shadow(0 0 10px color-mix(in oklch, #facc15 72%, transparent));
+  }
+}
+
 .spin-wheel-shell {
   background:
     radial-gradient(
@@ -449,6 +575,44 @@
   overflow: hidden;
 }
 
+.spin-wheel-charge-ring::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(66vw, 24rem);
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+  border: 3px solid color-mix(in oklch, var(--secondary) 82%, #fff);
+  box-shadow:
+    0 0 30px color-mix(in oklch, var(--secondary) 62%, transparent),
+    inset 0 0 20px color-mix(in oklch, var(--primary) 35%, transparent);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.spin-wheel-charge-ring-active::before {
+  animation: spin-wheel-charge-pulse 230ms ease-out both;
+}
+
+.spin-wheel-speed-lines::before {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  border-radius: 9999px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in oklch, var(--foreground) 24%, transparent) 0deg 7deg,
+    transparent 7deg 14deg
+  );
+  mask: radial-gradient(closest-side, transparent 78%, black 84%);
+  opacity: 0;
+}
+
+.spin-wheel-speed-lines-active::before {
+  animation: spin-wheel-speed-lines 640ms linear infinite;
+}
+
 .spin-wheel-face {
   overflow: hidden;
   will-change: transform;
@@ -472,6 +636,20 @@
 
 .spin-wheel-face-spinning::before {
   animation: spin-wheel-shimmer 950ms linear infinite;
+}
+
+.spin-wheel-face-rewind::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.78) 48%,
+    transparent 62%
+  );
+  mix-blend-mode: screen;
+  animation: spin-wheel-rewind-shimmer 220ms ease-out both;
 }
 
 .spin-wheel-label {
@@ -527,6 +705,15 @@
   animation: spin-wheel-confetti-pop var(--dur) ease-out var(--delay) both;
 }
 
+.spin-wheel-confetti-piece[data-layer="back"] {
+  opacity: 0.68;
+  filter: blur(0.35px);
+}
+
+.spin-wheel-confetti-piece[data-layer="front"] {
+  opacity: 0.96;
+}
+
 .spin-wheel-launch-text {
   color: color-mix(in oklch, var(--foreground) 88%, #fff);
   font-size: clamp(1.35rem, 5vw, 2rem);
@@ -538,14 +725,168 @@
   animation: spin-wheel-launch-text-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.spin-wheel-focus-vignette {
+  background: radial-gradient(
+    circle at 50% 3%,
+    color-mix(in oklch, var(--secondary) 15%, transparent) 0%,
+    transparent 36%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+  opacity: 0;
+}
+
+.spin-wheel-focus-vignette-active {
+  opacity: 1;
+  transition: opacity 180ms ease-out;
+}
+
+.spin-wheel-pointer-sparkles::before,
+.spin-wheel-pointer-sparkles::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0.4rem;
+  width: 8px;
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+  background: color-mix(in oklch, #fff 90%, var(--secondary));
+  opacity: 0;
+  filter: blur(0.2px);
+}
+
+.spin-wheel-pointer-sparkles::before {
+  transform: translateX(-18px);
+}
+
+.spin-wheel-pointer-sparkles::after {
+  transform: translateX(10px);
+}
+
+.spin-wheel-pointer-sparkles-active::before {
+  animation: spin-wheel-launch-text-pop 220ms ease-out 2;
+}
+
+.spin-wheel-pointer-sparkles-active::after {
+  animation: spin-wheel-launch-text-pop 220ms ease-out 120ms 2;
+}
+
 .spin-wheel-pointer-launch {
   animation:
     spin-wheel-pointer-bounce 1.25s ease-in-out infinite,
     spin-wheel-pointer-launch 520ms cubic-bezier(0.2, 0.9, 0.2, 1) 1;
 }
 
+.spin-wheel-pointer-anticipation {
+  animation:
+    spin-wheel-pointer-bounce 1.25s ease-in-out infinite,
+    spin-wheel-pointer-anticipation 360ms ease-in-out infinite;
+}
+
 .spin-wheel-spin-button-launch {
   animation: spin-wheel-button-launch 360ms ease-out 1;
+}
+
+.spin-wheel-spin-button-charging {
+  animation: spin-wheel-button-launch 220ms ease-out 1;
+  filter: brightness(1.12);
+}
+
+.spin-wheel-energy-core {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in oklch, var(--secondary) 36%, #fff) 0%,
+      transparent 68%
+    ),
+    color-mix(in oklch, var(--card) 88%, #fff);
+}
+
+.spin-wheel-energy-core-active {
+  animation: spin-wheel-energy-core 760ms ease-in-out infinite;
+}
+
+.spin-wheel-winner-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(70vw, 20rem);
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in oklch, var(--secondary) 75%, transparent);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.spin-wheel-winner-stage-flash::before {
+  animation: spin-wheel-reveal-flash 180ms ease-out both;
+}
+
+.spin-wheel-title-reveal {
+  animation: spin-wheel-title-bounce 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.spin-wheel-badge-reveal {
+  animation: spin-wheel-badge-slide 160ms ease-out both;
+}
+
+.spin-wheel-winner-stage-badge {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--secondary) 40%, transparent),
+    0 10px 24px color-mix(in oklch, var(--foreground) 16%, transparent);
+}
+
+.spin-wheel-trophy-sparkle {
+  animation: spin-wheel-trophy-sparkle 520ms ease-in-out infinite;
+}
+
+.spin-wheel-cta-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.spin-wheel-cta-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 36%,
+    rgba(255, 255, 255, 0.68) 50%,
+    transparent 64%
+  );
+  opacity: 0;
+}
+
+.spin-wheel-cta-primary:hover::after,
+.spin-wheel-cta-primary:focus-visible::after {
+  animation: spin-wheel-cta-sheen 540ms ease-out 1;
+}
+
+.spin-wheel-cta-primary-celebrate {
+  transform: scale(1.01);
+}
+
+.spin-wheel-cta-burst::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 130px;
+  height: 56px;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 14% 84%, #f59e0b 0 3px, transparent 3px),
+    radial-gradient(circle at 32% 50%, #22c55e 0 2.8px, transparent 2.8px),
+    radial-gradient(circle at 51% 90%, #3b82f6 0 2.8px, transparent 2.8px),
+    radial-gradient(circle at 68% 44%, #ef4444 0 3px, transparent 3px),
+    radial-gradient(circle at 85% 84%, #a855f7 0 3px, transparent 3px);
+  opacity: 0;
+}
+
+.spin-wheel-cta-burst-active::before {
+  animation: spin-wheel-badge-slide 420ms ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -557,7 +898,19 @@
   .spin-wheel-burst-ring-active::before,
   .spin-wheel-confetti-piece,
   .spin-wheel-pointer-launch,
-  .spin-wheel-spin-button-launch {
+  .spin-wheel-spin-button-launch,
+  .spin-wheel-charge-ring-active::before,
+  .spin-wheel-speed-lines-active::before,
+  .spin-wheel-energy-core-active,
+  .spin-wheel-pointer-anticipation,
+  .spin-wheel-winner-stage-flash::before,
+  .spin-wheel-title-reveal,
+  .spin-wheel-badge-reveal,
+  .spin-wheel-cta-primary:hover::after,
+  .spin-wheel-cta-primary:focus-visible::after,
+  .spin-wheel-trophy-sparkle,
+  .spin-wheel-cta-burst-active::before,
+  .spin-wheel-face-rewind::after {
     animation: none;
   }
 }
