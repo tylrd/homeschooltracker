@@ -6,6 +6,7 @@ import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
 import { AddLessonDialog } from "@/components/dashboard/add-lesson-dialog";
 import { LessonCard } from "@/components/dashboard/lesson-card";
 import { NoteDialog } from "@/components/dashboard/note-dialog";
+import { SpinSubjectWheelDialog } from "@/components/dashboard/spin-subject-wheel-dialog";
 import { StudentColorDot } from "@/components/student-color-dot";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getAbsenceColorClasses } from "@/lib/absence-colors";
+import { getWheelCandidates } from "@/lib/dashboard/spin-wheel";
 import type { LessonMoodOption } from "@/lib/lesson-moods";
 import { cn } from "@/lib/utils";
 
@@ -283,10 +285,18 @@ export function LessonList({
     notes.find((n) => n.studentId === studentId)?.content ?? "";
 
   const todayResourceIds = new Set(lessons.map((l) => l.resourceId));
+  const wheelCandidates = useMemo(
+    () => getWheelCandidates(mergedLessons),
+    [mergedLessons],
+  );
 
   return (
     <>
       <div className="space-y-4">
+        <div className="flex items-center justify-center sm:justify-start">
+          <SpinSubjectWheelDialog candidates={wheelCandidates} />
+        </div>
+
         {grouping === "student" &&
           !isStudentFiltered &&
           sharedLessonView === "group" &&
