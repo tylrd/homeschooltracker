@@ -716,6 +716,34 @@ export const dailyNotes = pgTable(
   ],
 );
 
+export const dailyRewards = pgTable(
+  "daily_rewards",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    rewardDate: date("reward_date").notNull(),
+    rewardType: text("reward_type").notNull().default("all_lessons_completed"),
+    points: integer().notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("daily_rewards_organization_id_idx").on(table.organizationId),
+    index("daily_rewards_organization_reward_date_idx").on(
+      table.organizationId,
+      table.rewardDate,
+    ),
+    uniqueIndex("daily_rewards_organization_date_type_unique_idx").on(
+      table.organizationId,
+      table.rewardDate,
+      table.rewardType,
+    ),
+  ],
+);
+
 export const absenceReasons = pgTable(
   "absence_reasons",
   {
@@ -844,6 +872,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   schoolDocumentFiles: many(schoolDocumentFiles),
   schoolDocumentStudents: many(schoolDocumentStudents),
   dailyNotes: many(dailyNotes),
+  dailyRewards: many(dailyRewards),
   absenceReasons: many(absenceReasons),
   absences: many(absences),
   globalAbsences: many(globalAbsences),
@@ -1140,6 +1169,13 @@ export const dailyNotesRelations = relations(dailyNotes, ({ one }) => ({
   }),
 }));
 
+export const dailyRewardsRelations = relations(dailyRewards, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [dailyRewards.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
 export const absenceReasonsRelations = relations(
   absenceReasons,
   ({ one, many }) => ({
@@ -1265,6 +1301,9 @@ export type NewSchoolDocumentStudent =
 
 export type DailyNote = typeof dailyNotes.$inferSelect;
 export type NewDailyNote = typeof dailyNotes.$inferInsert;
+
+export type DailyReward = typeof dailyRewards.$inferSelect;
+export type NewDailyReward = typeof dailyRewards.$inferInsert;
 
 export type AbsenceReason = typeof absenceReasons.$inferSelect;
 export type NewAbsenceReason = typeof absenceReasons.$inferInsert;

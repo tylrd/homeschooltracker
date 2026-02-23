@@ -85,6 +85,13 @@
       "when": 1775005200000,
       "tag": "0011_custom_lesson_moods",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1775008800000,
+      "tag": "0012_daily_rewards",
+      "breakpoints": true
     }
   ]
 }

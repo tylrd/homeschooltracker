@@ -294,6 +294,77 @@
   }
 }
 
+@keyframes spin-wheel-burst-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.18);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.42);
+  }
+}
+
+@keyframes spin-wheel-confetti-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.5);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty) + 24px))
+      rotate(var(--r)) scale(1);
+  }
+}
+
+@keyframes spin-wheel-pointer-launch {
+  0% {
+    transform: translate(-50%, -3px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate(-50%, -6px) rotate(-8deg) scale(1.08);
+  }
+  55% {
+    transform: translate(-50%, 1px) rotate(7deg) scale(0.98);
+  }
+  100% {
+    transform: translate(-50%, -3px) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes spin-wheel-button-launch {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes spin-wheel-launch-text-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.86);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
 .spin-wheel-shell {
   background:
     radial-gradient(
@@ -427,12 +498,66 @@
   animation: spin-wheel-winner-pop 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.spin-wheel-burst-ring::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(64vw, 23rem);
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
+  border: 3px solid color-mix(in oklch, var(--secondary) 85%, #fff);
+  box-shadow:
+    0 0 0 2px color-mix(in oklch, var(--primary) 22%, transparent),
+    0 0 28px color-mix(in oklch, var(--secondary) 55%, transparent);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.spin-wheel-burst-ring-active::before {
+  animation: spin-wheel-burst-ring 460ms ease-out both;
+}
+
+.spin-wheel-confetti-piece {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.16);
+  animation: spin-wheel-confetti-pop var(--dur) ease-out var(--delay) both;
+}
+
+.spin-wheel-launch-text {
+  color: color-mix(in oklch, var(--foreground) 88%, #fff);
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 2px 0 color-mix(in oklch, var(--primary) 35%, transparent),
+    0 6px 18px color-mix(in oklch, var(--foreground) 25%, transparent);
+  animation: spin-wheel-launch-text-pop 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.spin-wheel-pointer-launch {
+  animation:
+    spin-wheel-pointer-bounce 1.25s ease-in-out infinite,
+    spin-wheel-pointer-launch 520ms cubic-bezier(0.2, 0.9, 0.2, 1) 1;
+}
+
+.spin-wheel-spin-button-launch {
+  animation: spin-wheel-button-launch 360ms ease-out 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .spin-wheel-halo-1,
   .spin-wheel-halo-2,
   .spin-wheel-particles,
   .spin-wheel-pointer,
-  .spin-wheel-face-spinning::before {
+  .spin-wheel-face-spinning::before,
+  .spin-wheel-burst-ring-active::before,
+  .spin-wheel-confetti-piece,
+  .spin-wheel-pointer-launch,
+  .spin-wheel-spin-button-launch {
     animation: none;
   }
 }

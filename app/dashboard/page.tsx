@@ -22,6 +22,7 @@ import {
   getTodayNotes,
   getTodaySharedLessons,
 } from "@/lib/queries/dashboard";
+import { getDailyCompletionRewardStatus } from "@/lib/queries/rewards";
 import {
   getCustomMoods,
   getDashboardGrouping,
@@ -55,6 +56,7 @@ export default async function DashboardPage({
     customMoods,
     resourceRows,
     sharedCurriculumRows,
+    dailyReward,
   ] = await Promise.all([
     getTodayLessons(date, studentId),
     getTodaySharedLessons(date, studentId),
@@ -70,6 +72,7 @@ export default async function DashboardPage({
     getCustomMoods(),
     getStudentResourceMap(),
     getSharedCurriculaForDashboardAdd(date, studentId),
+    getDailyCompletionRewardStatus(date),
   ]);
 
   // Build student resource map: studentId -> resources[]
@@ -200,6 +203,7 @@ export default async function DashboardPage({
           showNoteButtons={showNoteButtons}
           moodOptions={customMoods}
           studentResourceMap={studentResourceMap}
+          dailyReward={dailyReward}
         />
       )}
     </div>

@@ -6,12 +6,14 @@ export type WheelLessonInput = {
   lessonStatus: string;
   resourceName: string;
   subjectName: string;
+  studentId: string;
   studentName: string;
   studentColor: string;
 };
 
 export type WheelSubjectCandidate = {
   subjectName: string;
+  studentId: string;
   studentName: string;
   studentColor: string;
   lessonId: string;
@@ -31,16 +33,17 @@ export function getWheelCandidates(
 
   const bySubject = new Map<string, WheelLessonInput[]>();
   for (const lesson of eligible) {
-    const existing = bySubject.get(lesson.subjectName);
+    const subjectKey = `${lesson.studentId}:${lesson.subjectName}`;
+    const existing = bySubject.get(subjectKey);
     if (existing) {
       existing.push(lesson);
     } else {
-      bySubject.set(lesson.subjectName, [lesson]);
+      bySubject.set(subjectKey, [lesson]);
     }
   }
 
   const candidates = Array.from(bySubject.entries()).map(
-    ([subjectName, subjectLessons]) => {
+    ([, subjectLessons]) => {
       const sorted = [...subjectLessons].sort((a, b) => {
         if (a.lessonNumber !== b.lessonNumber) {
           return a.lessonNumber - b.lessonNumber;
@@ -49,7 +52,8 @@ export function getWheelCandidates(
       });
       const nextLesson = sorted[0];
       return {
-        subjectName,
+        subjectName: nextLesson.subjectName,
+        studentId: nextLesson.studentId,
         studentName: nextLesson.studentName,
         studentColor: nextLesson.studentColor,
         lessonId: nextLesson.lessonId,
@@ -61,5 +65,10 @@ export function getWheelCandidates(
     },
   );
 
-  return candidates.sort((a, b) => a.subjectName.localeCompare(b.subjectName));
+  return candidates.sort((a, b) => {
+    if (a.studentName !== b.studentName) {
+      return a.studentName.localeCompare(b.studentName);
+    }
+    return a.subjectName.localeCompare(b.subjectName);
+  });
 }

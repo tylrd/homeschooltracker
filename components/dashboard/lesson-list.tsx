@@ -4,6 +4,7 @@ import { Eye, EyeOff, Plus, Users, UserX } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AbsenceDialog } from "@/components/dashboard/absence-dialog";
 import { AddLessonDialog } from "@/components/dashboard/add-lesson-dialog";
+import { DailyRewardCard } from "@/components/dashboard/daily-reward-card";
 import { LessonCard } from "@/components/dashboard/lesson-card";
 import { NoteDialog } from "@/components/dashboard/note-dialog";
 import { SpinSubjectWheelDialog } from "@/components/dashboard/spin-subject-wheel-dialog";
@@ -101,6 +102,17 @@ type StudentSummary = {
   color: string;
 };
 
+type DailyReward = {
+  date: string;
+  totalLessons: number;
+  completedLessons: number;
+  studentsWithLessons: number;
+  completedStudents: number;
+  isEligible: boolean;
+  isTracked: boolean;
+  points: number;
+};
+
 export function LessonList({
   lessons,
   sharedLessons,
@@ -116,6 +128,7 @@ export function LessonList({
   studentResourceMap = {},
   allStudents = [],
   isStudentFiltered = false,
+  dailyReward,
 }: {
   lessons: DashboardLesson[];
   sharedLessons: DashboardSharedLesson[];
@@ -131,6 +144,7 @@ export function LessonList({
   studentResourceMap?: Record<string, StudentResource[]>;
   allStudents?: StudentSummary[];
   isStudentFiltered?: boolean;
+  dailyReward?: DailyReward;
 }) {
   const sharedLessonView = defaultSharedLessonView;
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -293,8 +307,22 @@ export function LessonList({
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-center sm:justify-start">
-          <SpinSubjectWheelDialog candidates={wheelCandidates} />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center justify-center sm:justify-start">
+            <SpinSubjectWheelDialog candidates={wheelCandidates} />
+          </div>
+          {dailyReward && (
+            <DailyRewardCard
+              date={dailyReward.date}
+              totalLessons={dailyReward.totalLessons}
+              completedLessons={dailyReward.completedLessons}
+              studentsWithLessons={dailyReward.studentsWithLessons}
+              completedStudents={dailyReward.completedStudents}
+              isEligible={dailyReward.isEligible}
+              isTracked={dailyReward.isTracked}
+              points={dailyReward.points}
+            />
+          )}
         </div>
 
         {grouping === "student" &&
