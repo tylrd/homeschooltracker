@@ -11,6 +11,7 @@ import { DashboardGroupingSelect } from "@/components/settings/dashboard-groupin
 import { DashboardSharedLessonViewSelect } from "@/components/settings/dashboard-shared-lesson-view-select";
 import { DefaultLessonCountInput } from "@/components/settings/default-lesson-count-input";
 import { NoteButtonsToggle } from "@/components/settings/note-buttons-toggle";
+import { RewardTemplatesInput } from "@/components/settings/reward-templates-input";
 import { SchoolDaysToggle } from "@/components/settings/school-days-toggle";
 import { ShowCompletedToggle } from "@/components/settings/show-completed-toggle";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
   getDashboardGrouping,
   getDashboardSharedLessonView,
   getDefaultLessonCount,
+  getRewardTemplates,
   getSchoolDays,
   getShowCompletedLessons,
   getShowDailyLogNotes,
@@ -45,6 +47,7 @@ export default async function SettingsPage() {
     dashboardSharedLessonView,
     bumpBehavior,
     customMoods,
+    rewardTemplates,
   ] = await Promise.all([
     getOrCreateDefaultReasons(),
     getShowCompletedLessons(),
@@ -57,6 +60,7 @@ export default async function SettingsPage() {
     getDashboardSharedLessonView(),
     getBumpBehavior(),
     getCustomMoods(),
+    getRewardTemplates(),
   ]);
 
   return (
@@ -104,6 +108,13 @@ export default async function SettingsPage() {
         <h2 className="text-lg font-semibold">Attendance</h2>
         <DailyLogNotesToggle defaultValue={showDailyLogNotes} />
         <CustomMoodsInput defaultMoods={customMoods} />
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Rewards</h2>
+        <RewardTemplatesInput defaultTemplates={rewardTemplates} />
       </div>
 
       <Separator />

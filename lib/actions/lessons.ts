@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, gt, gte, inArray, max } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, max, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
@@ -20,6 +20,10 @@ import {
 } from "@/lib/dates";
 import { validateImageFile } from "@/lib/images/validation";
 import { getBumpBehavior, getSchoolDays } from "@/lib/queries/settings";
+import {
+  awardPersonalLessonCompletion,
+  reversePersonalLessonCompletion,
+} from "@/lib/rewards/xp";
 import { getImageStore } from "@/lib/storage/image-store";
 
 export async function batchCreateLessons(
@@ -76,12 +80,43 @@ export async function completeLesson(lessonId: string) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
   const today = toDateString(new Date());
-  await db
-    .update(lessons)
-    .set({ status: "completed", completionDate: today })
-    .where(
-      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
-    );
+  await db.transaction(async (tx) => {
+    const [completedLesson] = await tx
+      .update(lessons)
+      .set({ status: "completed", completionDate: today })
+      .where(
+        and(
+          eq(lessons.id, lessonId),
+          eq(lessons.organizationId, organizationId),
+          ne(lessons.status, "completed"),
+        ),
+      )
+      .returning({ id: lessons.id });
+
+    if (!completedLesson) return;
+
+    const [lessonRow] = await tx
+      .select({ studentId: subjects.studentId })
+      .from(lessons)
+      .innerJoin(resources, eq(lessons.resourceId, resources.id))
+      .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+      .where(
+        and(
+          eq(lessons.id, completedLesson.id),
+          eq(lessons.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+
+    if (!lessonRow) return;
+
+    await awardPersonalLessonCompletion(tx, {
+      organizationId,
+      lessonId: completedLesson.id,
+      studentId: lessonRow.studentId,
+      date: today,
+    });
+  });
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -92,12 +127,44 @@ export async function completeLesson(lessonId: string) {
 export async function uncompleteLesson(lessonId: string) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
-  await db
-    .update(lessons)
-    .set({ status: "planned", completionDate: null })
-    .where(
-      and(eq(lessons.id, lessonId), eq(lessons.organizationId, organizationId)),
-    );
+  const today = toDateString(new Date());
+  await db.transaction(async (tx) => {
+    const [uncompletedLesson] = await tx
+      .update(lessons)
+      .set({ status: "planned", completionDate: null })
+      .where(
+        and(
+          eq(lessons.id, lessonId),
+          eq(lessons.organizationId, organizationId),
+          eq(lessons.status, "completed"),
+        ),
+      )
+      .returning({ id: lessons.id });
+
+    if (!uncompletedLesson) return;
+
+    const [lessonRow] = await tx
+      .select({ studentId: subjects.studentId })
+      .from(lessons)
+      .innerJoin(resources, eq(lessons.resourceId, resources.id))
+      .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+      .where(
+        and(
+          eq(lessons.id, uncompletedLesson.id),
+          eq(lessons.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+
+    if (!lessonRow) return;
+
+    await reversePersonalLessonCompletion(tx, {
+      organizationId,
+      lessonId: uncompletedLesson.id,
+      studentId: lessonRow.studentId,
+      date: today,
+    });
+  });
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -302,12 +369,43 @@ export async function bulkCompleteLessons(lessonIds: string[]) {
     columns: { id: true, resourceId: true },
   });
 
-  await db
-    .update(lessons)
-    .set({ status: "completed", completionDate: today })
-    .where(
-      and(eq(lessons.organizationId, organizationId), inArray(lessons.id, ids)),
-    );
+  await db.transaction(async (tx) => {
+    const completedRows = await tx
+      .update(lessons)
+      .set({ status: "completed", completionDate: today })
+      .where(
+        and(
+          eq(lessons.organizationId, organizationId),
+          inArray(lessons.id, ids),
+          ne(lessons.status, "completed"),
+        ),
+      )
+      .returning({ id: lessons.id });
+
+    if (completedRows.length === 0) return;
+
+    const completedIds = completedRows.map((row) => row.id);
+    const lessonRows = await tx
+      .select({ lessonId: lessons.id, studentId: subjects.studentId })
+      .from(lessons)
+      .innerJoin(resources, eq(lessons.resourceId, resources.id))
+      .innerJoin(subjects, eq(resources.subjectId, subjects.id))
+      .where(
+        and(
+          eq(lessons.organizationId, organizationId),
+          inArray(lessons.id, completedIds),
+        ),
+      );
+
+    for (const row of lessonRows) {
+      await awardPersonalLessonCompletion(tx, {
+        organizationId,
+        lessonId: row.lessonId,
+        studentId: row.studentId,
+        date: today,
+      });
+    }
+  });
 
   revalidatePath("/");
   revalidatePath("/shelf");

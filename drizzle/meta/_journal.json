@@ -92,6 +92,13 @@
       "when": 1775008800000,
       "tag": "0012_daily_rewards",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1775116800000,
+      "tag": "0013_rpg_rewards_phase1",
+      "breakpoints": true
     }
   ]
 }

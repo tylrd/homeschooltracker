@@ -20,6 +20,12 @@ test("tenant columns are non-null for core tables", async (t) => {
      union all
      select 'lessons'::text, count(*)::text from lessons where organization_id is null
      union all
+     select 'student_xp_ledger'::text, count(*)::text from student_xp_ledger where organization_id is null
+     union all
+     select 'student_streaks'::text, count(*)::text from student_streaks where organization_id is null
+     union all
+     select 'student_badges'::text, count(*)::text from student_badges where organization_id is null
+     union all
      select 'app_settings'::text, count(*)::text from app_settings where organization_id is null`;
 
   for (const row of checks) {

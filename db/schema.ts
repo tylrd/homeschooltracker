@@ -28,6 +28,14 @@ export const schoolDocumentTypeEnum = pgEnum("school_document_type", [
   "pacing_calendar",
 ]);
 
+export const xpEventTypeEnum = pgEnum("xp_event_type", [
+  "lesson_completion",
+  "lesson_completion_reversal",
+  "shared_lesson_completion",
+  "shared_lesson_completion_reversal",
+  "streak_bonus",
+]);
+
 export const BOOTSTRAP_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001";
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -842,6 +850,115 @@ export const appSettings = pgTable(
   ],
 );
 
+export const studentXpLedger = pgTable(
+  "student_xp_ledger",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    eventType: xpEventTypeEnum("event_type").notNull(),
+    points: integer().notNull(),
+    eventDate: date("event_date").notNull(),
+    lessonId: uuid("lesson_id").references(() => lessons.id, {
+      onDelete: "set null",
+    }),
+    sharedLessonId: uuid("shared_lesson_id").references(
+      () => sharedLessons.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    metadata: jsonb(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("student_xp_ledger_organization_id_idx").on(table.organizationId),
+    index("student_xp_ledger_student_id_idx").on(table.studentId),
+    index("student_xp_ledger_lesson_id_idx").on(table.lessonId),
+    index("student_xp_ledger_shared_lesson_id_idx").on(table.sharedLessonId),
+    index("student_xp_ledger_org_student_event_date_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.eventDate,
+    ),
+    index("student_xp_ledger_org_student_created_at_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.createdAt,
+    ),
+    index("student_xp_ledger_org_event_type_event_date_idx").on(
+      table.organizationId,
+      table.eventType,
+      table.eventDate,
+    ),
+  ],
+);
+
+export const studentStreaks = pgTable(
+  "student_streaks",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    currentStreak: integer("current_streak").notNull().default(0),
+    longestStreak: integer("longest_streak").notNull().default(0),
+    lastRewardDate: date("last_reward_date"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("student_streaks_organization_id_idx").on(table.organizationId),
+    index("student_streaks_student_id_idx").on(table.studentId),
+    uniqueIndex("student_streaks_organization_student_unique_idx").on(
+      table.organizationId,
+      table.studentId,
+    ),
+  ],
+);
+
+export const studentBadges = pgTable(
+  "student_badges",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    badgeKey: text("badge_key").notNull(),
+    milestoneDays: integer("milestone_days").notNull(),
+    earnedDate: date("earned_date").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("student_badges_organization_id_idx").on(table.organizationId),
+    index("student_badges_student_id_idx").on(table.studentId),
+    uniqueIndex("student_badges_organization_student_badge_key_unique_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.badgeKey,
+    ),
+  ],
+);
+
 // ── Relations ──────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -878,6 +995,9 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   globalAbsences: many(globalAbsences),
   appSettings: many(appSettings),
   curriculumImages: many(curriculumImages),
+  studentXpLedger: many(studentXpLedger),
+  studentStreaks: many(studentStreaks),
+  studentBadges: many(studentBadges),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -963,6 +1083,9 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   absences: many(absences),
   sharedCurriculumMemberships: many(sharedCurriculumStudents),
   schoolDocumentMemberships: many(schoolDocumentStudents),
+  xpLedgerEntries: many(studentXpLedger),
+  streaks: many(studentStreaks),
+  badges: many(studentBadges),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -1004,6 +1127,7 @@ export const lessonsRelations = relations(lessons, ({ one, many }) => ({
     references: [resources.id],
   }),
   workSamples: many(lessonWorkSamples),
+  xpLedgerEntries: many(studentXpLedger),
 }));
 
 export const sharedCurriculaRelations = relations(
@@ -1119,6 +1243,7 @@ export const sharedLessonsRelations = relations(
       references: [sharedCurricula.id],
     }),
     workSamples: many(sharedLessonWorkSamples),
+    xpLedgerEntries: many(studentXpLedger),
   }),
 );
 
@@ -1221,6 +1346,50 @@ export const appSettingsRelations = relations(appSettings, ({ one }) => ({
   }),
 }));
 
+export const studentXpLedgerRelations = relations(
+  studentXpLedger,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [studentXpLedger.organizationId],
+      references: [organizations.id],
+    }),
+    student: one(students, {
+      fields: [studentXpLedger.studentId],
+      references: [students.id],
+    }),
+    lesson: one(lessons, {
+      fields: [studentXpLedger.lessonId],
+      references: [lessons.id],
+    }),
+    sharedLesson: one(sharedLessons, {
+      fields: [studentXpLedger.sharedLessonId],
+      references: [sharedLessons.id],
+    }),
+  }),
+);
+
+export const studentStreaksRelations = relations(studentStreaks, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [studentStreaks.organizationId],
+    references: [organizations.id],
+  }),
+  student: one(students, {
+    fields: [studentStreaks.studentId],
+    references: [students.id],
+  }),
+}));
+
+export const studentBadgesRelations = relations(studentBadges, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [studentBadges.organizationId],
+    references: [organizations.id],
+  }),
+  student: one(students, {
+    fields: [studentBadges.studentId],
+    references: [students.id],
+  }),
+}));
+
 // ── Inferred Types ─────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -1315,3 +1484,13 @@ export type GlobalAbsence = typeof globalAbsences.$inferSelect;
 export type NewGlobalAbsence = typeof globalAbsences.$inferInsert;
 
 export type AppSetting = typeof appSettings.$inferSelect;
+export type NewAppSetting = typeof appSettings.$inferInsert;
+
+export type StudentXpLedger = typeof studentXpLedger.$inferSelect;
+export type NewStudentXpLedger = typeof studentXpLedger.$inferInsert;
+
+export type StudentStreak = typeof studentStreaks.$inferSelect;
+export type NewStudentStreak = typeof studentStreaks.$inferInsert;
+
+export type StudentBadge = typeof studentBadges.$inferSelect;
+export type NewStudentBadge = typeof studentBadges.$inferInsert;

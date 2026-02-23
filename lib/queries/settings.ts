@@ -7,6 +7,11 @@ import {
   type LessonMoodOption,
   normalizeLessonMoodOptions,
 } from "@/lib/lesson-moods";
+import {
+  DEFAULT_REWARD_TEMPLATES,
+  normalizeRewardTemplates,
+  type RewardTemplate,
+} from "@/lib/rewards/templates";
 
 export async function getSetting(key: string): Promise<string | null> {
   const db = getDb();
@@ -90,5 +95,16 @@ export async function getCustomMoods(): Promise<LessonMoodOption[]> {
     return normalizeLessonMoodOptions(parsed);
   } catch {
     return DEFAULT_LESSON_MOODS;
+  }
+}
+
+export async function getRewardTemplates(): Promise<RewardTemplate[]> {
+  const value = await getSetting("rewardTemplates");
+  if (!value) return DEFAULT_REWARD_TEMPLATES;
+  try {
+    const parsed = JSON.parse(value);
+    return normalizeRewardTemplates(parsed);
+  } catch {
+    return DEFAULT_REWARD_TEMPLATES;
   }
 }
