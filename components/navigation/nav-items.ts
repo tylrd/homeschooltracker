@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   ClipboardList,
   FolderOpen,
+  Gift,
   Users,
 } from "lucide-react";
 
@@ -20,5 +21,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/documents", label: "Docs", icon: FolderOpen },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/attendance", label: "Attendance", icon: ClipboardList },
+  { href: "/rewards", label: "Rewards", icon: Gift },
   { href: "/students", label: "Students", icon: Users },
 ];

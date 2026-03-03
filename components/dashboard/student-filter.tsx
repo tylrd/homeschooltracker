@@ -14,10 +14,12 @@ export function StudentFilter({
   students,
   activeStudentId,
   basePath = "/dashboard",
+  showAllOption = true,
 }: {
   students: FilterStudent[];
   activeStudentId?: string;
   basePath?: string;
+  showAllOption?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,18 +37,20 @@ export function StudentFilter({
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
-      <button
-        type="button"
-        onClick={() => handleSelect(undefined)}
-        className={cn(
-          "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-          !activeStudentId
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground hover:text-foreground",
-        )}
-      >
-        All
-      </button>
+      {showAllOption && (
+        <button
+          type="button"
+          onClick={() => handleSelect(undefined)}
+          className={cn(
+            "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+            !activeStudentId
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:text-foreground",
+          )}
+        >
+          All
+        </button>
+      )}
       {students.map((student) => {
         const colors = getColorClasses(student.color);
         const isActive = activeStudentId === student.id;

@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   customType,
@@ -26,6 +26,24 @@ export const schoolDocumentTypeEnum = pgEnum("school_document_type", [
   "weekly_plan",
   "curriculum_outline",
   "pacing_calendar",
+]);
+
+export const xpEventTypeEnum = pgEnum("xp_event_type", [
+  "lesson_completion",
+  "lesson_completion_reversal",
+  "shared_lesson_completion",
+  "shared_lesson_completion_reversal",
+  "streak_bonus",
+  "daily_reward",
+  "reward_redemption",
+  "reward_refund",
+]);
+
+export const rewardRedemptionStatusEnum = pgEnum("reward_redemption_status", [
+  "pending",
+  "approved",
+  "cancelled",
+  "fulfilled",
 ]);
 
 export const BOOTSTRAP_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001";
@@ -842,6 +860,231 @@ export const appSettings = pgTable(
   ],
 );
 
+export const studentXpLedger = pgTable(
+  "student_xp_ledger",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    eventType: xpEventTypeEnum("event_type").notNull(),
+    points: integer().notNull(),
+    eventDate: date("event_date").notNull(),
+    lessonId: uuid("lesson_id").references(() => lessons.id, {
+      onDelete: "set null",
+    }),
+    sharedLessonId: uuid("shared_lesson_id").references(
+      () => sharedLessons.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    metadata: jsonb(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("student_xp_ledger_organization_id_idx").on(table.organizationId),
+    index("student_xp_ledger_student_id_idx").on(table.studentId),
+    index("student_xp_ledger_lesson_id_idx").on(table.lessonId),
+    index("student_xp_ledger_shared_lesson_id_idx").on(table.sharedLessonId),
+    index("student_xp_ledger_org_student_event_date_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.eventDate,
+    ),
+    index("student_xp_ledger_org_student_created_at_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.createdAt,
+    ),
+    index("student_xp_ledger_org_event_type_event_date_idx").on(
+      table.organizationId,
+      table.eventType,
+      table.eventDate,
+    ),
+  ],
+);
+
+export const studentStreaks = pgTable(
+  "student_streaks",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    currentStreak: integer("current_streak").notNull().default(0),
+    longestStreak: integer("longest_streak").notNull().default(0),
+    lastRewardDate: date("last_reward_date"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("student_streaks_organization_id_idx").on(table.organizationId),
+    index("student_streaks_student_id_idx").on(table.studentId),
+    uniqueIndex("student_streaks_organization_student_unique_idx").on(
+      table.organizationId,
+      table.studentId,
+    ),
+  ],
+);
+
+export const studentBadges = pgTable(
+  "student_badges",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    badgeKey: text("badge_key").notNull(),
+    milestoneDays: integer("milestone_days").notNull(),
+    earnedDate: date("earned_date").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("student_badges_organization_id_idx").on(table.organizationId),
+    index("student_badges_student_id_idx").on(table.studentId),
+    uniqueIndex("student_badges_organization_student_badge_key_unique_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.badgeKey,
+    ),
+  ],
+);
+
+export const studentRewardRedemptions = pgTable(
+  "student_reward_redemptions",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    rewardTemplateId: text("reward_template_id").notNull(),
+    rewardNameSnapshot: text("reward_name_snapshot").notNull(),
+    xpCostSnapshot: integer("xp_cost_snapshot").notNull(),
+    descriptionSnapshot: text("description_snapshot"),
+    status: rewardRedemptionStatusEnum().notNull().default("pending"),
+    requestedAt: timestamp("requested_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    fulfilledAt: timestamp("fulfilled_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    notes: text(),
+  },
+  (table) => [
+    index("student_reward_redemptions_organization_id_idx").on(
+      table.organizationId,
+    ),
+    index("student_reward_redemptions_student_id_idx").on(table.studentId),
+    index("student_reward_redemptions_org_student_status_requested_at_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.status,
+      table.requestedAt,
+    ),
+    index("student_reward_redemptions_org_status_requested_at_idx").on(
+      table.organizationId,
+      table.status,
+      table.requestedAt,
+    ),
+    index("student_reward_redemptions_org_student_requested_at_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.requestedAt,
+    ),
+    uniqueIndex(
+      "student_reward_redemptions_org_student_template_active_unique_idx",
+    )
+      .on(table.organizationId, table.studentId, table.rewardTemplateId)
+      .where(sql`${table.status} in ('pending', 'approved')`),
+  ],
+);
+
+export const studentRpgProgress = pgTable(
+  "student_rpg_progress",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    level: integer().notNull().default(1),
+    prestigeCount: integer("prestige_count").notNull().default(0),
+    perkSlots: integer("perk_slots").notNull().default(3),
+    perkPoints: integer("perk_points").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("student_rpg_progress_organization_id_idx").on(table.organizationId),
+    index("student_rpg_progress_student_id_idx").on(table.studentId),
+    uniqueIndex("student_rpg_progress_organization_student_unique_idx").on(
+      table.organizationId,
+      table.studentId,
+    ),
+  ],
+);
+
+export const studentPerks = pgTable(
+  "student_perks",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    perkKey: text("perk_key").notNull(),
+    isEquipped: boolean("is_equipped").notNull().default(false),
+    unlockedAt: timestamp("unlocked_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    equippedAt: timestamp("equipped_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("student_perks_organization_id_idx").on(table.organizationId),
+    index("student_perks_student_id_idx").on(table.studentId),
+    index("student_perks_org_student_equipped_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.isEquipped,
+    ),
+    uniqueIndex("student_perks_organization_student_perk_key_unique_idx").on(
+      table.organizationId,
+      table.studentId,
+      table.perkKey,
+    ),
+  ],
+);
+
 // ── Relations ──────────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -878,6 +1121,12 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   globalAbsences: many(globalAbsences),
   appSettings: many(appSettings),
   curriculumImages: many(curriculumImages),
+  studentXpLedger: many(studentXpLedger),
+  studentStreaks: many(studentStreaks),
+  studentBadges: many(studentBadges),
+  studentRewardRedemptions: many(studentRewardRedemptions),
+  studentRpgProgress: many(studentRpgProgress),
+  studentPerks: many(studentPerks),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -963,6 +1212,12 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   absences: many(absences),
   sharedCurriculumMemberships: many(sharedCurriculumStudents),
   schoolDocumentMemberships: many(schoolDocumentStudents),
+  xpLedgerEntries: many(studentXpLedger),
+  streaks: many(studentStreaks),
+  badges: many(studentBadges),
+  rewardRedemptions: many(studentRewardRedemptions),
+  rpgProgress: many(studentRpgProgress),
+  perks: many(studentPerks),
 }));
 
 export const subjectsRelations = relations(subjects, ({ one, many }) => ({
@@ -1004,6 +1259,7 @@ export const lessonsRelations = relations(lessons, ({ one, many }) => ({
     references: [resources.id],
   }),
   workSamples: many(lessonWorkSamples),
+  xpLedgerEntries: many(studentXpLedger),
 }));
 
 export const sharedCurriculaRelations = relations(
@@ -1119,6 +1375,7 @@ export const sharedLessonsRelations = relations(
       references: [sharedCurricula.id],
     }),
     workSamples: many(sharedLessonWorkSamples),
+    xpLedgerEntries: many(studentXpLedger),
   }),
 );
 
@@ -1221,6 +1478,89 @@ export const appSettingsRelations = relations(appSettings, ({ one }) => ({
   }),
 }));
 
+export const studentXpLedgerRelations = relations(
+  studentXpLedger,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [studentXpLedger.organizationId],
+      references: [organizations.id],
+    }),
+    student: one(students, {
+      fields: [studentXpLedger.studentId],
+      references: [students.id],
+    }),
+    lesson: one(lessons, {
+      fields: [studentXpLedger.lessonId],
+      references: [lessons.id],
+    }),
+    sharedLesson: one(sharedLessons, {
+      fields: [studentXpLedger.sharedLessonId],
+      references: [sharedLessons.id],
+    }),
+  }),
+);
+
+export const studentStreaksRelations = relations(studentStreaks, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [studentStreaks.organizationId],
+    references: [organizations.id],
+  }),
+  student: one(students, {
+    fields: [studentStreaks.studentId],
+    references: [students.id],
+  }),
+}));
+
+export const studentBadgesRelations = relations(studentBadges, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [studentBadges.organizationId],
+    references: [organizations.id],
+  }),
+  student: one(students, {
+    fields: [studentBadges.studentId],
+    references: [students.id],
+  }),
+}));
+
+export const studentRewardRedemptionsRelations = relations(
+  studentRewardRedemptions,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [studentRewardRedemptions.organizationId],
+      references: [organizations.id],
+    }),
+    student: one(students, {
+      fields: [studentRewardRedemptions.studentId],
+      references: [students.id],
+    }),
+  }),
+);
+
+export const studentRpgProgressRelations = relations(
+  studentRpgProgress,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [studentRpgProgress.organizationId],
+      references: [organizations.id],
+    }),
+    student: one(students, {
+      fields: [studentRpgProgress.studentId],
+      references: [students.id],
+    }),
+  }),
+);
+
+export const studentPerksRelations = relations(studentPerks, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [studentPerks.organizationId],
+    references: [organizations.id],
+  }),
+  student: one(students, {
+    fields: [studentPerks.studentId],
+    references: [students.id],
+  }),
+}));
+
 // ── Inferred Types ─────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -1315,3 +1655,24 @@ export type GlobalAbsence = typeof globalAbsences.$inferSelect;
 export type NewGlobalAbsence = typeof globalAbsences.$inferInsert;
 
 export type AppSetting = typeof appSettings.$inferSelect;
+export type NewAppSetting = typeof appSettings.$inferInsert;
+
+export type StudentXpLedger = typeof studentXpLedger.$inferSelect;
+export type NewStudentXpLedger = typeof studentXpLedger.$inferInsert;
+
+export type StudentStreak = typeof studentStreaks.$inferSelect;
+export type NewStudentStreak = typeof studentStreaks.$inferInsert;
+
+export type StudentBadge = typeof studentBadges.$inferSelect;
+export type NewStudentBadge = typeof studentBadges.$inferInsert;
+
+export type StudentRewardRedemption =
+  typeof studentRewardRedemptions.$inferSelect;
+export type NewStudentRewardRedemption =
+  typeof studentRewardRedemptions.$inferInsert;
+
+export type StudentRpgProgress = typeof studentRpgProgress.$inferSelect;
+export type NewStudentRpgProgress = typeof studentRpgProgress.$inferInsert;
+
+export type StudentPerk = typeof studentPerks.$inferSelect;
+export type NewStudentPerk = typeof studentPerks.$inferInsert;

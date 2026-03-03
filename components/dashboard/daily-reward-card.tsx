@@ -16,6 +16,9 @@ type DailyRewardCardProps = {
   isEligible: boolean;
   isTracked: boolean;
   points: number;
+  projectedPoints: number;
+  modifierName: string;
+  modifierDescription: string;
 };
 
 export function DailyRewardCard({
@@ -27,6 +30,9 @@ export function DailyRewardCard({
   isEligible,
   isTracked,
   points,
+  projectedPoints,
+  modifierName,
+  modifierDescription,
 }: DailyRewardCardProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -40,6 +46,7 @@ export function DailyRewardCard({
       ? "Unlocked"
       : "Locked";
   const summary = `${completedLessons}/${totalLessons} lessons · ${completedStudents}/${studentsWithLessons} students`;
+  const displayPoints = isTracked ? points : projectedPoints;
 
   return (
     <section
@@ -58,6 +65,12 @@ export function DailyRewardCard({
             <p className="truncate text-xs font-medium">{statusLabel}</p>
           </div>
           <p className="truncate text-xs text-muted-foreground">{summary}</p>
+          <p
+            className="truncate text-[11px] text-muted-foreground"
+            title={modifierDescription}
+          >
+            Modifier: {modifierName}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {isTracked ? (
@@ -78,11 +91,11 @@ export function DailyRewardCard({
             }
           >
             {isTracked
-              ? `+${points} Tracked`
+              ? `+${displayPoints} Tracked`
               : isPending
                 ? "Tracking..."
                 : isEligible
-                  ? `Track +${points}`
+                  ? `Track +${displayPoints}`
                   : "Locked"}
           </Button>
         </div>

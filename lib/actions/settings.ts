@@ -8,6 +8,10 @@ import {
   type LessonMoodOption,
   normalizeLessonMoodOptions,
 } from "@/lib/lesson-moods";
+import {
+  normalizeRewardTemplates,
+  type RewardTemplate,
+} from "@/lib/rewards/templates";
 
 export async function setSetting(key: string, value: string) {
   const db = getDb();
@@ -66,4 +70,9 @@ export async function setShowDailyLogNotes(show: boolean) {
 export async function setCustomMoods(moods: LessonMoodOption[]) {
   const sanitized = normalizeLessonMoodOptions(moods);
   await setSetting("customMoods", JSON.stringify(sanitized));
+}
+
+export async function setRewardTemplates(templates: RewardTemplate[]) {
+  const sanitized = normalizeRewardTemplates(templates);
+  await setSetting("rewardTemplates", JSON.stringify(sanitized));
 }

@@ -1,10 +1,11 @@
 "use server";
 
-import { and, asc, eq, gt, gte, inArray, max } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, max, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import {
   curriculumImages,
+  sharedCurriculumStudents,
   sharedLessons,
   sharedLessonWorkSamples,
 } from "@/db/schema";
@@ -17,6 +18,10 @@ import {
 } from "@/lib/dates";
 import { validateImageFile } from "@/lib/images/validation";
 import { getBumpBehavior, getSchoolDays } from "@/lib/queries/settings";
+import {
+  awardSharedLessonCompletion,
+  reverseSharedLessonCompletion,
+} from "@/lib/rewards/xp";
 import { getImageStore } from "@/lib/storage/image-store";
 
 export async function batchCreateSharedLessons(
@@ -100,15 +105,46 @@ export async function completeSharedLesson(sharedLessonId: string) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
   const today = toDateString(new Date());
-  await db
-    .update(sharedLessons)
-    .set({ status: "completed", completionDate: today })
-    .where(
-      and(
-        eq(sharedLessons.id, sharedLessonId),
-        eq(sharedLessons.organizationId, organizationId),
-      ),
-    );
+  await db.transaction(async (tx) => {
+    const [completedLesson] = await tx
+      .update(sharedLessons)
+      .set({ status: "completed", completionDate: today })
+      .where(
+        and(
+          eq(sharedLessons.id, sharedLessonId),
+          eq(sharedLessons.organizationId, organizationId),
+          ne(sharedLessons.status, "completed"),
+        ),
+      )
+      .returning({
+        id: sharedLessons.id,
+        sharedCurriculumId: sharedLessons.sharedCurriculumId,
+      });
+
+    if (!completedLesson) return;
+
+    const studentRows = await tx
+      .select({ studentId: sharedCurriculumStudents.studentId })
+      .from(sharedCurriculumStudents)
+      .where(
+        and(
+          eq(sharedCurriculumStudents.organizationId, organizationId),
+          eq(
+            sharedCurriculumStudents.sharedCurriculumId,
+            completedLesson.sharedCurriculumId,
+          ),
+        ),
+      );
+
+    for (const row of studentRows) {
+      await awardSharedLessonCompletion(tx, {
+        organizationId,
+        sharedLessonId: completedLesson.id,
+        studentId: row.studentId,
+        date: today,
+      });
+    }
+  });
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -119,15 +155,47 @@ export async function completeSharedLesson(sharedLessonId: string) {
 export async function uncompleteSharedLesson(sharedLessonId: string) {
   const db = getDb();
   const { organizationId } = await getTenantContext();
-  await db
-    .update(sharedLessons)
-    .set({ status: "planned", completionDate: null })
-    .where(
-      and(
-        eq(sharedLessons.id, sharedLessonId),
-        eq(sharedLessons.organizationId, organizationId),
-      ),
-    );
+  const today = toDateString(new Date());
+  await db.transaction(async (tx) => {
+    const [uncompletedLesson] = await tx
+      .update(sharedLessons)
+      .set({ status: "planned", completionDate: null })
+      .where(
+        and(
+          eq(sharedLessons.id, sharedLessonId),
+          eq(sharedLessons.organizationId, organizationId),
+          eq(sharedLessons.status, "completed"),
+        ),
+      )
+      .returning({
+        id: sharedLessons.id,
+        sharedCurriculumId: sharedLessons.sharedCurriculumId,
+      });
+
+    if (!uncompletedLesson) return;
+
+    const studentRows = await tx
+      .select({ studentId: sharedCurriculumStudents.studentId })
+      .from(sharedCurriculumStudents)
+      .where(
+        and(
+          eq(sharedCurriculumStudents.organizationId, organizationId),
+          eq(
+            sharedCurriculumStudents.sharedCurriculumId,
+            uncompletedLesson.sharedCurriculumId,
+          ),
+        ),
+      );
+
+    for (const row of studentRows) {
+      await reverseSharedLessonCompletion(tx, {
+        organizationId,
+        sharedLessonId: uncompletedLesson.id,
+        studentId: row.studentId,
+        date: today,
+      });
+    }
+  });
 
   revalidatePath("/");
   revalidatePath("/shelf");
@@ -222,15 +290,54 @@ export async function bulkCompleteSharedLessons(sharedLessonIds: string[]) {
   const { organizationId } = await getTenantContext();
   const today = toDateString(new Date());
 
-  await db
-    .update(sharedLessons)
-    .set({ status: "completed", completionDate: today })
-    .where(
-      and(
-        eq(sharedLessons.organizationId, organizationId),
-        inArray(sharedLessons.id, ids),
-      ),
-    );
+  await db.transaction(async (tx) => {
+    const completedRows = await tx
+      .update(sharedLessons)
+      .set({ status: "completed", completionDate: today })
+      .where(
+        and(
+          eq(sharedLessons.organizationId, organizationId),
+          inArray(sharedLessons.id, ids),
+          ne(sharedLessons.status, "completed"),
+        ),
+      )
+      .returning({ id: sharedLessons.id });
+
+    if (completedRows.length === 0) return;
+
+    const completedLessonIds = completedRows.map((row) => row.id);
+    const enrollmentRows = await tx
+      .select({
+        sharedLessonId: sharedLessons.id,
+        studentId: sharedCurriculumStudents.studentId,
+      })
+      .from(sharedLessons)
+      .innerJoin(
+        sharedCurriculumStudents,
+        and(
+          eq(
+            sharedCurriculumStudents.sharedCurriculumId,
+            sharedLessons.sharedCurriculumId,
+          ),
+          eq(sharedCurriculumStudents.organizationId, organizationId),
+        ),
+      )
+      .where(
+        and(
+          eq(sharedLessons.organizationId, organizationId),
+          inArray(sharedLessons.id, completedLessonIds),
+        ),
+      );
+
+    for (const row of enrollmentRows) {
+      await awardSharedLessonCompletion(tx, {
+        organizationId,
+        sharedLessonId: row.sharedLessonId,
+        studentId: row.studentId,
+        date: today,
+      });
+    }
+  });
 
   revalidatePath("/");
   revalidatePath("/shelf");
