@@ -99,6 +99,27 @@
       "when": 1775116800000,
       "tag": "0013_rpg_rewards_phase1",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1775203200000,
+      "tag": "0014_rpg_reward_redemptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1775289600000,
+      "tag": "0015_daily_reward_xp_event_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1775376000000,
+      "tag": "0016_student_levels_and_perks",
+      "breakpoints": true
     }
   ]
 }

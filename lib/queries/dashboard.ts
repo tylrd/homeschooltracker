@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   absenceReasons,
@@ -12,7 +12,10 @@ import {
   sharedCurriculumStudents,
   sharedLessons,
   sharedLessonWorkSamples,
+  studentBadges,
+  studentStreaks,
   students,
+  studentXpLedger,
   subjects,
 } from "@/db/schema";
 import { getTenantContext } from "@/lib/auth/session";
@@ -272,10 +275,83 @@ export async function getTodayNotes(date: string) {
 export async function getStudentsForFilter() {
   const db = getDb();
   const { organizationId } = await getTenantContext();
-  return db.query.students.findMany({
+
+  const studentRows = await db.query.students.findMany({
     where: eq(students.organizationId, organizationId),
+    columns: {
+      id: true,
+      name: true,
+      color: true,
+    },
     orderBy: (students, { asc }) => [asc(students.name)],
   });
+
+  if (studentRows.length === 0) return [];
+
+  const studentIds = studentRows.map((row) => row.id);
+  const [xpRows, streakRows, badgeRows] = await Promise.all([
+    db
+      .select({
+        studentId: studentXpLedger.studentId,
+        xpBalance:
+          sql<number>`coalesce(sum(${studentXpLedger.points}), 0)`.mapWith(
+            Number,
+          ),
+      })
+      .from(studentXpLedger)
+      .where(
+        and(
+          eq(studentXpLedger.organizationId, organizationId),
+          inArray(studentXpLedger.studentId, studentIds),
+        ),
+      )
+      .groupBy(studentXpLedger.studentId),
+    db.query.studentStreaks.findMany({
+      where: and(
+        eq(studentStreaks.organizationId, organizationId),
+        inArray(studentStreaks.studentId, studentIds),
+      ),
+      columns: {
+        studentId: true,
+        currentStreak: true,
+      },
+    }),
+    db.query.studentBadges.findMany({
+      where: and(
+        eq(studentBadges.organizationId, organizationId),
+        inArray(studentBadges.studentId, studentIds),
+      ),
+      columns: {
+        studentId: true,
+        badgeKey: true,
+      },
+      orderBy: (table) => [desc(table.earnedDate), desc(table.createdAt)],
+    }),
+  ]);
+
+  const xpByStudent = new Map<string, number>();
+  for (const row of xpRows) {
+    xpByStudent.set(row.studentId, row.xpBalance);
+  }
+
+  const streakByStudent = new Map<string, number>();
+  for (const row of streakRows) {
+    streakByStudent.set(row.studentId, row.currentStreak);
+  }
+
+  const badgeByStudent = new Map<string, string>();
+  for (const row of badgeRows) {
+    if (!badgeByStudent.has(row.studentId)) {
+      badgeByStudent.set(row.studentId, row.badgeKey);
+    }
+  }
+
+  return studentRows.map((student) => ({
+    ...student,
+    xpBalance: xpByStudent.get(student.id) ?? 0,
+    currentStreak: streakByStudent.get(student.id) ?? 0,
+    newestBadgeKey: badgeByStudent.get(student.id) ?? null,
+  }));
 }
 
 export async function getAbsencesForDate(date: string) {

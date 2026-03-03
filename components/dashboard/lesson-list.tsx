@@ -100,6 +100,9 @@ type StudentSummary = {
   id: string;
   name: string;
   color: string;
+  xpBalance?: number;
+  currentStreak?: number;
+  newestBadgeKey?: string | null;
 };
 
 type DailyReward = {
@@ -111,6 +114,9 @@ type DailyReward = {
   isEligible: boolean;
   isTracked: boolean;
   points: number;
+  projectedPoints: number;
+  modifierName: string;
+  modifierDescription: string;
 };
 
 export function LessonList({
@@ -146,6 +152,15 @@ export function LessonList({
   isStudentFiltered?: boolean;
   dailyReward?: DailyReward;
 }) {
+  function formatBadgeLabel(badgeKey: string | null | undefined) {
+    if (!badgeKey) return null;
+    if (badgeKey.startsWith("streak_")) {
+      const days = badgeKey.replace("streak_", "");
+      return `${days}-day badge`;
+    }
+    return badgeKey.replace(/_/g, " ");
+  }
+
   const sharedLessonView = defaultSharedLessonView;
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [hidingStudents, setHidingStudents] = useState<Set<string>>(new Set());
@@ -255,13 +270,23 @@ export function LessonList({
 
   const byStudent = new Map<
     string,
-    { name: string; color: string; lessons: UnifiedLesson[] }
+    {
+      name: string;
+      color: string;
+      lessons: UnifiedLesson[];
+      xpBalance: number;
+      currentStreak: number;
+      newestBadgeKey: string | null;
+    }
   >();
   for (const student of allStudents) {
     byStudent.set(student.id, {
       name: student.name,
       color: student.color,
       lessons: [],
+      xpBalance: student.xpBalance ?? 0,
+      currentStreak: student.currentStreak ?? 0,
+      newestBadgeKey: student.newestBadgeKey ?? null,
     });
   }
   for (const lesson of mergedLessons) {
@@ -273,6 +298,9 @@ export function LessonList({
         name: lesson.studentName,
         color: lesson.studentColor,
         lessons: [lesson],
+        xpBalance: 0,
+        currentStreak: 0,
+        newestBadgeKey: null,
       });
     }
   }
@@ -321,6 +349,9 @@ export function LessonList({
               isEligible={dailyReward.isEligible}
               isTracked={dailyReward.isTracked}
               points={dailyReward.points}
+              projectedPoints={dailyReward.projectedPoints}
+              modifierName={dailyReward.modifierName}
+              modifierDescription={dailyReward.modifierDescription}
             />
           )}
         </div>
@@ -434,6 +465,7 @@ export function LessonList({
           : Array.from(byStudent.entries()).map(([studentId, group]) => {
               const absence = absenceMap[studentId];
               const studentShow = overrides[studentId] ?? defaultShowCompleted;
+              const newestBadgeLabel = formatBadgeLabel(group.newestBadgeKey);
 
               const filteredLessons = group.lessons.filter((lesson) => {
                 if (
@@ -459,6 +491,17 @@ export function LessonList({
                       }
                       /{group.lessons.length}
                     </span>
+                    <span className="rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
+                      {group.xpBalance} XP
+                    </span>
+                    <span className="rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
+                      {group.currentStreak}d streak
+                    </span>
+                    {newestBadgeLabel && (
+                      <span className="rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
+                        {newestBadgeLabel}
+                      </span>
+                    )}
                     {absence && (
                       <span
                         className={cn(

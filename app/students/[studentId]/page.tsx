@@ -9,6 +9,7 @@ import { DeleteResourceButton } from "@/components/students/delete-resource-butt
 import { DeleteStudentButton } from "@/components/students/delete-student-button";
 import { DeleteSubjectButton } from "@/components/students/delete-subject-button";
 import { ResourceForm } from "@/components/students/resource-form";
+import { RewardRedemptionsPanel } from "@/components/students/reward-redemptions-panel";
 import { SharedCurriculumMemberships } from "@/components/students/shared-curriculum-memberships";
 import { StudentForm } from "@/components/students/student-form";
 import { SubjectForm } from "@/components/students/subject-form";
@@ -17,6 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { requireAppRouteAccess } from "@/lib/auth/session";
+import {
+  getStudentRedemptions,
+  getStudentXpBalance,
+} from "@/lib/queries/rewards";
+import { getRewardTemplates } from "@/lib/queries/settings";
 import { getSharedCurriculumMembershipOptionsForStudent } from "@/lib/queries/shared-curricula";
 import { getStudentWithSubjectsAndResources } from "@/lib/queries/students";
 
@@ -36,6 +42,12 @@ export default async function StudentDetailPage({
   if (!student) {
     notFound();
   }
+
+  const [rewardTemplates, xpBalance, redemptions] = await Promise.all([
+    getRewardTemplates(),
+    getStudentXpBalance(student.id),
+    getStudentRedemptions(student.id),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -64,6 +76,18 @@ export default async function StudentDetailPage({
         studentId={student.id}
         options={sharedMembershipOptions}
       />
+
+      <Separator />
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Rewards</h2>
+        <RewardRedemptionsPanel
+          studentId={student.id}
+          xpBalance={xpBalance}
+          templates={rewardTemplates}
+          redemptions={redemptions}
+        />
+      </div>
 
       <Separator />
 
